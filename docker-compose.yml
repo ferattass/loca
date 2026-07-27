@@ -1,0 +1,129 @@
+name: loca
+
+# Altyapi servisleri varsayilan olarak acilir:
+#   docker compose up -d
+#
+# API ve web, projeler olusturulduktan sonra "app" profiliyle acilir:
+#   docker compose --profile app up -d
+# Boylece Dockerfile'lar hazir olmadan da veritabani ve Redis ayakta olur.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: loca-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [loca-net]
+
+  redis:
+    image: redis:7-alpine
+    container_name: loca-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [loca-net]
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: loca-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [loca-net]
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: loca-redisinsight
+    ports:
+      - "5540:5540"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [loca-net]
+
+  # Yerel e-posta yakalayici. Gercek SMTP kullanilmaz;
+  # gonderilen tum postalar http://localhost:8025 arayuzunde birikir.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: loca-mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks: [loca-net]
+
+  api:
+    profiles: [app]
+    build:
+      context: .
+      dockerfile: src/Loca.WebApi/Dockerfile
+    container_name: loca-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: ${DB_CONNECTION_STRING}
+      ConnectionStrings__Redis: ${REDIS_CONNECTION_STRING}
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES}
+      Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS}
+      Smtp__Host: mailpit
+      Smtp__Port: 1025
+      Smtp__From: ${SMTP_FROM}
+      Storage__Path: /app/uploads
+      App__BaseUrl: ${APP_BASE_URL}
+      App__WebUrl: ${WEB_BASE_URL}
+    ports:
+      - "5000:8080"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [loca-net]
+
+  web:
+    profiles: [app]
+    build:
+      context: ./web
+    container_name: loca-web
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    networks: [loca-net]
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+
+networks:
+  loca-net:
+    driver: bridge
