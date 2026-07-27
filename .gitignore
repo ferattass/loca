@@ -1,0 +1,52 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+*.swp
+
+# Rider
+.idea/
+*.sln.iml
+
+# Build
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+publish/
+TestResults/
+coverage/
+*.coverage
+*.trx
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+npm-debug.log*
+yarn-error.log*
+
+# Ortam degiskenleri — gercek secret asla depoya girmez
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Yuklenen dosyalar
+uploads/
+wwwroot/uploads/
+
+# Log
+logs/
+*.log
+
+# Isletim sistemi
+Thumbs.db
+.DS_Store
+desktop.ini
