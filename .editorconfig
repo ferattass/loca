@@ -52,3 +52,16 @@ dotnet_diagnostic.CA2007.severity = none
 
 # Turkce karakter iceren tanimlayici kullanilmasin (dosya sistemi ve arac uyumu)
 dotnet_diagnostic.CA1707.severity = warning
+
+# ---------------------------------------------------------------------------
+# EF Core'un urettigi migration dosyalari
+#
+# Bu dosyalari el yazmiyor, "dotnet ef migrations add" uretiyor. El yazimi koda
+# yonelik tasarim kurallarinin burada karsiligi yok: ornegin CA1861 (sabit dizi
+# yerine static readonly alan kullan) uretilen tohum verisine takiliyor ve
+# TreatWarningsAsErrors acik oldugu icin derlemeyi kiriyor. Uretilen koda
+# mudahale etmek yerine dosyalar "uretilmis" olarak isaretlendi.
+# ---------------------------------------------------------------------------
+[**/Migrations/*.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none

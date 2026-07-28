@@ -1,12 +1,64 @@
 @host = http://localhost:5000
+@api = {{host}}/api/v1
 
 ### Servis ayakta mi
-GET {{host}}/api/v1/ping
+GET {{api}}/ping
 Accept: application/json
 
 ### Saglik kontrolu — veritabani ve Redis kontrolleri Gun 9'da eklenecek
 GET {{host}}/health
 
+### Kayit — basarili olursa access + refresh token doner
+# @name register
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "deneme@loca.dev",
+  "password": "Sifre1234",
+  "fullName": "Deneme Kullanici",
+  "phoneNumber": "+90 555 000 00 00"
+}
+
+### Giris
+# @name login
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "deneme@loca.dev",
+  "password": "Sifre1234"
+}
+
+### Token'in sahibi kim (yetki gerektirir)
+GET {{api}}/auth/me
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Token yenileme — eski refresh token iptal edilir, yenisi verilir
+# @name refresh
+POST {{api}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.refreshToken}}"
+}
+
+### Yeniden kullanim tespiti: yukaridaki istegi IKINCI kez calistir.
+# Beklenen: 401 ve kullanicinin TUM oturumlarinin kapanmasi.
+# Ardindan /auth/me de 401 donmeli.
+
+### Cikis
+POST {{api}}/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refresh.response.body.refreshToken}}"
+}
+
+### Yetkisiz erisim: token olmadan /me — 401 donmeli
+GET {{api}}/auth/me
+Accept: application/json
+
 ### Tanimsiz yol: Problem Details formatinda 404 donmeli
-GET {{host}}/api/v1/olmayan-yol
+GET {{api}}/olmayan-yol
 Accept: application/json

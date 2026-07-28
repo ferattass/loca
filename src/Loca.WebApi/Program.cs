@@ -1,5 +1,17 @@
+using System.Text;
 using Loca.Application;
+using Loca.Application.Common.Authentication;
+using Loca.Application.Common.Interfaces;
+using Loca.Domain.Constants;
+using Loca.Infrastructure;
+using Loca.Infrastructure.Authentication;
+using Loca.Persistence;
+using Loca.WebApi.Authorization;
 using Loca.WebApi.Middleware;
+using Loca.WebApi.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +22,65 @@ builder.Services.AddSwaggerGen();
 // MediatR, pipeline davranislari ve FluentValidation dogrulayicilari.
 // Katmanin ic yapisi burada bilinmez; kayit sorumlulugu katmanin kendisinde.
 builder.Services.AddApplication();
+
+builder.Services.AddInfrastructure(builder.Configuration);
+
+builder.Services.AddPersistence(
+    builder.Configuration.GetConnectionString("Default")
+    ?? throw new InvalidOperationException(
+        "ConnectionStrings:Default tanimli degil. Gelistirmede user-secrets, " +
+        "konteynerde ConnectionStrings__Default ortam degiskeni kullanilir."));
+
+// Istegi yapan kullanicinin kimligi HttpContext'ten okunur.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+// --- Kimlik dogrulama ---------------------------------------------------
+
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+    ?? throw new InvalidOperationException("Jwt yapilandirmasi bulunamadi.");
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // Claim adlari oldugu gibi okunur. Varsayilan esleme "sub" claim'ini
+        // uzun bir URI'ye cevirir ve token'i ureten tarafla okuyan taraf
+        // birbirini bulamaz.
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtOptions.Issuer,
+
+            ValidateAudience = true,
+            ValidAudience = jwtOptions.Audience,
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret)),
+
+            ValidateLifetime = true,
+
+            // Varsayilan tolerans 5 dakika. 15 dakikalik bir access token'da
+            // bu, omrun ucte birini uzatmak demek — sifira cekildi.
+            ClockSkew = TimeSpan.Zero,
+
+            NameClaimType = ClaimNames.Name,
+            RoleClaimType = ClaimNames.Role
+        };
+    });
+
+// --- Yetkilendirme ------------------------------------------------------
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Policies.AdminOnly, policy => policy.RequireRole(RoleNames.Admin))
+    .AddPolicy(Policies.OrganizerOnly, policy =>
+        policy.RequireRole(RoleNames.Organizer, RoleNames.Admin))
+    .AddPolicy(Policies.ResourceOwner, policy =>
+        policy.AddRequirements(new ResourceOwnerRequirement()));
+
+builder.Services.AddSingleton<IAuthorizationHandler, ResourceOwnerAuthorizationHandler>();
 
 // Hata yanitlari RFC 7807 Problem Details formatinda doner.
 // Correlation ID Gun 9'da eklenecek; simdilik istek yolu ve izleme kimligi yeterli.
@@ -48,6 +119,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors(WebCors);
+
+// Sira onemli: once "kimsin" (authentication), sonra "iznin var mi"
+// (authorization). Ters cevrilirse yetkilendirme heniz kimlik olusmadan calisir.
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Surec ayakta mi. Veritabani ve Redis kontrolleri Gun 9'da eklenecek.
 app.MapHealthChecks("/health");

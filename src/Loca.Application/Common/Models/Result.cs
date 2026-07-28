@@ -6,7 +6,13 @@ public enum ErrorType
     Validation,
     NotFound,
     Conflict,
+
+    /// <summary>Kimlik dogrulanamadi — 401. "Kim oldugunu bilmiyorum."</summary>
+    Unauthorized,
+
+    /// <summary>Kimlik biliniyor ama yetki yok — 403. "Kim oldugunu biliyorum, izin yok."</summary>
     Forbidden,
+
     Unexpected
 }
 
@@ -22,6 +28,7 @@ public sealed record Error(string Code, string Message, ErrorType Type)
     public static Error Validation(string code, string message) => new(code, message, ErrorType.Validation);
     public static Error NotFound(string code, string message) => new(code, message, ErrorType.NotFound);
     public static Error Conflict(string code, string message) => new(code, message, ErrorType.Conflict);
+    public static Error Unauthorized(string code, string message) => new(code, message, ErrorType.Unauthorized);
     public static Error Forbidden(string code, string message) => new(code, message, ErrorType.Forbidden);
 }
 
