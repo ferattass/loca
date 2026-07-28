@@ -1,0 +1,54 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+indent_size = 4
+
+[*.{json,yml,yaml,js,jsx,ts,tsx,css,html,md}]
+indent_size = 2
+
+[*.cs]
+
+# ---------------------------------------------------------------------------
+# Kapatilan analiz kurallari
+#
+# TreatWarningsAsErrors acik oldugu icin her kural derlemeyi kiriyor.
+# Asagidakiler KUTUPHANE yazarlarina yonelik tasarim kurallari; baska dillerden
+# tuketilmeyecek bir uygulama kodunda karsiligi yok. Kod tasarimini bu kurallara
+# gore bozmak yerine kurallar gerekcesiyle kapatildi.
+# ---------------------------------------------------------------------------
+
+# CA1716: Tip adi bir dilin ayrilmis kelimesiyle cakisiyor (VB'de "Error").
+# Result deseninde "Error" yerlesik ve okunabilir bir isim. Bu kod VB'den
+# tuketilmeyecek.
+dotnet_diagnostic.CA1716.severity = none
+
+# CA1000: Generic tipte statik uye bildirme.
+# PagedResult<T>.Empty gibi fabrika metotlari cagirma yerinde daha okunabilir.
+dotnet_diagnostic.CA1000.severity = none
+
+# CA1848: Yuksek performansli LoggerMessage delegeleri kullan.
+# Istek basina birkac log satiri icin gereksiz tören; gerekirse sicak yollarda
+# noktasal olarak uygulanir.
+dotnet_diagnostic.CA1848.severity = none
+
+# CA2007: await uzerinde ConfigureAwait(false) cagir.
+# ASP.NET Core'da SynchronizationContext yok, gereksiz.
+dotnet_diagnostic.CA2007.severity = none
+
+# ---------------------------------------------------------------------------
+# Bilincli olarak ACIK birakilanlar (hata olarak kalir)
+#   CA1062 - public metotlarda null argüman kontrolu
+#   CA2100 - SQL injection riski
+#   CA5350/CA5351 - zayif kriptografi
+#   CA1852 - miras alinmayan tipleri sealed yap
+# ---------------------------------------------------------------------------
+
+# Turkce karakter iceren tanimlayici kullanilmasin (dosya sistemi ve arac uyumu)
+dotnet_diagnostic.CA1707.severity = warning
