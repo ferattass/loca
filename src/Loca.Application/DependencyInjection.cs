@@ -1,5 +1,6 @@
 using FluentValidation;
 using Loca.Application.Common.Behaviors;
+using Loca.Application.Features.Auth.Common;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Loca.Application;
@@ -27,6 +28,10 @@ public static class DependencyInjection
         // Validator'lar elle kaydedilmez; yeni bir validator yazildiginda
         // kendiliginden devreye girsin diye assembly taranir.
         services.AddValidatorsFromAssembly(assembly);
+
+        // Ozellik ici yardimci servisler. Assembly taramasina girmedikleri icin
+        // acikca kaydedilir.
+        services.AddScoped<AuthTokenIssuer>();
 
         return services;
     }
