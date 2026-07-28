@@ -1,0 +1,20 @@
+<Project>
+
+  <!--
+    Tum projeler icin ortak ayarlar. Tek yerden yonetilir ki
+    yeni bir proje eklendiginde ayni kurallar kendiliginden gecerli olsun.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Null uyarilarini gormezden gelmek sonradan NullReferenceException
+         olarak geri donuyor; derleme zamaninda yakalanmasi tercih edildi. -->
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+  </PropertyGroup>
+
+</Project>
