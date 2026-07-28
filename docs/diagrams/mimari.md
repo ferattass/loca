@@ -249,7 +249,9 @@ Doğrulama katmanları birbirini tekrar etmez:
 
 ## 7. Hata → HTTP eşlemesi
 
-Tüm hata cevapları RFC 7807 Problem Details formatındadır. Eşleme tek yerde, `GlobalExceptionMiddleware` içinde durur.
+Tüm hata cevapları RFC 7807 Problem Details formatındadır. Eşleme tek yerde, `GlobalExceptionHandler` içinde durur.
+
+Bu sınıf ayrı bir middleware değil, `IExceptionHandler` uygulamasıdır: `UseExceptionHandler()` hattına takılır ve `AddProblemDetails` ile tanımlanan ortak alanlar (`traceId`, `instance`) cevaba kendiliğinden eklenir. Kendi log satırımızı yazdığımız için framework'ün `ExceptionHandlerMiddleware` kategorisi `appsettings.json`'da `None` seviyesine çekildi — aksi hâlde beklenen bir 409 bile ikinci kez `fail` olarak loglanıyordu.
 
 ```mermaid
 flowchart TD
