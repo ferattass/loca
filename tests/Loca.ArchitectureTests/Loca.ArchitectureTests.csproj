@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NetArchTest.Rules" Version="1.3.2" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
@@ -18,7 +19,16 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!--
+    Bes katmanin tamami acikca referans veriliyor. Yalnizca WebApi referans
+    edilseydi diger assembly'lere gecisli olarak yine ulasilirdi; ancak bu
+    testlerin konusu katmanlarin kendisi oldugu icin bagimlilik acik yazildi.
+  -->
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Loca.Domain\Loca.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Loca.Application\Loca.Application.csproj" />
+    <ProjectReference Include="..\..\src\Loca.Persistence\Loca.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Loca.Infrastructure\Loca.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Loca.WebApi\Loca.WebApi.csproj" />
   </ItemGroup>
 
