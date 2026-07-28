@@ -1,8 +1,15 @@
+using Loca.Application;
+using Loca.WebApi.Middleware;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// MediatR, pipeline davranislari ve FluentValidation dogrulayicilari.
+// Katmanin ic yapisi burada bilinmez; kayit sorumlulugu katmanin kendisinde.
+builder.Services.AddApplication();
 
 // Hata yanitlari RFC 7807 Problem Details formatinda doner.
 // Correlation ID Gun 9'da eklenecek; simdilik istek yolu ve izleme kimligi yeterli.
@@ -23,6 +30,9 @@ builder.Services.AddCors(options =>
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials()));
+
+// Yakalanmamis hatalari durum koduna cevirir. UseExceptionHandler hattina takilir.
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddHealthChecks();
 

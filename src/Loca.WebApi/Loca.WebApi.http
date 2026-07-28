@@ -1,0 +1,12 @@
+@host = http://localhost:5000
+
+### Servis ayakta mi
+GET {{host}}/api/v1/ping
+Accept: application/json
+
+### Saglik kontrolu — veritabani ve Redis kontrolleri Gun 9'da eklenecek
+GET {{host}}/health
+
+### Tanimsiz yol: Problem Details formatinda 404 donmeli
+GET {{host}}/api/v1/olmayan-yol
+Accept: application/json
