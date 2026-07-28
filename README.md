@@ -33,9 +33,40 @@ loca/
 
 ## Kurulum
 
+### 1. Altyapı
+
 ```bash
-cp .env.example .env
-docker compose up -d
+cp .env.example .env      # gerçek değerleri doldur
+docker compose up -d      # postgres, redis, pgadmin, redis insight, mailpit
+```
+
+### 2. Yerel geliştirme sırları
+
+API konteyner dışında çalıştırılırken bağlantı dizesi ve JWT anahtarı **user-secrets**'tan okunur. Bunlar depoya girmez:
+
+```bash
+dotnet user-secrets set "ConnectionStrings:Default" \
+  "Host=localhost;Port=5432;Database=loca;Username=loca_user;Password=<.env'deki değer>" \
+  --project src/Loca.WebApi
+
+dotnet user-secrets set "Jwt:Secret" "<en az 32 karakter>" --project src/Loca.WebApi
+```
+
+Konteynerde çalışırken aynı değerler `ConnectionStrings__Default` ve `Jwt__Secret` ortam değişkenlerinden gelir; `docker-compose.yml` bunları `.env`'den aktarır.
+
+### 3. Veritabanı şeması
+
+```bash
+dotnet ef database update -p src/Loca.Persistence -s src/Loca.WebApi
+```
+
+Roller (`Customer`, `Organizer`, `Admin`) migration ile tohumlanır.
+
+### 4. Çalıştırma
+
+```bash
+dotnet run --project src/Loca.WebApi --urls http://localhost:5000
+cd web && npm run dev
 ```
 
 | Servis | Adres |
@@ -53,6 +84,8 @@ docker compose up -d
 - [Veri modeli](docs/02-veri-modeli.md) — 28 tablo, unique ve index kararları
 - [Tasarım](docs/03-tasarim.md) — Figma, tasarım sistemi, ekranlar
 - [Eşzamanlılık kararı](docs/04-eszamanlilik.md) — koltuk kilitleme stratejisi
+- [Mimari](docs/diagrams/mimari.md) — 12 diyagram: katmanlar, istek akışı, kimlik doğrulama, rezervasyon
+- [Durum makineleri](docs/diagrams/durum-makineleri.md) — etkinlik, rezervasyon, ödeme, bilet
 
 ## Bağlantılar
 
