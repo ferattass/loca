@@ -29,22 +29,22 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
         RuleFor(command => command.Email)
             .NotEmpty().WithMessage("E-posta zorunludur.")
             .EmailAddress().WithMessage("Gecerli bir e-posta adresi girin.")
-            .MaximumLength(256);
+            .MaximumLength(256).WithMessage("E-posta en fazla 256 karakter olabilir.");
 
         RuleFor(command => command.Password)
             .NotEmpty().WithMessage("Sifre zorunludur.")
             .MinimumLength(8).WithMessage("Sifre en az 8 karakter olmali.")
-            .MaximumLength(128)
+            .MaximumLength(128).WithMessage("Sifre en fazla 128 karakter olabilir.")
             .Matches("[A-Za-z]").WithMessage("Sifre en az bir harf icermeli.")
             .Matches("[0-9]").WithMessage("Sifre en az bir rakam icermeli.");
 
         RuleFor(command => command.FullName)
             .NotEmpty().WithMessage("Ad soyad zorunludur.")
-            .MinimumLength(3)
-            .MaximumLength(150);
+            .MinimumLength(3).WithMessage("Ad soyad en az 3 karakter olmali.")
+            .MaximumLength(150).WithMessage("Ad soyad en fazla 150 karakter olabilir.");
 
         RuleFor(command => command.PhoneNumber)
-            .MaximumLength(20)
+            .MaximumLength(20).WithMessage("Telefon numarasi en fazla 20 karakter olabilir.")
             .Matches(@"^[0-9+()\s-]+$").WithMessage("Telefon numarasi gecersiz.")
             .When(command => !string.IsNullOrWhiteSpace(command.PhoneNumber));
     }

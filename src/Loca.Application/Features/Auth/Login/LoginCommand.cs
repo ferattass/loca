@@ -23,7 +23,7 @@ public sealed class LoginCommandValidator : AbstractValidator<LoginCommand>
         // eski sifreye sahip kullanicilar giris yapamaz hale gelirdi.
         RuleFor(command => command.Email)
             .NotEmpty().WithMessage("E-posta zorunludur.")
-            .MaximumLength(256);
+            .MaximumLength(256).WithMessage("E-posta en fazla 256 karakter olabilir.");
 
         RuleFor(command => command.Password)
             .NotEmpty().WithMessage("Sifre zorunludur.");
