@@ -1,59 +1,57 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { SeatStatePreview } from './components/SeatStatePreview';
+import { useOturumBaslat } from './hooks/useOturumBaslat';
+import { HomePage } from './pages/HomePage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { UnauthorizedPage } from './pages/UnauthorizedPage';
 
 /**
- * Gun 2 iskelet dogrulama sayfasi.
+ * Uygulama yonlendirmesi.
  *
- * Amaci tasarim sisteminin koda dogru baglandigini gostermek:
- * renk token'lari, tipografi olcegi ve bes koltuk durumu.
- * Gercek sayfalar Gun 3'ten itibaren src/pages altinda yazilacak,
- * bu dosya o zaman router'a devredecek.
+ * Korumali sayfalar <c>ProtectedRoute</c> ile sarilir. Bu sarmalayici bir
+ * guvenlik siniri degil kullanici deneyimi sinridir: gercek yetki kontrolu
+ * sunucuda yapilir. Amaci, oturumu olmayan kullaniciya bos veri veya 401
+ * dolu bir ekran gostermek yerine dogrudan giris sayfasina yonlendirmek.
  */
 export default function App() {
+  useOturumBaslat();
+
   return (
-    <div className="min-h-screen px-container-margin-mobile md:px-container-margin-desktop py-stack-lg">
-      <header className="mb-stack-lg">
-        <p className="font-body text-label-caps text-primary uppercase">
-          Etkinlik ve Koltuk Rezervasyon Sistemi
-        </p>
-        <h1 className="font-display text-display-lg-mobile md:text-display-lg text-on-surface mt-base">
-          LOCA
-        </h1>
-        <p className="font-body text-body-md text-on-surface-variant mt-stack-sm max-w-xl">
-          Iskelet kuruldu. Tasarim sistemi token'lari Tailwind yapilandirmasina
-          baglandi; asagidaki renkler ve koltuk durumlari config'ten geliyor.
-        </p>
-      </header>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/giris" element={<LoginPage />} />
+        <Route path="/kayit" element={<RegisterPage />} />
+        <Route path="/yetkisiz" element={<UnauthorizedPage />} />
 
-      <section className="mb-stack-lg">
-        <h2 className="font-headline text-headline-md text-on-surface mb-stack-sm">
-          Koltuk durumlari
-        </h2>
-        <SeatStatePreview />
-      </section>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
 
-      <section>
-        <h2 className="font-headline text-headline-md text-on-surface mb-stack-sm">
-          Yuzey katmanlari
-        </h2>
-        <div className="flex flex-wrap gap-base">
-          {[
-            ['surface-container-lowest', 'bg-surface-container-lowest'],
-            ['surface-container-low', 'bg-surface-container-low'],
-            ['surface-container', 'bg-surface-container'],
-            ['surface-container-high', 'bg-surface-container-high'],
-            ['surface-container-highest', 'bg-surface-container-highest'],
-          ].map(([label, cls]) => (
-            <div
-              key={label}
-              className={`${cls} rounded-lg px-stack-sm py-base border border-outline-variant/30`}
-            >
-              <span className="font-body text-body-sm text-on-surface-variant">
-                {label}
-              </span>
+        {/* Gun 2'de yazilan tasarim sistemi dogrulama sayfasi. Teslimde
+            kaldirilacak; simdilik token'larin dogru bagli oldugunu
+            gostermek icin duruyor. */}
+        <Route
+          path="/tasarim"
+          element={
+            <div className="min-h-screen px-container-margin-mobile md:px-container-margin-desktop py-stack-lg">
+              <h1 className="font-headline text-headline-md text-on-surface mb-stack-sm">
+                Koltuk durumlari
+              </h1>
+              <SeatStatePreview />
             </div>
-          ))}
-        </div>
-      </section>
-    </div>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
