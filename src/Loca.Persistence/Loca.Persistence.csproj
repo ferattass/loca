@@ -7,6 +7,14 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.18" />
+
+    <!--
+      Npgsql 9.0.4 kendi bagimliligi olarak Relational 9.0.1'i istiyor. Acikca
+      yazilmazsa WebApi'nin bagimlilik agacinda Npgsql'in istegi daha "yakin"
+      sayilip 9.0.1 seciliyor; Persistence ise 9.0.18'e karsi derlenmis oluyor.
+      Derleme gecer, calisma aninda tip yuklenemez. Surum burada sabitleniyor.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.18" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.18">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
