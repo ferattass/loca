@@ -8,7 +8,9 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { SeatLayoutPage } from './pages/SeatLayoutPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
+import { RoleRoute } from './components/RoleRoute';
 
 /**
  * Uygulama yonlendirmesi.
@@ -36,6 +38,17 @@ export default function App() {
             <ProtectedRoute>
               <HomePage />
             </ProtectedRoute>
+          }
+        />
+
+        {/* Koltuk plani yonetimi yalnizca admin'e acik; sunucuda da
+            toggle-active ucu AdminOnly policy'siyle korunuyor. */}
+        <Route
+          path="/oturma-planlari/:id"
+          element={
+            <RoleRoute roller={['Admin']}>
+              <SeatLayoutPage />
+            </RoleRoute>
           }
         />
 
