@@ -1,9 +1,13 @@
+using Loca.Application.Features.Auth.ChangePassword;
 using Loca.Application.Features.Auth.Common;
+using Loca.Application.Features.Auth.ForgotPassword;
 using Loca.Application.Features.Auth.Login;
 using Loca.Application.Features.Auth.Logout;
 using Loca.Application.Features.Auth.Me;
 using Loca.Application.Features.Auth.Refresh;
 using Loca.Application.Features.Auth.Register;
+using Loca.Application.Features.Auth.ResetPassword;
+using Loca.Application.Features.Auth.RevokeToken;
 using Loca.WebApi.Contracts.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -83,6 +87,75 @@ public sealed class AuthController(ISender sender) : ApiControllerBase
         ArgumentNullException.ThrowIfNull(request);
 
         var command = new LogoutCommand(request.RefreshToken, ClientIpAddress);
+
+        return ToResponse(await sender.Send(command, cancellationToken));
+    }
+
+    /// <summary>Oturum acmis kullanicinin kendi refresh token'ini iptal eder.</summary>
+    [HttpPost("revoke-token")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RevokeToken(
+        [FromBody] RevokeTokenRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var command = new RevokeTokenCommand(request.RefreshToken, ClientIpAddress);
+
+        return ToResponse(await sender.Send(command, cancellationToken));
+    }
+
+    /// <summary>Mevcut sifreyi dogrulayarak yenisiyle degistirir.</summary>
+    /// <remarks>Basarili oldugunda kullanicinin tum oturumlari kapanir.</remarks>
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var command = new ChangePasswordCommand(
+            request.CurrentPassword, request.NewPassword, ClientIpAddress);
+
+        return ToResponse(await sender.Send(command, cancellationToken));
+    }
+
+    /// <summary>Sifre sifirlama baglantisi olusturur.</summary>
+    /// <remarks>
+    /// Adres kayitli olmasa da 204 doner: aksi hâlde hangi e-postalarin
+    /// sistemde oldugu bu uc denenerek ogrenilebilirdi.
+    /// </remarks>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var command = new ForgotPasswordCommand(request.Email, ClientIpAddress);
+
+        return ToResponse(await sender.Send(command, cancellationToken));
+    }
+
+    /// <summary>Sifirlama token'i ile yeni sifre belirler.</summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var command = new ResetPasswordCommand(
+            request.Token, request.NewPassword, ClientIpAddress);
 
         return ToResponse(await sender.Send(command, cancellationToken));
     }

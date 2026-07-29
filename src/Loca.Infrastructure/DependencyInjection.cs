@@ -23,6 +23,10 @@ public static class DependencyInjection
         services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IPasswordResetTokenGenerator, PasswordResetTokenGenerator>();
+
+        // Gun 9'da Mailpit uzerinden calisan SMTP uygulamasiyla degistirilecek.
+        services.AddScoped<IPasswordResetNotifier, DevelopmentPasswordResetNotifier>();
 
         return services;
     }

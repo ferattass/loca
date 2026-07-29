@@ -23,4 +23,17 @@ internal static class AuthErrors
 
     internal static readonly Error InvalidRefreshToken =
         Error.Unauthorized("Auth.InvalidRefreshToken", "Oturum gecersiz. Lutfen tekrar giris yapin.");
+
+    /// <remarks>
+    /// "Token yok", "suresi dolmus" ve "zaten kullanilmis" ayni cevabi verir:
+    /// ayrilsaydi elindeki degerin gecerli bir token olup olmadigi
+    /// denenerek ogrenilebilirdi.
+    /// </remarks>
+    internal static readonly Error InvalidPasswordResetToken =
+        Error.Unauthorized(
+            "Auth.InvalidPasswordResetToken",
+            "Sifirlama baglantisi gecersiz veya suresi dolmus. Yeni bir baglanti isteyin.");
+
+    internal static readonly Error CurrentPasswordIncorrect =
+        Error.Unauthorized("Auth.CurrentPasswordIncorrect", "Mevcut sifre hatali.");
 }

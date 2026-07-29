@@ -17,5 +17,14 @@ public enum RefreshTokenRevokeReason
     ReuseDetected = 3,
 
     /// <summary>Kullanici pasiflestirildi.</summary>
-    UserDeactivated = 4
+    UserDeactivated = 4,
+
+    /// <summary>
+    /// Sifre degistirildi veya sifirlandi. Eski sifreyle acilmis oturumlarin
+    /// devam etmesi, sifreyi degistirmenin amacini bosa cikarirdi.
+    /// </summary>
+    PasswordChanged = 5,
+
+    /// <summary>Kullanici token'i acikca iptal etti.</summary>
+    RevokedByUser = 6
 }

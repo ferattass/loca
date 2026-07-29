@@ -21,6 +21,7 @@ public sealed class LocaDbContext(DbContextOptions<LocaDbContext> options)
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     public DbSet<City> Cities => Set<City>();
     public DbSet<Venue> Venues => Set<Venue>();
