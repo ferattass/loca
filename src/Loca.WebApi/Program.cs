@@ -6,6 +6,7 @@ using Loca.Domain.Constants;
 using Loca.Infrastructure;
 using Loca.Infrastructure.Authentication;
 using Loca.Persistence;
+using Loca.Persistence.Seeding;
 using Loca.WebApi.Authorization;
 using Loca.WebApi.Middleware;
 using Loca.WebApi.Services;
@@ -25,11 +26,7 @@ builder.Services.AddApplication();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.AddPersistence(
-    builder.Configuration.GetConnectionString("Default")
-    ?? throw new InvalidOperationException(
-        "ConnectionStrings:Default tanimli degil. Gelistirmede user-secrets, " +
-        "konteynerde ConnectionStrings__Default ortam degiskeni kullanilir."));
+builder.Services.AddPersistence(builder.Configuration);
 
 // Istegi yapan kullanicinin kimligi HttpContext'ten okunur.
 builder.Services.AddHttpContextAccessor();
@@ -108,6 +105,15 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
+
+// Bekleyen migration'lar uygulanir ve admin hesabi tohumlanir.
+// Uclarin hicbiri acilmadan once calisir; aksi hâlde ilk istek bos
+// veritabanina carpardi.
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+    await seeder.SeedAsync();
+}
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();

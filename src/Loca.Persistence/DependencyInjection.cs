@@ -1,7 +1,9 @@
 using Loca.Domain.Repositories;
 using Loca.Persistence.Interceptors;
 using Loca.Persistence.Repositories;
+using Loca.Persistence.Seeding;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Loca.Persistence;
@@ -9,8 +11,21 @@ namespace Loca.Persistence;
 public static class DependencyInjection
 {
     public static IServiceCollection AddPersistence(
-        this IServiceCollection services, string connectionString)
+        this IServiceCollection services, IConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var connectionString = configuration.GetConnectionString("Default")
+            ?? throw new InvalidOperationException(
+                "ConnectionStrings:Default tanimli degil. Gelistirmede user-secrets, " +
+                "konteynerde ConnectionStrings__Default ortam degiskeni kullanilir.");
+
+        services
+            .AddOptions<AdminSeedOptions>()
+            .Bind(configuration.GetSection(AdminSeedOptions.SectionName));
+
+        services.AddScoped<DatabaseSeeder>();
+
         services.AddScoped<AuditableEntityInterceptor>();
 
         services.AddDbContext<LocaDbContext>((serviceProvider, options) =>
