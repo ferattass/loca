@@ -42,6 +42,10 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+        services.AddScoped<ICityRepository, CityRepository>();
+        services.AddScoped<IVenueRepository, VenueRepository>();
+        services.AddScoped<IHallRepository, HallRepository>();
+        services.AddScoped<ISeatLayoutRepository, SeatLayoutRepository>();
 
         return services;
     }
