@@ -59,6 +59,18 @@ public sealed class AuditableEntityInterceptor(
                     entry.Entity.UpdatedBy = userId;
                     break;
 
+                // Silme istegi, silinebilir olmayan varliklarda isaretlemeye cevrilir.
+                // Bu donusum burada yapilmazsa her handler'in "Remove yerine
+                // IsDeleted = true yaz" kuralini hatirlamasi gerekirdi; biri
+                // unuttugunda gecmis satis kayitlarinin bagli oldugu satir silinirdi.
+                case EntityState.Deleted when entry.Entity is ISoftDeletable softDeletable:
+                    entry.State = EntityState.Modified;
+                    softDeletable.IsDeleted = true;
+                    softDeletable.DeletedAt = now;
+                    entry.Entity.UpdatedAt = now;
+                    entry.Entity.UpdatedBy = userId;
+                    break;
+
                 default:
                     break;
             }
