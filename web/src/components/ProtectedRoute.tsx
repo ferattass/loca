@@ -5,19 +5,21 @@ import { useAuthStore } from '../stores/authStore';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  /** Verilirse kullanicinin bu rollerden en az birine sahip olmasi gerekir. */
-  roller?: string[];
 }
 
 /**
- * Oturum ve rol kontrolu.
+ * Oturum kontrolu.
+ *
+ * Yalnizca "giris yapilmis mi" sorusunu sorar. Rol kisiti gereken sayfalar
+ * icin RoleRoute kullanilir — iki sorunun cevapsizlik sonucu farkli:
+ * oturum yoksa giris ekranina, yetki yoksa yetkisiz ekranina gidilir.
  *
  * Bu kontrol bir GUVENLIK onlemi degil, bir kullanici deneyimi onlemidir:
  * tarayicidaki JavaScript her zaman degistirilebilir. Gercek koruma sunucuda,
  * <c>[Authorize]</c> ve policy'lerde. Buradaki amac, yetkisi olmayan
  * kullaniciya bos ya da hata dolu bir ekran gostermemek.
  */
-export function ProtectedRoute({ children, roller }: ProtectedRouteProps) {
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
   const { kullanici, accessToken, hazir } = useAuthStore();
 
@@ -36,10 +38,6 @@ export function ProtectedRoute({ children, roller }: ProtectedRouteProps) {
   if (!accessToken || !kullanici) {
     // Nereye gitmek istedigi tasinir; giristen sonra oraya donulur.
     return <Navigate to="/giris" state={{ hedef: location.pathname }} replace />;
-  }
-
-  if (roller && !roller.some((rol) => kullanici.roles.includes(rol))) {
-    return <Navigate to="/yetkisiz" replace />;
   }
 
   return <>{children}</>;

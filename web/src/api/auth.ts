@@ -35,3 +35,26 @@ export async function benKimim(): Promise<KullaniciOzeti> {
 export async function cikisYap(refreshToken: string): Promise<void> {
   await api.post('/auth/logout', { refreshToken });
 }
+
+/**
+ * Sifre sifirlama baglantisi ister.
+ *
+ * Adres kayitli olmasa da sunucu basarili doner; hangi e-postalarin sistemde
+ * oldugu bu uc denenerek ogrenilemesin diye. Arayuz de bu yuzden her durumda
+ * ayni mesaji gosterir.
+ */
+export async function sifremiUnuttum(email: string): Promise<void> {
+  await api.post('/auth/forgot-password', { email });
+}
+
+export async function sifreSifirla(token: string, newPassword: string): Promise<void> {
+  await api.post('/auth/reset-password', { token, newPassword });
+}
+
+/** Basarili oldugunda sunucu tum oturumlari kapatir; yeniden giris gerekir. */
+export async function sifreDegistir(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  await api.post('/auth/change-password', { currentPassword, newPassword });
+}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
 
 import { girisYap } from '../api/auth';
@@ -37,7 +37,11 @@ export function LoginPage() {
 
   // Korumali bir sayfaya gitmeye calisip yonlendirilmisse giristen sonra
   // oraya donulur; kullanici bastan aramak zorunda kalmasin.
-  const hedef = (location.state as { hedef?: string } | null)?.hedef ?? '/';
+  const yonlendirmeDurumu = location.state as { hedef?: string; bilgi?: string } | null;
+  const hedef = yonlendirmeDurumu?.hedef ?? '/';
+
+  // Sifre sifirlandiktan sonra buraya bir bilgi mesajiyla donuluyor.
+  const bilgi = yonlendirmeDurumu?.bilgi;
 
   const gonder = async (veri: GirisFormu) => {
     setSunucuHatasi(null);
@@ -76,6 +80,22 @@ export function LoginPage() {
           hata={errors.password?.message}
           {...register('password')}
         />
+
+        <Link
+          to="/sifremi-unuttum"
+          className="self-end font-body text-body-sm text-primary underline underline-offset-2"
+        >
+          Sifremi unuttum
+        </Link>
+
+        {bilgi && (
+          <div
+            role="status"
+            className="rounded-md border border-outline/40 bg-surface-variant/40 px-stack-sm py-base"
+          >
+            <p className="font-body text-body-sm text-on-surface-variant">{bilgi}</p>
+          </div>
+        )}
 
         {sunucuHatasi && (
           <div

@@ -3,9 +3,11 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SeatStatePreview } from './components/SeatStatePreview';
 import { useOturumBaslat } from './hooks/useOturumBaslat';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 
 /**
@@ -24,6 +26,8 @@ export default function App() {
       <Routes>
         <Route path="/giris" element={<LoginPage />} />
         <Route path="/kayit" element={<RegisterPage />} />
+        <Route path="/sifremi-unuttum" element={<ForgotPasswordPage />} />
+        <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
         <Route path="/yetkisiz" element={<UnauthorizedPage />} />
 
         <Route
