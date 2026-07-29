@@ -13,6 +13,9 @@ public sealed record UpdateVenueRequest(
     string? Description,
     string? PhoneNumber);
 
+/// <param name="ImageFileId">Bos birakilirsa mevcut gorsel baglantisi kaldirilir.</param>
+public sealed record SetVenueImageRequest(Guid? ImageFileId);
+
 public sealed record CreateHallRequest(string Name, int Capacity);
 
 public sealed record UpdateHallRequest(string Name, int Capacity);

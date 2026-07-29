@@ -1,6 +1,7 @@
 using Loca.Application.Common.Interfaces;
 using Loca.Infrastructure.Authentication;
 using Loca.Infrastructure.Services;
+using Loca.Infrastructure.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,6 +28,14 @@ public static class DependencyInjection
 
         // Gun 9'da Mailpit uzerinden calisan SMTP uygulamasiyla degistirilecek.
         services.AddScoped<IPasswordResetNotifier, DevelopmentPasswordResetNotifier>();
+
+        services
+            .AddOptions<StorageOptions>()
+            .Bind(configuration.GetSection(StorageOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
         return services;
     }

@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IVenueRepository, VenueRepository>();
         services.AddScoped<IHallRepository, HallRepository>();
         services.AddScoped<ISeatLayoutRepository, SeatLayoutRepository>();
+        services.AddScoped<IUploadedFileRepository, UploadedFileRepository>();
 
         return services;
     }

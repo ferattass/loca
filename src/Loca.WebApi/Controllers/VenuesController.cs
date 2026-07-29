@@ -6,6 +6,7 @@ using Loca.Application.Features.Venues.CreateVenue;
 using Loca.Application.Features.Venues.DeleteVenue;
 using Loca.Application.Features.Venues.GetVenueById;
 using Loca.Application.Features.Venues.GetVenues;
+using Loca.Application.Features.Venues.SetVenueImage;
 using Loca.Application.Features.Venues.UpdateVenue;
 using Loca.WebApi.Authorization;
 using Loca.WebApi.Contracts.Venues;
@@ -99,6 +100,22 @@ public sealed class VenuesController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken) =>
         ToResponse(await sender.Send(new DeleteVenueCommand(id), cancellationToken));
+
+    /// <summary>Mekanin kapak gorselini baglar veya kaldirir.</summary>
+    /// <remarks>Gorsel once <c>POST /api/v1/files</c> ile yuklenir.</remarks>
+    [HttpPatch("{id:guid}/image")]
+    [Authorize(Policy = Policies.AdminOnly)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetImage(
+        Guid id, [FromBody] SetVenueImageRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var command = new SetVenueImageCommand(id, request.ImageFileId);
+
+        return ToResponse(await sender.Send(command, cancellationToken));
+    }
 
     /// <summary>Mekanin salonlarini listeler.</summary>
     [HttpGet("{id:guid}/halls")]

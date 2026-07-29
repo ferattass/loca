@@ -20,4 +20,7 @@ internal static class VenueErrors
     /// </remarks>
     internal static readonly Error HasHalls =
         Error.Conflict("Venue.HasHalls", "Mekana bagli salonlar var. Once salonlari kaldirin.");
+
+    internal static readonly Error ImageNotFound =
+        Error.NotFound("Venue.ImageNotFound", "Secilen gorsel bulunamadi.");
 }
