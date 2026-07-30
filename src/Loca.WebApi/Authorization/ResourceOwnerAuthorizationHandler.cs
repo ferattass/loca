@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Loca.Application.Common.Authentication;
+using Loca.Application.Common.Authorization;
 using Loca.Domain.Common;
 using Loca.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -29,17 +30,12 @@ internal sealed class ResourceOwnerAuthorizationHandler
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(resource);
 
-        // Admin her kaynaga erisebilir — yetki matrisinde "baskasinin
-        // etkinligini guncelleme" yalnizca admin satirinda arti.
-        if (context.User.IsInRole(RoleNames.Admin))
-        {
-            context.Succeed(requirement);
-            return Task.CompletedTask;
-        }
-
         var subject = context.User.FindFirstValue(ClaimNames.Subject);
+        Guid? userId = Guid.TryParse(subject, out var parsed) ? parsed : null;
 
-        if (Guid.TryParse(subject, out var userId) && userId == resource.OwnerId)
+        // Kuralin kendisi Application katmaninda: ayni karar handler'lardan
+        // da veriliyor ve iki yerde farkli davranmamasi gerekiyor.
+        if (Ownership.Allows(userId, context.User.IsInRole(RoleNames.Admin), resource))
             context.Succeed(requirement);
 
         // Basarisizlikta Fail() cagrilmaz: baska bir handler ayni sarti
