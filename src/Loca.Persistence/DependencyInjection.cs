@@ -1,5 +1,7 @@
+using Loca.Application.Common.Interfaces;
 using Loca.Domain.Repositories;
 using Loca.Persistence.Interceptors;
+using Loca.Persistence.Queries;
 using Loca.Persistence.Repositories;
 using Loca.Persistence.Seeding;
 using Microsoft.EntityFrameworkCore;
@@ -47,6 +49,12 @@ public static class DependencyInjection
         services.AddScoped<IHallRepository, HallRepository>();
         services.AddScoped<ISeatLayoutRepository, SeatLayoutRepository>();
         services.AddScoped<IUploadedFileRepository, UploadedFileRepository>();
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IOrganizerRepository, OrganizerRepository>();
+        services.AddScoped<IStudentVerificationRepository, StudentVerificationRepository>();
+
+        // Okuma tarafi: arayuzu Application'da, projeksiyonu burada.
+        services.AddScoped<IEventQueries, EventQueries>();
 
         return services;
     }
