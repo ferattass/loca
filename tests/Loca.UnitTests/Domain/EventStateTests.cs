@@ -17,8 +17,18 @@ public class EventStateTests
 {
     private static readonly DateTime Simdi = new(2026, 8, 1, 12, 0, 0, DateTimeKind.Utc);
 
+    /// <summary>Etkinligin duyurulan baslangici; oturumlar da bu ana kuruluyor.</summary>
+    private static readonly DateTime Baslangic = Simdi.AddDays(30);
+
     private static Event YeniEtkinlik() =>
-        new(Guid.CreateVersion7(), Guid.CreateVersion7(), "Yaz Konseri", "Aciklama");
+        new(
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            "Yaz Konseri",
+            "Aciklama",
+            new EventPlace(Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7()),
+            new EventSchedule(Baslangic, 120, Simdi, Simdi.AddDays(29)),
+            "Etkinlikten 24 saat oncesine kadar tam iade.");
 
     /// <summary>Yayina hazir etkinlik: bir oturum, bir bilet turu ve afis.</summary>
     private static Event HazirEtkinlik()
