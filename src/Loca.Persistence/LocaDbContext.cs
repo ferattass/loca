@@ -31,6 +31,18 @@ public sealed class LocaDbContext(DbContextOptions<LocaDbContext> options)
     public DbSet<Seat> Seats => Set<Seat>();
     public DbSet<UploadedFile> UploadedFiles => Set<UploadedFile>();
 
+    public DbSet<OrganizerProfile> OrganizerProfiles => Set<OrganizerProfile>();
+    public DbSet<OrganizerApplication> OrganizerApplications => Set<OrganizerApplication>();
+    public DbSet<StudentVerification> StudentVerifications => Set<StudentVerification>();
+
+    public DbSet<EventCategory> EventCategories => Set<EventCategory>();
+    public DbSet<Event> Events => Set<Event>();
+    public DbSet<EventSession> EventSessions => Set<EventSession>();
+    public DbSet<TicketType> TicketTypes => Set<TicketType>();
+    public DbSet<EventSeat> EventSeats => Set<EventSeat>();
+
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -58,6 +70,15 @@ public sealed class LocaDbContext(DbContextOptions<LocaDbContext> options)
     /// Filtreyi atlamak gerektiginde (ornegin admin denetim ekrani)
     /// <c>IgnoreQueryFilters()</c> kullanilir.
     /// </para>
+    ///
+    /// <para>
+    /// <b>Var olan filtre EZILMEZ, birlestirilir.</b> Onceki hâl
+    /// <c>SetQueryFilter</c>'i dogrudan cagirdigi icin konfigurasyon
+    /// sinifinda yazilmis bir filtreyi sessizce siliyordu — bu metot
+    /// <c>ApplyConfigurationsFromAssembly</c>'den SONRA calisiyor.
+    /// Silinen filtre hata vermez, yalnizca beklenen kaydi disarida
+    /// birakmayi bırakır: en tehlikeli hata turu.
+    /// </para>
     /// </remarks>
     private static void ApplySoftDeleteFilters(ModelBuilder modelBuilder)
     {
@@ -66,12 +87,23 @@ public sealed class LocaDbContext(DbContextOptions<LocaDbContext> options)
             if (!typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
                 continue;
 
-            // e => !e.IsDeleted ifadesi tip bilinmeden kuruldugu icin elle olusturuluyor.
-            var parameter = Expression.Parameter(entityType.ClrType, "e");
-            var isDeleted = Expression.Property(parameter, nameof(ISoftDeletable.IsDeleted));
-            var filter = Expression.Lambda(Expression.Not(isDeleted), parameter);
+            var mevcut = entityType.GetQueryFilter();
 
-            entityType.SetQueryFilter(filter);
+            // Mevcut filtrenin parametresi yeniden kullaniliyor; iki ayri
+            // parametreyle kurulan ifadeler birlestirilemez, once yeniden
+            // baglanmasi gerekirdi.
+            var parameter = mevcut?.Parameters[0]
+                ?? Expression.Parameter(entityType.ClrType, "e");
+
+            // e => !e.IsDeleted ifadesi tip bilinmeden kuruldugu icin elle olusturuluyor.
+            var isDeleted = Expression.Property(parameter, nameof(ISoftDeletable.IsDeleted));
+
+            Expression body = Expression.Not(isDeleted);
+
+            if (mevcut is not null)
+                body = Expression.AndAlso(mevcut.Body, body);
+
+            entityType.SetQueryFilter(Expression.Lambda(body, parameter));
         }
     }
 }
