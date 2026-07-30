@@ -13,9 +13,17 @@ public sealed class FilesController(ISender sender) : ApiControllerBase
     /// <remarks>
     /// Yalnizca .jpg, .jpeg, .png ve .webp kabul edilir; uzantiya degil
     /// dosyanin ilk baytlarina bakilarak dogrulanir. En fazla 5 MB.
+    ///
+    /// <para>
+    /// <b>Gun 5'te AdminOnly'den OrganizerOnly'ye cekildi.</b> Gun 4'te tek
+    /// kullanim mekan kapak gorseliydi ve mekan yonetimi admin isi. Ancak
+    /// sartname Sprint 5'te organizatore "gorsel yukleme" gorevini veriyor
+    /// ve etkinlik afisi yayina alma on kosulu: admin'e bagli kalsaydi
+    /// organizator kendi etkinligini yayina hazir hâle getiremezdi.
+    /// </para>
     /// </remarks>
     [HttpPost]
-    [Authorize(Policy = Policies.AdminOnly)]
+    [Authorize(Policy = Policies.OrganizerOnly)]
     [RequestSizeLimit(5 * 1024 * 1024)]
     [ProducesResponseType<UploadedFileResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
