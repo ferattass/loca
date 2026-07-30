@@ -48,6 +48,17 @@ public sealed class TicketType : BaseEntity
     public Guid EventId { get; private set; }
     public Event? Event { get; private set; }
 
+    /// <summary>
+    /// Bu turun gecerli oldugu koltuk bolumu. <c>null</c> ise varsayilan tur.
+    /// </summary>
+    /// <remarks>
+    /// Bolume atanmis bir tur yalnizca o bolumun koltuklarini fiyatlandirir
+    /// (Balkon 200 TL, Orta 450 TL). Atanmamis tur, eslesmeyen tum bolumler
+    /// icin varsayilan olarak kullanilir — koltuk uretiminde her koltugun bir
+    /// fiyati olmak zorunda, aksi hâlde fiyatsiz koltuk olusur.
+    /// </remarks>
+    public Guid? SeatSectionId { get; private set; }
+
     public string Name { get; private set; }
 
     /// <summary>Tutar ve para birimi birlikte. Money deger nesnesi negatife izin vermez.</summary>
@@ -97,6 +108,23 @@ public sealed class TicketType : BaseEntity
         Quota = quota;
         SalesStartsAtUtc = salesStartsAtUtc;
         SalesEndsAtUtc = salesEndsAtUtc;
+    }
+
+    /// <summary>
+    /// Turu bir koltuk bolumune baglar; <c>null</c> gecilirse varsayilan
+    /// tur hâline gelir.
+    /// </summary>
+    /// <remarks>
+    /// Ayni bolumun iki aktif ture atanmamasi kurali burada degil
+    /// <see cref="Event.AssignTicketTypeToSection"/> icinde: karar diger
+    /// bilet turlerini gormeyi gerektiriyor, o liste aggregate root'ta.
+    /// </remarks>
+    public void AssignToSection(Guid? seatSectionId)
+    {
+        if (seatSectionId == Guid.Empty)
+            throw new DomainException("Bolum kimligi bos olamaz.");
+
+        SeatSectionId = seatSectionId;
     }
 
     public void Deactivate() => IsActive = false;

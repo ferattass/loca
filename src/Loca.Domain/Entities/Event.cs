@@ -28,6 +28,7 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
     {
         Title = string.Empty;
         Description = string.Empty;
+        CancellationPolicy = string.Empty;
     }
 
     public Event(
@@ -35,6 +36,9 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
         Guid categoryId,
         string title,
         string description,
+        EventPlace place,
+        EventSchedule schedule,
+        string cancellationPolicy,
         int? minimumAge = null)
     {
         if (organizerId == Guid.Empty)
@@ -49,6 +53,9 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
         if (string.IsNullOrWhiteSpace(description))
             throw new DomainException("Etkinlik aciklamasi bos olamaz.");
 
+        if (string.IsNullOrWhiteSpace(cancellationPolicy))
+            throw new DomainException("Iptal ve iade politikasi bos olamaz.");
+
         if (minimumAge is < 0 or > 99)
             throw new DomainException("Yas siniri 0 ile 99 arasinda olmali.");
 
@@ -56,7 +63,11 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
         CategoryId = categoryId;
         Title = title.Trim();
         Description = description.Trim();
+        CancellationPolicy = cancellationPolicy.Trim();
         MinimumAge = minimumAge;
+
+        ApplyPlace(place);
+        ApplySchedule(schedule);
     }
 
     /// <summary>Etkinligi olusturan organizator. Kaynak sahipligi bu alana bakar.</summary>
@@ -67,6 +78,47 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
 
     public string Title { get; private set; }
     public string Description { get; private set; }
+
+    /// <summary>Iptal ve iade kosullarinin kullaniciya gosterilen metni.</summary>
+    public string CancellationPolicy { get; private set; }
+
+    public Guid CityId { get; private set; }
+    public City? City { get; private set; }
+
+    public Guid VenueId { get; private set; }
+    public Venue? Venue { get; private set; }
+
+    public Guid HallId { get; private set; }
+    public Hall? Hall { get; private set; }
+
+    /// <summary>
+    /// Etkinligi olusturan kullanici.
+    /// </summary>
+    /// <remarks>
+    /// Navigation ozelligi okuma tarafi icin var: etkinlik detayi
+    /// projeksiyonda <c>Organizer.FullName</c> diyerek tek sorguda
+    /// organizator adini alabiliyor. Yazma tarafinda kullanilmiyor,
+    /// sahiplik kontrolu <see cref="OrganizerId"/> uzerinden.
+    /// </remarks>
+    public User? Organizer { get; private set; }
+
+    /// <summary>
+    /// Duyurulan baslangic ani. Ana listeleme index'inin ucuncu kolonu.
+    /// </summary>
+    /// <remarks>
+    /// Oturumlarin da kendi tarihleri var; bu alan onlarin yerine gecmiyor.
+    /// Listeleme sorgusu <c>(CityId, CategoryId, EventDateUtc)</c> uzerinden
+    /// gittigi icin etkinligin tarihi burada duz kolon olarak da duruyor —
+    /// aksi hâlde her listeleme oturum tablosuna join atmak zorunda kalirdi.
+    /// Tutarli kalmasi <see cref="AddSession"/> ve yayin on kosulu ile
+    /// garanti ediliyor.
+    /// </remarks>
+    public DateTime EventDateUtc { get; private set; }
+
+    public int DurationMinutes { get; private set; }
+
+    public DateTime SalesStartsAtUtc { get; private set; }
+    public DateTime SalesEndsAtUtc { get; private set; }
 
     /// <summary>Afis gorseli. Yayina alabilmek icin zorunlu.</summary>
     public Guid? PosterFileId { get; private set; }
@@ -87,6 +139,13 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
 
     Guid IOwnedResource.OwnerId => OrganizerId;
 
+    /// <summary>Duz kolonlarin deger nesnesi hâli.</summary>
+    public EventPlace Place => new(CityId, VenueId, HallId);
+
+    /// <inheritdoc cref="Place"/>
+    public EventSchedule Schedule =>
+        new(EventDateUtc, DurationMinutes, SalesStartsAtUtc, SalesEndsAtUtc);
+
     /// <summary>Satis suregelen bir durumda mi.</summary>
     public bool IsSalesActive => Status == EventStatus.SalesOpen;
 
@@ -101,7 +160,21 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
     public bool AllowsCriticalChanges =>
         Status is EventStatus.Draft or EventStatus.PendingApproval;
 
-    public void UpdateDetails(string title, string description, Guid categoryId, int? minimumAge)
+    /// <summary>
+    /// Kritik olmayan alanlari gunceller.
+    /// </summary>
+    /// <remarks>
+    /// Baslik, aciklama, kategori, yas siniri ve iptal politikasi yayindan
+    /// sonra da degistirilebilir: bunlar bilet alma kararini bozmaz, duzeltme
+    /// ihtiyaci ise gercek (yazim hatasi, eksik aciklama). Tarih ve salon
+    /// icin ayri metotlar var cunku onlar kritik.
+    /// </remarks>
+    public void UpdateDetails(
+        string title,
+        string description,
+        Guid categoryId,
+        string cancellationPolicy,
+        int? minimumAge)
     {
         if (Status is EventStatus.Cancelled or EventStatus.Completed)
             throw new DomainException("Iptal edilmis veya tamamlanmis etkinlik guncellenemez.");
@@ -115,16 +188,80 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
         if (categoryId == Guid.Empty)
             throw new DomainException("Etkinlik bir kategoriye bagli olmali.");
 
+        if (string.IsNullOrWhiteSpace(cancellationPolicy))
+            throw new DomainException("Iptal ve iade politikasi bos olamaz.");
+
         if (minimumAge is < 0 or > 99)
             throw new DomainException("Yas siniri 0 ile 99 arasinda olmali.");
 
         Title = title.Trim();
         Description = description.Trim();
         CategoryId = categoryId;
+        CancellationPolicy = cancellationPolicy.Trim();
         MinimumAge = minimumAge;
     }
 
+    /// <summary>
+    /// Sehir, mekan veya salonu degistirir.
+    /// </summary>
+    /// <remarks>
+    /// Kritik alan: yayindan sonra kilitli. Bilet almis kullanici afiste
+    /// yazan salona gider; salon sessizce degisirse yanlis adrese gider.
+    /// </remarks>
+    public void ChangePlace(EventPlace place)
+    {
+        EnsureCriticalChangeAllowed("Yayina alinmis etkinligin yeri degistirilemez.");
+        ApplyPlace(place);
+    }
+
+    /// <summary>
+    /// Tarih ve satis penceresini degistirir.
+    /// </summary>
+    /// <remarks>
+    /// Kritik alan: yayindan sonra kilitli. Ayrica oturumlarla tutarli
+    /// kalmasi gerekir; oturumu olan bir etkinlikte tarih, en erken oturumun
+    /// baslangicindan once cekilemez.
+    /// </remarks>
+    public void Reschedule(EventSchedule schedule)
+    {
+        EnsureCriticalChangeAllowed("Yayina alinmis etkinligin tarihi degistirilemez.");
+
+        // Oturum varken duyurulan tarih serbestce degistirilemez: degisseydi
+        // etkinlik tarihi ile ilk oturum ayrisir ve yayin ani anlasilmaz bir
+        // hata verirdi. Dogru is akisi oturumu tasimak; etkinlik tarihi ona
+        // kendiliginden hizalanir.
+        if (EarliestSessionStart() is { } enErken && schedule.EventDateUtc != enErken)
+        {
+            throw new DomainException(
+                "Oturumu olan etkinligin tarihi dogrudan degistirilemez. " +
+                "Once oturumun tarihini tasiyin; etkinlik tarihi ona gore guncellenir.");
+        }
+
+        ApplySchedule(schedule);
+    }
+
     public void SetPoster(Guid? posterFileId) => PosterFileId = posterFileId;
+
+    private void EnsureCriticalChangeAllowed(string message)
+    {
+        if (!AllowsCriticalChanges)
+            throw new DomainException($"{message} Mevcut durum: {Status}.");
+    }
+
+    private void ApplyPlace(EventPlace place)
+    {
+        CityId = place.CityId;
+        VenueId = place.VenueId;
+        HallId = place.HallId;
+    }
+
+    private void ApplySchedule(EventSchedule schedule)
+    {
+        EventDateUtc = schedule.EventDateUtc;
+        DurationMinutes = schedule.DurationMinutes;
+        SalesStartsAtUtc = schedule.SalesStartsAtUtc;
+        SalesEndsAtUtc = schedule.SalesEndsAtUtc;
+    }
 
     /// <summary>Onaya gonderir: Draft → PendingApproval.</summary>
     public void SubmitForApproval()
@@ -234,11 +371,27 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
         if (_sessions.Count == 0)
             throw new DomainException("Yayin icin en az bir oturum gerekli.");
 
+        // Iptal edilmis oturumlar sayilmaz: hepsi iptalse etkinlik listede
+        // gorunur ama satin alinabilecek hicbir seans yoktur.
+        var enErken = EarliestSessionStart()
+            ?? throw new DomainException("Yayin icin iptal edilmemis en az bir oturum gerekli.");
+
         if (_ticketTypes.Count == 0)
             throw new DomainException("Yayin icin en az bir bilet turu gerekli.");
 
+        if (!_ticketTypes.Any(ticketType => ticketType.IsActive))
+            throw new DomainException("Yayin icin en az bir aktif bilet turu gerekli.");
+
         if (PosterFileId is null)
             throw new DomainException("Yayin icin afis gorseli gerekli.");
+
+        // Duyurulan tarih ile ilk oturum ayrisirsa listede yazan tarih
+        // yaniltici olur. Oturum eklenirken hizalaniyor; burada son kontrol.
+        if (EventDateUtc != enErken)
+        {
+            throw new DomainException(
+                "Duyurulan etkinlik tarihi ile en erken oturumun baslangici ayni olmali.");
+        }
     }
 
     /// <summary>
@@ -273,13 +426,48 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
                 "Oturumlar arasinda en az bir saat temizlik payi birakilmali.");
         }
 
+        // Etkinligin satisi kapandiktan sonra baslamayan bir oturum, "bilet
+        // hâlâ satiliyorken perde acilmis" demektir. Ayrica bu kural
+        // olmadan asagidaki tarih hizalamasi etkinlik tarihini satis
+        // bitisinin oncesine cekip EventSchedule kuralini bozabilirdi.
+        if (startsAtUtc < SalesEndsAtUtc)
+        {
+            throw new DomainException(
+                "Oturum, etkinligin bilet satisi kapanmadan once baslayamaz.");
+        }
+
         var yeni = new EventSession(
             Id, hallId, seatLayoutId, startsAtUtc, endsAtUtc, salesStartsAtUtc, salesEndsAtUtc);
 
         _sessions.Add(yeni);
 
+        AlignEventDateWithSessions();
+
         return yeni;
     }
+
+    /// <summary>
+    /// Duyurulan etkinlik tarihini en erken oturumun baslangicina esitler.
+    /// </summary>
+    /// <remarks>
+    /// Iki ayri tarih tutuldugu anda kacinilmaz soru su olur: hangisi dogru?
+    /// Cevap "en erken oturum" — kullanicinin listede gordugu tarih perdenin
+    /// gercekten acildigi andir. Elle senkron tutmak yerine oturum eklendikce
+    /// otomatik hizalaniyor; yayin on kosulu da bunu ayrica dogruluyor.
+    /// </remarks>
+    private void AlignEventDateWithSessions()
+    {
+        var enErken = EarliestSessionStart();
+
+        if (enErken is { } baslangic && baslangic != EventDateUtc)
+            ApplySchedule(Schedule.WithEventDate(baslangic));
+    }
+
+    private DateTime? EarliestSessionStart() =>
+        _sessions
+            .Where(session => session.Status != EventSessionStatus.Cancelled)
+            .Select(session => (DateTime?)session.StartsAtUtc)
+            .Min();
 
     public TicketType AddTicketType(
         string name,
@@ -287,16 +475,79 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
         int quota,
         DateTime salesStartsAtUtc,
         DateTime salesEndsAtUtc,
-        bool requiresVerification = false)
+        bool requiresVerification = false,
+        Guid? seatSectionId = null)
     {
         if (Status is EventStatus.Cancelled or EventStatus.Completed)
             throw new DomainException($"Bu durumdaki etkinlige bilet turu eklenemez: {Status}.");
+
+        // UNIQUE(EventId, Name) veritabaninda da var; buradaki kontrol
+        // kullaniciya anlasilir bir mesaj dondurmek icin.
+        if (_ticketTypes.Any(existing =>
+                string.Equals(existing.Name, name.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new DomainException($"Bu etkinlikte '{name.Trim()}' adinda bir bilet turu zaten var.");
+        }
 
         var yeni = new TicketType(
             Id, name, price, quota, salesStartsAtUtc, salesEndsAtUtc, requiresVerification);
 
         _ticketTypes.Add(yeni);
 
+        if (seatSectionId is not null)
+            AssignTicketTypeToSection(yeni.Id, seatSectionId);
+
         return yeni;
     }
+
+    /// <summary>
+    /// Bilet turunu koltuk bolumune atar.
+    /// </summary>
+    /// <remarks>
+    /// Sartnamenin kurali: <b>ayni koltuk birden fazla aktif bilet turune
+    /// atanamaz.</b> Koltuk bazinda kontrol etmek 600 satir gezmek demek;
+    /// atama bolum bazinda yapildigi icin kural "ayni bolum iki aktif ture
+    /// atanamaz" hâline geliyor ve aggregate icinde, veritabanina gitmeden
+    /// dogrulanabiliyor.
+    ///
+    /// <para>
+    /// Ayni kontrol handler'da yazilsaydi bilet turu ekleme ve bolum atama
+    /// uclarinin ikisinde de tekrar edilmesi gerekirdi; biri unutuldugunda
+    /// koltuk uretiminde ayni koltuga iki fiyat cikardi.
+    /// </para>
+    /// </remarks>
+    public void AssignTicketTypeToSection(Guid ticketTypeId, Guid? seatSectionId)
+    {
+        var ticketType = _ticketTypes.FirstOrDefault(candidate => candidate.Id == ticketTypeId)
+            ?? throw new DomainException("Bilet turu bu etkinlige ait degil.");
+
+        if (seatSectionId is { } section)
+        {
+            var cakisan = _ticketTypes.Any(other =>
+                other.Id != ticketTypeId &&
+                other.IsActive &&
+                other.SeatSectionId == section);
+
+            if (cakisan)
+            {
+                throw new DomainException(
+                    "Bu bolum baska bir aktif bilet turune atanmis. " +
+                    "Ayni koltuk birden fazla aktif bilet turune atanamaz.");
+            }
+        }
+
+        ticketType.AssignToSection(seatSectionId);
+    }
+
+    /// <summary>
+    /// Koltuk uretiminde kullanilacak varsayilan bilet turu.
+    /// </summary>
+    /// <remarks>
+    /// Bolume atanmamis aktif tur varsayilandir. Yoksa <c>null</c> doner ve
+    /// uretim, bolumu eslesmeyen koltuk kaldiginda hata verir — fiyatsiz
+    /// koltuk uretmekten iyidir.
+    /// </remarks>
+    public TicketType? DefaultTicketType =>
+        _ticketTypes.FirstOrDefault(
+            ticketType => ticketType.SeatSectionId is null && ticketType.IsActive);
 }
