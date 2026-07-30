@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Loca.Application;
 using Loca.Application.Common.Authentication;
 using Loca.Application.Common.Interfaces;
@@ -16,7 +17,16 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Enum'lar sayi degil METIN olarak tasinir: yanitta "Available"
+        // gorunur, 1 gorunmez. Sayi tasinsaydi istemci sihirli sabitlerle
+        // karsilastirma yapmak zorunda kalir ve enum'a araya yeni bir deger
+        // eklendiginde arayuz sessizce yanlis durumu gosterirdi.
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
