@@ -82,11 +82,25 @@ internal sealed class GlobalExceptionHandler(
 
         // Ayni kaydi iki istek ayni anda guncelledi. Koltuk rezervasyonunda
         // beklenen bir durumdur; istemci yeniden denemeli.
-        DbUpdateConcurrencyException => new ProblemDetails
+        //
+        // Iki tip de esleniyor: Persistence katmani EF'in istisnasini
+        // ConcurrencyConflictException'a ceviriyor, ama ceviriden gecmeyen
+        // bir yol kalirsa (baska bir DbContext, ham SaveChanges cagrisi)
+        // istemci 500 degil yine 409 gormeli.
+        ConcurrencyConflictException or DbUpdateConcurrencyException => new ProblemDetails
         {
             Status = StatusCodes.Status409Conflict,
             Title = "Kayit az once degisti",
             Detail = "Islem sirasinda kayit baskasi tarafindan guncellendi. Lutfen tekrar deneyin."
+        },
+
+        // Benzersizlik ihlali handler'da yakalanmadiysa buraya duser.
+        // Kisit adi ISTEMCIYE GITMEZ: index adi sema hakkinda bilgi sizdirir.
+        UniqueConstraintViolationException => new ProblemDetails
+        {
+            Status = StatusCodes.Status409Conflict,
+            Title = "Kayit zaten mevcut",
+            Detail = "Ayni kayit daha once olusturulmus."
         },
 
         // Geri kalan her sey. Ic mesaj ve stack trace ISTEMCIYE GITMEZ:

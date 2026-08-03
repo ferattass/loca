@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using FluentValidation;
 using Loca.Application.Common.Models;
+using Loca.Domain.Common;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -69,13 +71,47 @@ public sealed class LoggingBehavior<TRequest, TResponse>(
         {
             // Buradaki amac hatayi yutmak degil, hangi istekte olustugunu
             // kaydetmek. Cevaba donusturme isi WebApi katmanindadir.
-            logger.LogError(
-                ex,
-                "{Istek} hata ile sonlandi ({Sure} ms)",
-                requestName,
-                Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
+            var elapsed = Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
+
+            // BEKLENEN ile BEKLENMEYEN ayrimi.
+            // Once hepsi LogError ile yaziliyordu; sonuc olarak "uzatma hakki
+            // bir kez kullanilabilir" gibi normal bir is kurali reddi hata
+            // panosunda gercek hatalarla yan yana duruyordu. Gun 3'te ayni
+            // ders framework'un ExceptionHandlerMiddleware'i icin ogrenilmisti
+            // (bkz. mem.md 7. sorun); kendi pipeline'imizda kalmis.
+            //
+            // Ustelik ayni istisna GlobalExceptionHandler tarafindan bir kez
+            // daha loglaniyor: beklenen bir 409 iki satir birden uretiyordu.
+            if (IsExpected(ex))
+            {
+                logger.LogWarning(
+                    "{Istek} kural geregi reddedildi ({Sure} ms) — {Tur}: {Mesaj}",
+                    requestName,
+                    elapsed,
+                    ex.GetType().Name,
+                    ex.Message);
+            }
+            else
+            {
+                logger.LogError(ex, "{Istek} hata ile sonlandi ({Sure} ms)", requestName, elapsed);
+            }
 
             throw;
         }
     }
+
+    /// <summary>
+    /// Istisna, sistemin normal isleyisinin parcasi mi.
+    /// </summary>
+    /// <remarks>
+    /// Eszamanlilik cakismasi da beklenen: rezervasyon akisinda iki istegin
+    /// ayni koltuga gitmesi hata degil, tasarimin calistiginin gostergesi.
+    /// Hata sayilsaydi yogun bir satista hata panosu bu satirlarla dolar ve
+    /// gercek hatalar gorunmez olurdu.
+    /// </remarks>
+    private static bool IsExpected(Exception exception) =>
+        exception is ValidationException
+            or DomainException
+            or ConcurrencyConflictException
+            or UniqueConstraintViolationException;
 }
