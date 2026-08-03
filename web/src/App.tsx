@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SeatStatePreview } from './components/SeatStatePreview';
 import { useOturumBaslat } from './hooks/useOturumBaslat';
+import { EtkinlikOlusturPage } from './pages/EtkinlikOlusturPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { HomePage } from './pages/HomePage';
 import { KoltukSecimPage } from './pages/KoltukSecimPage';
@@ -65,6 +66,17 @@ export default function App() {
             <ProtectedRoute>
               <RezervasyonlarimPage />
             </ProtectedRoute>
+          }
+        />
+
+        {/* Etkinlik olusturma organizatore acik; admin de erisebilir cunku
+            sunucudaki OrganizerOnly policy'si admin'i de kapsiyor. */}
+        <Route
+          path="/etkinlikler/yeni"
+          element={
+            <RoleRoute roller={['Organizer', 'Admin']}>
+              <EtkinlikOlusturPage />
+            </RoleRoute>
           }
         />
 
