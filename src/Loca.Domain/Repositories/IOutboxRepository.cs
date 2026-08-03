@@ -15,6 +15,19 @@ public interface IOutboxRepository
     Task<IReadOnlyList<OutboxMessage>> GetPendingAsync(
         int batchSize, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Daha once en az bir kez basarisiz olmus, hakki bitmemis mesajlar.
+    /// </summary>
+    /// <remarks>
+    /// Ilk deneme ile yeniden deneme AYRI islerde calisiyor ve ayri
+    /// sikliklarda tetikleniyor. Ayni iste toplansaydi, surekli basarisiz
+    /// olan bir mesaj her turda yeniden denenip yeni mesajlarin sirasini
+    /// isgal ederdi; ayrildiginda yeni mesajlar hizli, sorunlular seyrek
+    /// isleniyor.
+    /// </remarks>
+    Task<IReadOnlyList<OutboxMessage>> GetRetryableAsync(
+        int batchSize, CancellationToken cancellationToken = default);
+
     /// <summary>Deneme hakki tukenmis, hâlâ islenmemis mesajlar. Raporlama icin.</summary>
     Task<IReadOnlyList<OutboxMessage>> GetDeadLetteredAsync(
         int batchSize, CancellationToken cancellationToken = default);

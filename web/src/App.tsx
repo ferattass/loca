@@ -10,6 +10,8 @@ import { KoltukSecimPage } from './pages/KoltukSecimPage';
 import { LoginPage } from './pages/LoginPage';
 import { MekanYonetimPage } from './pages/MekanYonetimPage';
 import { OturmaPlaniYonetimPage } from './pages/OturmaPlaniYonetimPage';
+import { OdemePage } from './pages/OdemePage';
+import { BiletlerimPage } from './pages/BiletlerimPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { RezervasyonPage } from './pages/RezervasyonPage';
@@ -67,6 +69,24 @@ export default function App() {
           element={
             <ProtectedRoute>
               <RezervasyonlarimPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/odeme/:rezervasyonId"
+          element={
+            <ProtectedRoute>
+              <OdemePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/biletlerim"
+          element={
+            <ProtectedRoute>
+              <BiletlerimPage />
             </ProtectedRoute>
           }
         />

@@ -111,6 +111,7 @@ function Kisayollar({ roller }: { roller: string[] }) {
 
   const baglantilar = [
     { yol: '/rezervasyonlarim', metin: 'Rezervasyonlarim', gorunur: true },
+    { yol: '/biletlerim', metin: 'Biletlerim', gorunur: true },
     { yol: '/etkinlikler/yeni', metin: 'Yeni etkinlik olustur', gorunur: organizatorMu },
     { yol: '/yonetim/mekanlar', metin: 'Mekan ve salon yonetimi', gorunur: adminMi },
     { yol: '/yonetim/oturma-planlari', metin: 'Oturma plani yonetimi', gorunur: adminMi },

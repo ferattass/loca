@@ -97,5 +97,27 @@ public interface IReservationRepository
     Task<IReadOnlyList<Reservation>> GetExpiredAsync(
         DateTime utcNow, int batchSize, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Verilen aralikta baslayan oturumlarin onaylanmis rezervasyonlari.
+    /// </summary>
+    /// <remarks>
+    /// Hatirlatma isi icin. <b>Aralik kullaniliyor, "24 saatten az kaldi"
+    /// gibi acik uclu bir kosul degil:</b> acik uclu olsaydi is her
+    /// calistiginda ayni rezervasyonu yeniden bulur ve kullaniciya her
+    /// turda bir hatirlatma daha giderdi.
+    /// </remarks>
+    Task<IReadOnlyList<UpcomingReservation>> GetUpcomingForReminderAsync(
+        DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default);
+
     void Add(Reservation reservation);
 }
+
+/// <summary>Hatirlatma gonderilecek rezervasyonun ozeti.</summary>
+public sealed record UpcomingReservation(
+    Guid ReservationId,
+    Guid UserId,
+    Guid EventSessionId,
+    string EventTitle,
+    string VenueName,
+    DateTime StartsAtUtc,
+    int SeatCount);

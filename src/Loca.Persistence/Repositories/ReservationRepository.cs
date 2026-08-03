@@ -120,6 +120,24 @@ internal sealed class ReservationRepository(LocaDbContext context) : IReservatio
             .Take(batchSize)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<UpcomingReservation>> GetUpcomingForReminderAsync(
+        DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default) =>
+        await context.Reservations
+            .Where(reservation =>
+                reservation.Status == ReservationStatus.Confirmed &&
+                reservation.EventSession!.StartsAtUtc >= fromUtc &&
+                reservation.EventSession!.StartsAtUtc < toUtc)
+            .Select(reservation => new UpcomingReservation(
+                reservation.Id,
+                reservation.UserId,
+                reservation.EventSessionId,
+                reservation.EventSession!.Event!.Title,
+                reservation.EventSession!.Event!.Venue!.Name,
+                reservation.EventSession!.StartsAtUtc,
+                reservation.Items.Count))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
     /// <remarks>
     /// Burada Gun 5'teki "EF yeni kaydi UPDATE etti" tuzagi YOK: orada sorun,
     /// zaten izlenen bir aggregate'in koleksiyonuna eklenen cocuk nesneydi.

@@ -212,14 +212,12 @@ export function RezervasyonPage() {
       <div className="flex flex-wrap items-center gap-stack-sm">
         {bekliyor && (
           <>
-            {/* Odeme akisi Gun 7'de gelecek. */}
             <button
               type="button"
-              disabled
-              title="Odeme akisi henuz hazir degil"
-              className="rounded-md bg-primary px-stack-md py-base font-body text-body-sm font-semibold text-on-primary opacity-50"
+              onClick={() => navigate(`/odeme/${data.id}`)}
+              className="rounded-md bg-primary px-stack-md py-base font-body text-body-sm font-semibold text-on-primary"
             >
-              Odemeye gec
+              Ödemeye geç
             </button>
 
             <button

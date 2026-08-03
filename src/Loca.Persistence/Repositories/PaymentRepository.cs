@@ -58,6 +58,43 @@ internal sealed class PaymentRepository(LocaDbContext context) : IPaymentReposit
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
+    public async Task<DailySalesSummary> GetDailySummaryAsync(
+        DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default)
+    {
+        // Tek sorgu, tek gidis donus. Uc ayri Count/Sum cagrisi da ayni
+        // sonucu verirdi ama uc kez tablo taranarak.
+        var satirlar = await context.Payments
+            .Where(payment => payment.CreatedAt >= fromUtc && payment.CreatedAt < toUtc)
+            .GroupBy(payment => payment.Status)
+            .Select(grup => new
+            {
+                Durum = grup.Key,
+                Adet = grup.Count(),
+                Tutar = grup.Sum(payment => payment.Amount.Amount),
+            })
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var basarili = satirlar.FirstOrDefault(satir => satir.Durum == PaymentStatus.Succeeded);
+        var iade = satirlar.FirstOrDefault(satir => satir.Durum == PaymentStatus.Refunded);
+        var basarisiz = satirlar.FirstOrDefault(satir => satir.Durum == PaymentStatus.Failed);
+
+        // Para birimi ayri sorguyla degil ilk kayittan okunuyor; sistem tek
+        // para birimiyle calisiyor (coklu para birimi kapsam disi).
+        var paraBirimi = await context.Payments
+            .Where(payment => payment.CreatedAt >= fromUtc && payment.CreatedAt < toUtc)
+            .Select(payment => payment.Amount.Currency)
+            .FirstOrDefaultAsync(cancellationToken) ?? "TRY";
+
+        return new DailySalesSummary(
+            basarili?.Adet ?? 0,
+            basarili?.Tutar ?? 0m,
+            iade?.Adet ?? 0,
+            iade?.Tutar ?? 0m,
+            basarisiz?.Adet ?? 0,
+            paraBirimi);
+    }
+
     public void Add(Payment payment) => context.Payments.Add(payment);
 
     public void RegisterNewTransactions(Payment payment)

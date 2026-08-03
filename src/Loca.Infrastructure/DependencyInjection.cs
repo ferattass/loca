@@ -1,6 +1,7 @@
 using Loca.Application.Common.Interfaces;
 using Loca.Infrastructure.Authentication;
 using Loca.Infrastructure.Concurrency;
+using Loca.Infrastructure.Messaging;
 using Loca.Infrastructure.Payments;
 using Loca.Infrastructure.Services;
 using Loca.Infrastructure.Storage;
@@ -73,6 +74,9 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.AddSingleton<ITicketCodeGenerator, TicketCodeGenerator>();
+
+        // Gun 9'da SMTP uygulamasiyla degistirilecek; outbox isi degismeyecek.
+        services.AddScoped<IOutboxDispatcher, LoggingOutboxDispatcher>();
 
         // Saglayici SECIMI acilista yapiliyor, her istekte degil: hangi
         // saglayicinin kullanildigi uygulama omru boyunca degismez ve

@@ -26,6 +26,22 @@ public sealed record TicketSource(
     DateTime EventStartsAtUtc,
     Money Price);
 
+/// <summary>
+/// Bir gunun satis ozeti.
+/// </summary>
+/// <remarks>
+/// Iade edilen tutar toplamdan DUSULMUYOR, ayri gosteriliyor: "bugun ne
+/// kadar sattik" ile "bugun ne kadar iade ettik" farkli sorular ve tek bir
+/// net rakama indirilirse iade oraninin arttigi fark edilmez.
+/// </remarks>
+public sealed record DailySalesSummary(
+    int SucceededCount,
+    decimal TotalAmount,
+    int RefundedCount,
+    decimal RefundedAmount,
+    int FailedCount,
+    string Currency);
+
 public interface IPaymentRepository
 {
     Task<Payment?> GetAggregateAsync(Guid id, CancellationToken cancellationToken = default);
@@ -50,6 +66,10 @@ public interface IPaymentRepository
     /// <summary>Bilet uretimi icin rezervasyon kalemlerinin cozulmus hâli.</summary>
     Task<IReadOnlyList<TicketSource>> GetTicketSourcesAsync(
         Guid reservationId, CancellationToken cancellationToken = default);
+
+    /// <summary>Verilen aralikta sonuclanan odemelerin ozeti. Gunluk rapor icin.</summary>
+    Task<DailySalesSummary> GetDailySummaryAsync(
+        DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default);
 
     void Add(Payment payment);
 
