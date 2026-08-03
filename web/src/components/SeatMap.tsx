@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useId, useMemo } from 'react';
 
 import type { SeatStatus } from './SeatStatePreview';
 
@@ -40,6 +40,25 @@ const KOLTUK = 22;
 
 /** Bolum basliginin altinda birakilan bosluk. */
 const BASLIK_YUKSEKLIGI = 34;
+
+/**
+ * Sahne bandinin yuksekligi ve altindaki bosluk.
+ *
+ * Sahne yalnizca bir yazi degil, cizilen bir seklin kendisi: seyirci plana
+ * baktiginda "on taraf neresi" sorusunu okumadan anlamali. Salon plani ters
+ * okunursa kullanici sahneye en uzak koltugu en yakin sanip satin alir.
+ */
+const SAHNE_YUKSEKLIGI = 34;
+const SAHNE_ALT_BOSLUK = 26;
+
+/**
+ * Sahne onunun asagi dogru sistigi mesafe.
+ *
+ * Duz bir dikdortgen salon planindan cok bir baslik cubuguna benziyordu.
+ * Gercek sahne onleri seyirciye dogru cikinti yapar; hafif bir kavis, plani
+ * "sahne buradan basliyor" diye okutuyor.
+ */
+const SAHNE_KAVIS = 9;
 
 /** Sira etiketleri icin solda ayrilan sutun genisligi. */
 const SIRA_SUTUNU = 26;
@@ -169,7 +188,9 @@ export function SeatMap({
       (a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name, 'tr'),
     );
 
-    let ofsetY = 0;
+    // Yerlesim sahnenin ALTINDAN basliyor; sifirdan baslasaydi ilk bolumun
+    // basligi sahne bandinin uzerine binerdi.
+    let ofsetY = SAHNE_YUKSEKLIGI + SAHNE_ALT_BOSLUK;
     let enGenis = 0;
 
     const hesaplanan = sirali.map((bolum) => {
@@ -220,6 +241,18 @@ export function SeatMap({
 
   const toplamKoltuk = bolumler.reduce((toplam, bolum) => toplam + bolum.seats.length, 0);
 
+  // Koltuklar kategoriye ayrilmis mi. Tek bolumluk plan "ayrilmamis" demek.
+  const cokBolumlu = bolumler.length > 1;
+
+  // Gradient kimlikleri bilesen basina uretiliyor: ayni sayfada iki plan
+  // cizilirse sabit bir kimlik ikisinde de ayni olur ve tarayici ilk
+  // tanimlananı kullanir.
+  const sahneDolguId = useId();
+  const sahneIsikId = useId();
+
+  const sahneSol = SIRA_SUTUNU;
+  const sahneGenisligi = Math.max(genislik - SIRA_SUTUNU, KOLTUK);
+
   if (toplamKoltuk === 0) {
     return (
       <p
@@ -239,16 +272,101 @@ export function SeatMap({
         role="group"
         aria-label={`Oturma plani, ${toplamKoltuk} koltuk`}
       >
-        {/* Sahne yonu: seyircinin plani nasil okuyacagini belirler. */}
-        <text x={genislik / 2} y={12} textAnchor="middle" fontSize={11} fill="#958ea0">
-          SAHNE
-        </text>
+        {/*
+          SAHNE.
+          Yalnizca "SAHNE" yazisi vardi; plan ters okunmaya acikti. Simdi
+          cizilen bir sahne onu: koltuklar bunun karsisinda diziliyor ve
+          seyirci hangi tarafin on oldugunu okumadan goruyor.
+
+          Uc parca: (1) seyirciye dogru hafif cikinti yapan govde,
+          (2) ustteki aydinlik kenar cizgisi, (3) koltuklara dusen isik.
+          Isik salt sus degil: bakisi sahneden koltuklara dogru cekiyor,
+          yani planin okunma yonunu belirliyor.
+        */}
+        <g aria-hidden="true">
+          <defs>
+            <linearGradient id={sahneDolguId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#453d59" />
+              <stop offset="100%" stopColor="#221e2c" />
+            </linearGradient>
+
+            <linearGradient id={sahneIsikId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#d0bcff" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#d0bcff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Sahnenin koltuklara vuran isigi */}
+          <rect
+            x={sahneSol}
+            y={SAHNE_YUKSEKLIGI}
+            width={sahneGenisligi}
+            height={SAHNE_ALT_BOSLUK}
+            fill={`url(#${sahneIsikId})`}
+          />
+
+          <path
+            d={
+              `M ${sahneSol} 4 ` +
+              `L ${sahneSol + sahneGenisligi} 4 ` +
+              `L ${sahneSol + sahneGenisligi} ${SAHNE_YUKSEKLIGI} ` +
+              `Q ${sahneSol + sahneGenisligi / 2} ${SAHNE_YUKSEKLIGI + SAHNE_KAVIS} ` +
+              `${sahneSol} ${SAHNE_YUKSEKLIGI} Z`
+            }
+            fill={`url(#${sahneDolguId})`}
+            stroke="#6d6579"
+            strokeWidth={1}
+          />
+
+          {/* Aydinlik ust kenar: sahne isigi altta degil ustte yanar. */}
+          <line
+            x1={sahneSol + 2}
+            y1={4.5}
+            x2={sahneSol + sahneGenisligi - 2}
+            y2={4.5}
+            stroke="#d0bcff"
+            strokeOpacity={0.55}
+            strokeWidth={1.5}
+            strokeLinecap="round"
+          />
+
+          <text
+            x={sahneSol + sahneGenisligi / 2}
+            y={SAHNE_YUKSEKLIGI / 2 + 6}
+            textAnchor="middle"
+            fontSize={11}
+            letterSpacing={5}
+            fill="#e8e0e8"
+            fontWeight={700}
+          >
+            SAHNE
+          </text>
+        </g>
 
         {yerlesim.map(({ bolum, ustY, kaydirX, kaydirY, siralar }) => (
           <g key={bolum.id}>
-            <text x={0} y={ustY + 26} fontSize={13} fill="#e8e0e8" fontWeight={600}>
-              {bolum.name}
-            </text>
+            {/*
+              Bolum basligi yalnizca BIRDEN FAZLA bolum varsa yaziliyor.
+              Koltuklari kategoriye ayrilmamis bir salonda tek bolumun adini
+              ("Genel", "Salon") yazmak kullaniciya secmesi gereken bir ayrim
+              varmis izlenimi verirdi; oysa ayrim yok.
+            */}
+            {cokBolumlu && (
+              <>
+                <rect
+                  x={0}
+                  y={ustY + 14}
+                  width={3}
+                  height={16}
+                  rx={1.5}
+                  fill="#d0bcff"
+                  aria-hidden="true"
+                />
+                <text x={10} y={ustY + 27} fontSize={13} fill="#e8e0e8" fontWeight={600}>
+                  {bolum.name}
+                </text>
+              </>
+            )}
 
             {bolum.seats.length === 0 && (
               <text x={0} y={ustY + 46} fontSize={11} fill="#958ea0">

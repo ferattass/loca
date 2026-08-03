@@ -9,6 +9,7 @@ import {
   type KoltukMusaitligi,
 } from '../api/eventSessions';
 import { rezervasyonOlustur } from '../api/reservations';
+import { BolumHaritasi, type BolumOzeti } from '../components/BolumHaritasi';
 import { DOLGU, SeatMap, type BolumVerisi } from '../components/SeatMap';
 import type { SeatStatus } from '../components/SeatStatePreview';
 
@@ -46,6 +47,15 @@ export function KoltukSecimPage() {
   const queryClient = useQueryClient();
 
   const [seciliIdler, setSeciliIdler] = useState<ReadonlySet<string>>(new Set());
+
+  /**
+   * Koltuklari acilmis bolum. `null` ise salon genel gorunumu.
+   *
+   * Iki seviyeli akis: once "salonun neresi" sorusu, sonra koltuk secimi.
+   * Iki yuz koltugu tek ekranda gostermek kullaniciyi bu ilk soruyu
+   * atlamaya zorluyordu.
+   */
+  const [acikBolumId, setAcikBolumId] = useState<string | null>(null);
   const [uyari, setUyari] = useState<string | null>(null);
 
   /**
@@ -104,6 +114,42 @@ export function KoltukSecimPage() {
 
     return { bolumler: bolumListesi, durumlar: durumHaritasi, fiyatlar: fiyatHaritasi };
   }, [data]);
+
+  // Bolum kartlari icin ozet: kac koltuk bos, en dusuk fiyat ne.
+  const bolumOzetleri = useMemo<BolumOzeti[]>(
+    () =>
+      (data?.sections ?? []).map((bolum) => {
+        const musait = bolum.seats.filter((koltuk) => koltuk.status === 'Available');
+
+        return {
+          id: bolum.id,
+          ad: bolum.name,
+          siraNo: bolum.displayOrder,
+          toplamKoltuk: bolum.seats.length,
+          musaitKoltuk: musait.length,
+          // Fiyat yalnizca SATILABILIR koltuklardan hesaplaniyor: tukenmis
+          // ucuz bolumun fiyatini gostermek yaniltici olurdu.
+          enDusukFiyat: musait.length > 0 ? Math.min(...musait.map((k) => k.price)) : null,
+          paraBirimi: bolum.seats[0]?.currency ?? 'TRY',
+        };
+      }),
+    [data],
+  );
+
+  // Hangi bolumde kac koltuk secildi. Kullanici bolumler arasi gezerken
+  // secimini kaybetmiyor; kartta gorunuyor.
+  const bolumBazliSecim = useMemo(() => {
+    const sayac = new Map<string, number>();
+
+    for (const bolum of data?.sections ?? []) {
+      const adet = bolum.seats.filter((koltuk) => seciliIdler.has(koltuk.eventSeatId)).length;
+      if (adet > 0) sayac.set(bolum.id, adet);
+    }
+
+    return sayac;
+  }, [data, seciliIdler]);
+
+  const acikBolum = bolumler.find((bolum) => bolum.id === acikBolumId) ?? null;
 
   const secilenler = useMemo(
     () => [...seciliIdler].map((koltukId) => ({ koltukId, ...fiyatlar.get(koltukId) })),
@@ -206,8 +252,6 @@ export function KoltukSecimPage() {
         </p>
       </header>
 
-      <Aciklama />
-
       {uyari && (
         <p
           role="alert"
@@ -217,12 +261,47 @@ export function KoltukSecimPage() {
         </p>
       )}
 
-      <SeatMap
-        bolumler={bolumler}
-        seciliIdler={seciliIdler}
-        sunucuDurumlari={durumlar}
-        onKoltukSec={koltukSec}
-      />
+      {acikBolum === null ? (
+        <BolumHaritasi
+          bolumler={bolumOzetleri}
+          seciliBolumId={null}
+          onBolumSec={(bolumId) => {
+            setUyari(null);
+            setAcikBolumId(bolumId);
+          }}
+          seciliKoltukSayilari={bolumBazliSecim}
+        />
+      ) : (
+        <>
+          <div className="mb-stack-sm flex flex-wrap items-center justify-between gap-stack-sm">
+            <button
+              type="button"
+              onClick={() => setAcikBolumId(null)}
+              className="font-body text-body-sm text-primary underline underline-offset-2"
+            >
+              ← Tüm bölümler
+            </button>
+
+            <p className="font-headline text-body-md font-semibold text-on-surface">
+              {acikBolum.name}
+            </p>
+          </div>
+
+          <Aciklama />
+
+          {/*
+            Yalnizca ACIK BOLUMUN koltuklari ciziliyor. Tamami cizilseydi hem
+            ekran yine kalabaliklasir hem de alti yuz koltuklu bir salonda
+            gereksiz yere alti yuz SVG ogesi olusurdu.
+          */}
+          <SeatMap
+            bolumler={[acikBolum]}
+            seciliIdler={seciliIdler}
+            sunucuDurumlari={durumlar}
+            onKoltukSec={koltukSec}
+          />
+        </>
+      )}
 
       {seciliIdler.size > 0 && (
         <section
