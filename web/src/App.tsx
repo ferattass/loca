@@ -5,9 +5,12 @@ import { SeatStatePreview } from './components/SeatStatePreview';
 import { useOturumBaslat } from './hooks/useOturumBaslat';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { HomePage } from './pages/HomePage';
+import { KoltukSecimPage } from './pages/KoltukSecimPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { RezervasyonPage } from './pages/RezervasyonPage';
+import { RezervasyonlarimPage } from './pages/RezervasyonlarimPage';
 import { SeatLayoutPage } from './pages/SeatLayoutPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { RoleRoute } from './components/RoleRoute';
@@ -37,6 +40,30 @@ export default function App() {
           element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Koltuk secimi giris ISTEMEZ: kullanici salonun doluluk durumunu
+            gormeden kayit olmak zorunda kalmasin. Rezervasyon acma ucu
+            sunucuda zaten kimlik dogrulamasi istiyor; giris yapmamis
+            kullanici "Koltuklari kilitle" dedigi anda 401 alir. */}
+        <Route path="/oturumlar/:id/koltuklar" element={<KoltukSecimPage />} />
+
+        <Route
+          path="/rezervasyonlar/:id"
+          element={
+            <ProtectedRoute>
+              <RezervasyonPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/rezervasyonlarim"
+          element={
+            <ProtectedRoute>
+              <RezervasyonlarimPage />
             </ProtectedRoute>
           }
         />
