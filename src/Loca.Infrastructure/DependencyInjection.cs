@@ -74,19 +74,46 @@ public static class DependencyInjection
 
         services.AddSingleton<ITicketCodeGenerator, TicketCodeGenerator>();
 
-        // Saglayici yapilandirmadan seciliyor. Basarisiz saglayici yalnizca
-        // "odeme basarisiz olursa koltuklar serbest kaliyor mu" senaryosunu
-        // calistirmak icin var; uretimde gercek saglayici gelecek.
-        services.AddScoped<IPaymentService>(serviceProvider =>
-        {
-            var ayarlar = serviceProvider.GetRequiredService<IOptions<PaymentOptions>>().Value;
+        // Saglayici SECIMI acilista yapiliyor, her istekte degil: hangi
+        // saglayicinin kullanildigi uygulama omru boyunca degismez ve
+        // Iyzico secilmediginde onun yapilandirmasi hic aranmaz.
+        var secilenSaglayici =
+            configuration[$"{PaymentOptions.SectionName}:Provider"] ?? "Mock";
 
-            return ayarlar.Provider.Equals("FailedMock", StringComparison.OrdinalIgnoreCase)
-                ? new FailedPaymentProvider(
-                    serviceProvider.GetRequiredService<ILogger<FailedPaymentProvider>>())
-                : new MockPaymentProvider(
-                    ayarlar, serviceProvider.GetRequiredService<ILogger<MockPaymentProvider>>());
-        });
+        if (secilenSaglayici.Equals("Iyzico", StringComparison.OrdinalIgnoreCase))
+        {
+            // Iyzico ayarlari yalnizca Iyzico secildiginde zorunlu. Kosulsuz
+            // dogrulansaydi, taklit saglayiciyla calisan gelistirme ortami ve
+            // staj teslimi Iyzico anahtari olmadan hic ayaga kalkmazdi.
+            services
+                .AddOptions<IyzicoOptions>()
+                .Bind(configuration.GetSection(IyzicoOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+            // Typed client: HttpClient omrunu fabrika yonetiyor. Elle
+            // olusturulan bir HttpClient ya soket tuketir ya da DNS
+            // degisikligini gormez.
+            services.AddHttpClient<IyzicoPaymentProvider>();
+
+            services.AddScoped<IPaymentService>(serviceProvider =>
+                serviceProvider.GetRequiredService<IyzicoPaymentProvider>());
+        }
+        else
+        {
+            // Basarisiz saglayici yalnizca "odeme basarisiz olursa koltuklar
+            // serbest kaliyor mu" senaryosunu calistirmak icin var.
+            services.AddScoped<IPaymentService>(serviceProvider =>
+            {
+                var ayarlar = serviceProvider.GetRequiredService<IOptions<PaymentOptions>>().Value;
+
+                return ayarlar.Provider.Equals("FailedMock", StringComparison.OrdinalIgnoreCase)
+                    ? new FailedPaymentProvider(
+                        serviceProvider.GetRequiredService<ILogger<FailedPaymentProvider>>())
+                    : new MockPaymentProvider(
+                        ayarlar, serviceProvider.GetRequiredService<ILogger<MockPaymentProvider>>());
+            });
+        }
 
         return services;
     }
