@@ -94,6 +94,20 @@ api.interceptors.response.use(
   },
 );
 
+/**
+ * Sunucunun makine okunur hata kodu (orn. `Reservation.SeatNotAvailable`).
+ *
+ * Arayuz kararlarini MESAJ metnine degil bu koda gore vermeli: mesaj metni
+ * degistiginde veya cevirisi eklendiginde koda bakan mantik kirilmaz.
+ * Ozellikle rezervasyon akisinda onemli — ayni 409 iki farkli sebepten
+ * gelebiliyor ve ikisinde yapilacak sey farkli.
+ */
+export function hataKodu(hata: unknown): string | undefined {
+  if (!axios.isAxiosError(hata)) return undefined;
+
+  return (hata.response?.data as ProblemDetails | undefined)?.code;
+}
+
 /** Sunucudan gelen hatayi kullaniciya gosterilecek tek satira cevirir. */
 export function hataMesaji(hata: unknown, varsayilan = 'Beklenmeyen bir hata olustu.'): string {
   if (!axios.isAxiosError(hata)) return varsayilan;
