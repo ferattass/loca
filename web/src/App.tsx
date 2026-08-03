@@ -7,6 +7,7 @@ import { useOturumBaslat } from './hooks/useOturumBaslat';
 import { EtkinlikOlusturPage } from './pages/EtkinlikOlusturPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { HomePage } from './pages/HomePage';
+import { KesfetPage } from './pages/KesfetPage';
 import { KoltukSecimPage } from './pages/KoltukSecimPage';
 import { LoginPage } from './pages/LoginPage';
 import { MekanYonetimPage } from './pages/MekanYonetimPage';
@@ -47,8 +48,14 @@ export default function App() {
             Duzen rota seviyesinde: her sayfanin kendi icine baslik koymasi
             gerekseydi biri unutulur ve o ekranda gezinme kaybolurdu. */}
         <Route element={<SiteKabugu />}>
+        {/* Kok sayfa GIRIS ISTEMEZ: etkinlik vitrini herkese acik olmali,
+            kullanici neyi satin alacagini gormeden kayit olmak zorunda
+            kalmasin. Korumali olsaydi arama motorlari da hicbir seyi
+            goremezdi. */}
+        <Route path="/" element={<KesfetPage />} />
+
         <Route
-          path="/"
+          path="/hesabim"
           element={
             <ProtectedRoute>
               <HomePage />

@@ -37,6 +37,7 @@ export function SiteBasligi() {
     { yol: '/', metin: 'Keşfet', gorunur: true },
     { yol: '/rezervasyonlarim', metin: 'Rezervasyonlarım', gorunur: girisYapildi },
     { yol: '/biletlerim', metin: 'Biletlerim', gorunur: girisYapildi },
+    { yol: '/hesabim', metin: 'Hesabım', gorunur: girisYapildi },
     { yol: '/etkinlikler/yeni', metin: 'Etkinlik oluştur', gorunur: organizatorMu },
     { yol: '/yonetim/mekanlar', metin: 'Mekânlar', gorunur: adminMi },
     { yol: '/yonetim/oturma-planlari', metin: 'Planlar', gorunur: adminMi },
