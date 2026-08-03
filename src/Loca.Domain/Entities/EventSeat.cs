@@ -83,20 +83,32 @@ public sealed class EventSeat : BaseEntity
         Status == EventSeatStatus.Available || IsLockExpired(utcNow);
 
     /// <summary>
-    /// Koltugu gecici olarak kilitler.
+    /// Koltugu bir rezervasyon icin gecici olarak kilitler.
     /// </summary>
     /// <remarks>
     /// Suresi dolmus kilit uzerine yeni kilit konabilir; temizlik isini
     /// bekleyen bir koltuk baskasina satilamaz durumda kalmasin.
+    ///
+    /// <para>
+    /// <b>Rezervasyon kimligi burada zorunlu.</b> Sahipsiz kilit diye bir
+    /// durum yok: kilit rezervasyondan bagimsiz kurulabilseydi suresi
+    /// dolan bir kaydi temizleyen is, koltugu hangi rezervasyondan
+    /// kopardigini bilemez ve iki adim (koltugu birak, rezervasyonu
+    /// kapat) birbirinden ayrisirdi.
+    /// </para>
     /// </remarks>
-    public void Lock(Guid userId, DateTime utcNow, TimeSpan sure)
+    public void Lock(Guid userId, Guid reservationId, DateTime utcNow, TimeSpan sure)
     {
         if (!IsAvailable(utcNow))
             throw new DomainException("Koltuk su anda secilebilir durumda degil.");
 
+        if (reservationId == Guid.Empty)
+            throw new DomainException("Kilit bir rezervasyona bagli olmali.");
+
         Status = EventSeatStatus.Locked;
         LockedByUserId = userId;
         LockedUntilUtc = utcNow.Add(sure);
+        ReservationId = reservationId;
     }
 
     /// <summary>Kilidi uzatir. Cagiran, uzatma hakkinin kullanilip kullanilmadigini kontrol eder.</summary>
@@ -111,7 +123,16 @@ public sealed class EventSeat : BaseEntity
         LockedUntilUtc = (LockedUntilUtc ?? utcNow).Add(ek);
     }
 
-    /// <summary>Rezervasyona baglar: Locked → Reserved.</summary>
+    /// <summary>
+    /// Odeme basladi: Locked → Reserved.
+    /// </summary>
+    /// <remarks>
+    /// Kilit ile rezerve arasindaki fark sure: <c>Locked</c> koltuk
+    /// <see cref="LockedUntilUtc"/> dolunca kendiliginden geri doner,
+    /// <c>Reserved</c> koltuk odeme sonuclanana kadar bekler. Ayrimin
+    /// pratik karsiligi, odeme saglayicisi cevap verirken kilit suresinin
+    /// dolup koltugu baskasina vermemesi. Gun 7'de kullanilacak.
+    /// </remarks>
     public void AttachToReservation(Guid reservationId)
     {
         if (Status != EventSeatStatus.Locked)
