@@ -17,6 +17,9 @@ public class EventSeatTests
     private static readonly DateTime Simdi = new(2026, 8, 1, 12, 0, 0, DateTimeKind.Utc);
     private static readonly TimeSpan KilitSuresi = TimeSpan.FromMinutes(10);
 
+    /// <summary>Kilit her zaman bir rezervasyona ait; sahipsiz kilit yok.</summary>
+    private static readonly Guid RezervasyonId = Guid.CreateVersion7();
+
     private static EventSeat YeniKoltuk() =>
         new(Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), new Money(500, "TRY"));
 
@@ -35,22 +38,36 @@ public class EventSeatTests
         var koltuk = YeniKoltuk();
         var kullanici = Guid.CreateVersion7();
 
-        koltuk.Lock(kullanici, Simdi, KilitSuresi);
+        koltuk.Lock(kullanici, RezervasyonId, Simdi, KilitSuresi);
 
         Assert.Equal(EventSeatStatus.Locked, koltuk.Status);
         Assert.Equal(kullanici, koltuk.LockedByUserId);
         Assert.Equal(Simdi.Add(KilitSuresi), koltuk.LockedUntilUtc);
+        Assert.Equal(RezervasyonId, koltuk.ReservationId);
+    }
+
+    /// <remarks>
+    /// Sahipsiz kilit kabul edilseydi, suresi dolan kaydi temizleyen is
+    /// koltugu hangi rezervasyondan kopardigini bilemezdi.
+    /// </remarks>
+    [Fact]
+    public void LockRequiresReservation()
+    {
+        var koltuk = YeniKoltuk();
+
+        Assert.Throws<DomainException>(() =>
+            koltuk.Lock(Guid.CreateVersion7(), Guid.Empty, Simdi, KilitSuresi));
     }
 
     [Fact]
     public void LockedSeatCannotBeLockedByAnotherUser()
     {
         var koltuk = YeniKoltuk();
-        koltuk.Lock(Guid.CreateVersion7(), Simdi, KilitSuresi);
+        koltuk.Lock(Guid.CreateVersion7(), RezervasyonId, Simdi, KilitSuresi);
 
         // Kilit suresi dolmadan ikinci kullanici alamaz.
         Assert.Throws<DomainException>(() =>
-            koltuk.Lock(Guid.CreateVersion7(), Simdi.AddMinutes(5), KilitSuresi));
+            koltuk.Lock(Guid.CreateVersion7(), RezervasyonId, Simdi.AddMinutes(5), KilitSuresi));
     }
 
     /// <remarks>
@@ -61,7 +78,7 @@ public class EventSeatTests
     public void ExpiredLockShouldAllowNewLock()
     {
         var koltuk = YeniKoltuk();
-        koltuk.Lock(Guid.CreateVersion7(), Simdi, KilitSuresi);
+        koltuk.Lock(Guid.CreateVersion7(), RezervasyonId, Simdi, KilitSuresi);
 
         var sonra = Simdi.Add(KilitSuresi).AddSeconds(1);
 
@@ -69,7 +86,7 @@ public class EventSeatTests
         Assert.True(koltuk.IsAvailable(sonra));
 
         var ikinciKullanici = Guid.CreateVersion7();
-        koltuk.Lock(ikinciKullanici, sonra, KilitSuresi);
+        koltuk.Lock(ikinciKullanici, Guid.CreateVersion7(), sonra, KilitSuresi);
 
         Assert.Equal(ikinciKullanici, koltuk.LockedByUserId);
     }
@@ -78,7 +95,7 @@ public class EventSeatTests
     public void ExpiredLockCannotBeExtended()
     {
         var koltuk = YeniKoltuk();
-        koltuk.Lock(Guid.CreateVersion7(), Simdi, KilitSuresi);
+        koltuk.Lock(Guid.CreateVersion7(), RezervasyonId, Simdi, KilitSuresi);
 
         var sonra = Simdi.Add(KilitSuresi).AddSeconds(1);
 
@@ -89,7 +106,7 @@ public class EventSeatTests
     public void ExtendLockShouldPushDeadline()
     {
         var koltuk = YeniKoltuk();
-        koltuk.Lock(Guid.CreateVersion7(), Simdi, KilitSuresi);
+        koltuk.Lock(Guid.CreateVersion7(), RezervasyonId, Simdi, KilitSuresi);
 
         koltuk.ExtendLock(Simdi.AddMinutes(9), TimeSpan.FromMinutes(5));
 
@@ -108,7 +125,7 @@ public class EventSeatTests
     public void SeatMustBeReservedBeforeSold()
     {
         var koltuk = YeniKoltuk();
-        koltuk.Lock(Guid.CreateVersion7(), Simdi, KilitSuresi);
+        koltuk.Lock(Guid.CreateVersion7(), RezervasyonId, Simdi, KilitSuresi);
 
         // Kilitliden dogrudan satisa gecilemez: arada odemenin baglandigi
         // rezervasyon adimi var.
@@ -119,7 +136,7 @@ public class EventSeatTests
     public void ReservationToSoldShouldClearLock()
     {
         var koltuk = YeniKoltuk();
-        koltuk.Lock(Guid.CreateVersion7(), Simdi, KilitSuresi);
+        koltuk.Lock(Guid.CreateVersion7(), RezervasyonId, Simdi, KilitSuresi);
         koltuk.AttachToReservation(Guid.CreateVersion7());
         koltuk.MarkSold();
 
@@ -132,7 +149,7 @@ public class EventSeatTests
     public void SoldSeatCannotBeReleased()
     {
         var koltuk = YeniKoltuk();
-        koltuk.Lock(Guid.CreateVersion7(), Simdi, KilitSuresi);
+        koltuk.Lock(Guid.CreateVersion7(), RezervasyonId, Simdi, KilitSuresi);
         koltuk.AttachToReservation(Guid.CreateVersion7());
         koltuk.MarkSold();
 
@@ -143,7 +160,7 @@ public class EventSeatTests
     public void ReleaseShouldClearReservationAndLock()
     {
         var koltuk = YeniKoltuk();
-        koltuk.Lock(Guid.CreateVersion7(), Simdi, KilitSuresi);
+        koltuk.Lock(Guid.CreateVersion7(), RezervasyonId, Simdi, KilitSuresi);
         koltuk.AttachToReservation(Guid.CreateVersion7());
 
         koltuk.Release();
@@ -158,7 +175,7 @@ public class EventSeatTests
     public void SoldSeatCannotBeDisabled()
     {
         var koltuk = YeniKoltuk();
-        koltuk.Lock(Guid.CreateVersion7(), Simdi, KilitSuresi);
+        koltuk.Lock(Guid.CreateVersion7(), RezervasyonId, Simdi, KilitSuresi);
         koltuk.AttachToReservation(Guid.CreateVersion7());
         koltuk.MarkSold();
 
