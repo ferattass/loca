@@ -22,6 +22,15 @@ export interface BolumVerisi {
 interface SeatMapProps {
   bolumler: BolumVerisi[];
   seciliIdler?: ReadonlySet<string>;
+  /**
+   * Sunucudan gelen koltuk durumlari (koltuk kimligi → durum).
+   *
+   * Verildiginde `isActive` yerine BU esas alinir: yonetim ekraninda koltugun
+   * satisa acik olup olmadigi, rezervasyon ekraninda ise o oturumdaki gercek
+   * durumu (kilitli, satilmis) onemli. Iki ekran ayni bileseni kullaniyor
+   * ama farkli soruya cevap veriyor.
+   */
+  sunucuDurumlari?: ReadonlyMap<string, SeatStatus>;
   /** Verilmezse plan salt okunur cizilir. */
   onKoltukSec?: (koltukId: string) => void;
 }
@@ -35,7 +44,14 @@ const BASLIK_YUKSEKLIGI = 34;
 /** Sira etiketleri icin solda ayrilan sutun genisligi. */
 const SIRA_SUTUNU = 26;
 
-const DOLGU: Record<SeatStatus, string> = {
+/**
+ * Koltuk dolgu renkleri.
+ *
+ * Disari aciliyor cunku plan altindaki renk aciklamasi da ayni degerleri
+ * kullaniyor. Iki yerde ayri ayri yazilsaydi biri degistirildiginde
+ * aciklama yanlis rengi anlatir ve kullanici plani yanlis okurdu.
+ */
+export const DOLGU: Record<SeatStatus, string> = {
   Available: '#3b3742',
   Selected: '#d0bcff',
   Locked: '#ffb869',
@@ -49,6 +65,15 @@ const KENAR: Record<SeatStatus, string> = {
   Locked: '#ffb869',
   Sold: '#494454',
   Disabled: '#494454',
+};
+
+/** Ekran okuyucu ve ipucu metni icin durum adlari. */
+const DURUM_ADI: Record<SeatStatus, string> = {
+  Available: '',
+  Selected: 'secili',
+  Locked: 'baskasi tutuyor',
+  Sold: 'satilmis',
+  Disabled: 'devre disi',
 };
 
 /**
@@ -87,7 +112,9 @@ const Koltuk = memo(function Koltuk({
       // ayni islemi yapabilmeli.
       role={secilebilir ? 'checkbox' : 'img'}
       aria-checked={secilebilir ? secili : undefined}
-      aria-label={`${koltuk.label}${koltuk.isActive ? '' : ' (devre disi)'}`}
+      // Durum etikete yaziliyor: renk tek ayirt edici olamaz. Ekran okuyucu
+      // kullanan biri "A-12" duyup koltugun satilmis oldugunu bilemezdi.
+      aria-label={`${koltuk.label}${DURUM_ADI[durum] ? `, ${DURUM_ADI[durum]}` : ''}`}
       aria-disabled={!secilebilir || undefined}
       tabIndex={secilebilir ? 0 : -1}
       onClick={tikla}
@@ -111,7 +138,7 @@ const Koltuk = memo(function Koltuk({
       />
       <title>
         {koltuk.label}
-        {koltuk.isActive ? '' : ' - devre disi'}
+        {DURUM_ADI[durum] ? ` - ${DURUM_ADI[durum]}` : ''}
       </title>
     </g>
   );
@@ -127,7 +154,12 @@ const Koltuk = memo(function Koltuk({
  * Butun plan TEK bir SVG icinde. Her koltuk ayri bir HTML ogesi olsaydi
  * alti yuz koltuk alti yuz DOM dugumu ve o kadar da stil hesabi demek olurdu.
  */
-export function SeatMap({ bolumler, seciliIdler, onKoltukSec }: SeatMapProps) {
+export function SeatMap({
+  bolumler,
+  seciliIdler,
+  sunucuDurumlari,
+  onKoltukSec,
+}: SeatMapProps) {
   const secilebilir = onKoltukSec !== undefined;
 
   // Bolum yerlesimi ve tuval olculeri yalnizca plan degistiginde hesaplaniyor;
@@ -141,10 +173,20 @@ export function SeatMap({ bolumler, seciliIdler, onKoltukSec }: SeatMapProps) {
     let enGenis = 0;
 
     const hesaplanan = sirali.map((bolum) => {
-      const enKucukX = Math.min(...bolum.seats.map((k) => k.positionX), 0);
-      const enKucukY = Math.min(...bolum.seats.map((k) => k.positionY), 0);
-      const enBuyukX = Math.max(...bolum.seats.map((k) => k.positionX), 0);
-      const enBuyukY = Math.max(...bolum.seats.map((k) => k.positionY), 0);
+      const xler = bolum.seats.map((k) => k.positionX);
+      const yler = bolum.seats.map((k) => k.positionY);
+
+      // Sinira 0 EKLENMIYOR.
+      // Onceki hâl Math.min(...konumlar, 0) yaziyordu; bu, konumlari sifirdan
+      // buyuk baslayan bir bolumu her zaman sifirdan basliyor sayiyordu.
+      // Uc bolumlu bir planda ikinci bolum originY=400 ile uretilince
+      // bolumun ustunde 400 birimlik bos alan olusuyor ve plan ekrana
+      // sigmiyordu. Bolumler ust uste degil ALT ALTA diziliyor; her birinin
+      // kendi baslangici kendi koltuklarindan okunmali.
+      const enKucukX = xler.length > 0 ? Math.min(...xler) : 0;
+      const enKucukY = yler.length > 0 ? Math.min(...yler) : 0;
+      const enBuyukX = xler.length > 0 ? Math.max(...xler) : 0;
+      const enBuyukY = yler.length > 0 ? Math.max(...yler) : 0;
 
       const bolumGenisligi = enBuyukX - enKucukX + KOLTUK + SIRA_SUTUNU;
       const bolumYuksekligi = enBuyukY - enKucukY + KOLTUK;
@@ -229,11 +271,16 @@ export function SeatMap({ bolumler, seciliIdler, onKoltukSec }: SeatMapProps) {
             ))}
 
             {bolum.seats.map((koltuk) => {
-              const durum: SeatStatus = !koltuk.isActive
-                ? 'Disabled'
-                : seciliIdler?.has(koltuk.id)
-                  ? 'Selected'
-                  : 'Available';
+              const sunucuDurumu = sunucuDurumlari?.get(koltuk.id);
+
+              // Bosta olmayan bir koltuk secilemez. Kontrol yalnizca gorsel:
+              // gercek engel sunucuda, koltugun durumu transaction icinde
+              // yeniden dogrulaniyor.
+              const bosta = sunucuDurumu ? sunucuDurumu === 'Available' : koltuk.isActive;
+
+              const durum: SeatStatus = seciliIdler?.has(koltuk.id)
+                ? 'Selected'
+                : (sunucuDurumu ?? (koltuk.isActive ? 'Available' : 'Disabled'));
 
               return (
                 <Koltuk
@@ -242,7 +289,7 @@ export function SeatMap({ bolumler, seciliIdler, onKoltukSec }: SeatMapProps) {
                   durum={durum}
                   x={koltuk.positionX + kaydirX}
                   y={koltuk.positionY + kaydirY}
-                  secilebilir={secilebilir && koltuk.isActive}
+                  secilebilir={secilebilir && bosta}
                   onSec={onKoltukSec}
                 />
               );
