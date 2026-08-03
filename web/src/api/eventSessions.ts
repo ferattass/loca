@@ -34,6 +34,19 @@ export interface MusaitlikBolumu {
 export interface KoltukMusaitligi {
   eventSessionId: string;
   seatLayoutId: string;
+  /**
+   * Etkinlik bilgileri ayni yanitta geliyor.
+   *
+   * Ayri bir istek atilsaydi koltuk plani ile baslik farkli anlarda gelir,
+   * kullanici bir an "hangi etkinlik" bilmeden plana bakardi. Veriler zaten
+   * sunucudaki ayni sorgunun join'inde.
+   */
+  eventId: string;
+  eventTitle: string;
+  venueName: string;
+  hallName: string;
+  startsAtUtc: string;
+  salesEndsAtUtc: string;
   generatedAtUtc: string;
   sections: MusaitlikBolumu[];
 }

@@ -87,9 +87,22 @@ public sealed record EventCategoryItem(Guid Id, string Name, string Slug);
 /// ciziyor; gruplamayi istemciye biraktirmak 600 elemanli bir diziyi her
 /// yenilemede yeniden gruplamak demek olurdu.
 /// </remarks>
+/// <remarks>
+/// Etkinlik adi, mekan ve baslangic saati de burada tasiniyor. Onceden
+/// yalnizca koltuklar donuyordu; koltuk secim ekrani hangi etkinlik icin
+/// koltuk sectigini yazamiyordu ve kullanici yanlis oturuma bakip bilet
+/// alabilirdi. Ayri bir istek atmak yerine ayni yanitta getiriliyor:
+/// veriler zaten ayni sorgunun join'inde.
+/// </remarks>
 public sealed record SeatAvailability(
     Guid EventSessionId,
     Guid SeatLayoutId,
+    Guid EventId,
+    string EventTitle,
+    string VenueName,
+    string HallName,
+    DateTime StartsAtUtc,
+    DateTime SalesEndsAtUtc,
     DateTime GeneratedAtUtc,
     IReadOnlyList<SeatAvailabilitySection> Sections);
 

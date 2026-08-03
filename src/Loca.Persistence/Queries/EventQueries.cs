@@ -192,7 +192,17 @@ internal sealed class EventQueries(LocaDbContext context) : IEventQueries
     {
         var oturum = await context.EventSessions
             .Where(session => session.Id == eventSessionId)
-            .Select(session => new { session.Id, session.SeatLayoutId })
+            .Select(session => new
+            {
+                session.Id,
+                session.SeatLayoutId,
+                session.EventId,
+                EventTitle = session.Event!.Title,
+                VenueName = session.Event!.Venue!.Name,
+                HallName = session.Hall!.Name,
+                session.StartsAtUtc,
+                session.SalesEndsAtUtc,
+            })
             .AsNoTracking()
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -257,7 +267,17 @@ internal sealed class EventQueries(LocaDbContext context) : IEventQueries
                     .ToList()))
             .ToList();
 
-        return new SeatAvailability(oturum.Id, oturum.SeatLayoutId, utcNow, bolumler);
+        return new SeatAvailability(
+            oturum.Id,
+            oturum.SeatLayoutId,
+            oturum.EventId,
+            oturum.EventTitle,
+            oturum.VenueName,
+            oturum.HallName,
+            oturum.StartsAtUtc,
+            oturum.SalesEndsAtUtc,
+            utcNow,
+            bolumler);
     }
 
     private static EventSeatStatus DisplayStatus(SeatRow row, DateTime utcNow) =>
