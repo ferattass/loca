@@ -1,6 +1,7 @@
 using Loca.Application.Common.Interfaces;
 using Loca.Infrastructure.Authentication;
 using Loca.Infrastructure.Concurrency;
+using Loca.Infrastructure.Payments;
 using Loca.Infrastructure.Services;
 using Loca.Infrastructure.Storage;
 using Microsoft.Extensions.Configuration;
@@ -62,6 +63,30 @@ public static class DependencyInjection
             serviceProvider.GetRequiredService<ILogger<RedisConnection>>()));
 
         services.AddSingleton<IDistributedLockService, RedisDistributedLockService>();
+
+        // --- Odeme (Gun 7) --------------------------------------------------
+
+        services
+            .AddOptions<PaymentOptions>()
+            .Bind(configuration.GetSection(PaymentOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddSingleton<ITicketCodeGenerator, TicketCodeGenerator>();
+
+        // Saglayici yapilandirmadan seciliyor. Basarisiz saglayici yalnizca
+        // "odeme basarisiz olursa koltuklar serbest kaliyor mu" senaryosunu
+        // calistirmak icin var; uretimde gercek saglayici gelecek.
+        services.AddScoped<IPaymentService>(serviceProvider =>
+        {
+            var ayarlar = serviceProvider.GetRequiredService<IOptions<PaymentOptions>>().Value;
+
+            return ayarlar.Provider.Equals("FailedMock", StringComparison.OrdinalIgnoreCase)
+                ? new FailedPaymentProvider(
+                    serviceProvider.GetRequiredService<ILogger<FailedPaymentProvider>>())
+                : new MockPaymentProvider(
+                    ayarlar, serviceProvider.GetRequiredService<ILogger<MockPaymentProvider>>());
+        });
 
         return services;
     }
