@@ -3,6 +3,8 @@ using Loca.Domain.Common;
 using Loca.Domain.Entities;
 using Loca.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
 
 namespace Loca.Persistence;
 
@@ -41,7 +43,86 @@ public sealed class LocaDbContext(DbContextOptions<LocaDbContext> options)
     public DbSet<TicketType> TicketTypes => Set<TicketType>();
     public DbSet<EventSeat> EventSeats => Set<EventSeat>();
 
+    public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<ReservationItem> ReservationItems => Set<ReservationItem>();
+
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    /// <summary>
+    /// PostgreSQL'in benzersizlik ihlali hata kodu.
+    /// </summary>
+    private const string UniqueViolationSqlState = "23505";
+
+    /// <summary>
+    /// Kaydeder ve ORM'e ozgu istisnalari katman-notr tiplere cevirir.
+    /// </summary>
+    /// <remarks>
+    /// Ceviri burada yapiliyor cunku uygulama katmani EF Core'u tanimiyor;
+    /// <c>DbUpdateConcurrencyException</c>'i handler icinde yakalamak,
+    /// veritabani teknolojisini is kurallarinin arasina sokmak olurdu.
+    ///
+    /// <para>
+    /// Kisit ADI da tasiniyor: rezervasyon akisinda idempotency cakismasi
+    /// ile koltuk tekilligi cakismasi ayni istisna tipiyle gelir ama biri
+    /// "mevcut kaydi don", digeri "409 don" demek. Ayirt edilemeselerdi
+    /// tekrar gonderilen bir istek hata olarak donerdi.
+    /// </para>
+    /// </remarks>
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new ConcurrencyConflictException(
+                "Kayit islem sirasinda baskasi tarafindan degistirildi.", exception);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is PostgresException
+                  { SqlState: UniqueViolationSqlState } postgres)
+        {
+            throw new UniqueConstraintViolationException(
+                "Benzersizlik kurali ihlal edildi.", postgres.ConstraintName, exception);
+        }
+    }
+
+    public async Task<ITransactionScope> BeginTransactionAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var transaction = await Database.BeginTransactionAsync(cancellationToken);
+
+        return new EfTransactionScope(transaction);
+    }
+
+    /// <summary>
+    /// EF transaction'ini katman-notr arayuzun arkasina alir.
+    /// </summary>
+    /// <remarks>
+    /// Cift <c>DisposeAsync</c> guvenli: rezervasyon akisinda idempotency
+    /// yarisi yakalandiginda transaction erken geri aliniyor, ardindan
+    /// <c>await using</c> ayni nesneyi bir kez daha birakiyor. Bayrak
+    /// olmasaydi bu, davranisi EF'in ic detayina bagli bir cagri olurdu.
+    /// </remarks>
+    private sealed class EfTransactionScope(IDbContextTransaction transaction) : ITransactionScope
+    {
+        private bool _disposed;
+
+        public Task CommitAsync(CancellationToken cancellationToken = default) =>
+            transaction.CommitAsync(cancellationToken);
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+
+            // Commit edilmemis transaction burada geri alinir.
+            await transaction.DisposeAsync();
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
