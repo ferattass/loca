@@ -1,9 +1,12 @@
 using Loca.Application.Common.Interfaces;
 using Loca.Infrastructure.Authentication;
+using Loca.Infrastructure.Concurrency;
 using Loca.Infrastructure.Services;
 using Loca.Infrastructure.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Loca.Infrastructure;
 
@@ -36,6 +39,29 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+
+        // --- Eszamanlilik (Gun 6) ------------------------------------------
+
+        services
+            .AddOptions<ReservationOptions>()
+            .Bind(configuration.GetSection(ReservationOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        // Kilit suresi ve bilet limiti uygulama omru boyunca degismez;
+        // her istekte yeniden hesaplanmasinin karsiligi yok.
+        services.AddSingleton<IReservationPolicy>(serviceProvider =>
+            new ReservationPolicy(
+                serviceProvider.GetRequiredService<IOptions<ReservationOptions>>().Value));
+
+        // Baglanti tembel kuruluyor: Redis kapaliyken uygulama ayaga kalkmali.
+        // Varsayilan deger yerel gelistirme icin; konteynerde
+        // ConnectionStrings__Redis ortam degiskeninden gelir.
+        services.AddSingleton(serviceProvider => new RedisConnection(
+            configuration.GetConnectionString("Redis") ?? "localhost:6379",
+            serviceProvider.GetRequiredService<ILogger<RedisConnection>>()));
+
+        services.AddSingleton<IDistributedLockService, RedisDistributedLockService>();
 
         return services;
     }
