@@ -9,6 +9,7 @@ using Loca.Infrastructure.Authentication;
 using Loca.Persistence;
 using Loca.Persistence.Seeding;
 using Loca.WebApi.Authorization;
+using Loca.WebApi.BackgroundServices;
 using Loca.WebApi.Middleware;
 using Loca.WebApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -113,6 +114,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddHealthChecks();
+
+// Suresi dolan rezervasyonlari toplar. Gun 7'de Hangfire'a tasinacak;
+// isin kendisi Application katmaninda oldugu icin o gecis tek satir olacak.
+builder.Services.AddHostedService<ReservationExpiryService>();
 
 var app = builder.Build();
 

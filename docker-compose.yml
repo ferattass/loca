@@ -96,6 +96,9 @@ services:
       Smtp__Port: 1025
       Smtp__From: ${SMTP_FROM}
       Storage__Path: /app/uploads
+      Reservation__LockMinutes: ${RESERVATION_LOCK_MINUTES}
+      Reservation__ExtendMinutes: ${RESERVATION_EXTEND_MINUTES}
+      Reservation__MaxSeatsPerUserPerSession: ${MAX_SEATS_PER_USER_PER_SESSION}
       App__BaseUrl: ${APP_BASE_URL}
       App__WebUrl: ${WEB_BASE_URL}
     ports:
