@@ -52,4 +52,23 @@ public interface IPaymentRepository
         Guid reservationId, CancellationToken cancellationToken = default);
 
     void Add(Payment payment);
+
+    /// <summary>
+    /// Aggregate icinde olusturulmus islem satirlarini EKLEME olarak bildirir.
+    /// </summary>
+    /// <remarks>
+    /// <b>Bu cagri atlanirsa kayit INSERT degil UPDATE olarak gider ve
+    /// eszamanlilik hatasi firlar.</b> Gun 5'te bilet turlerinde yasanan
+    /// tuzagin aynisi: EF, izlenen bir nesnenin koleksiyonunda yeni bir cocuk
+    /// buldugunda "yeni mi" sorusunu birincil anahtara bakarak cevapliyor;
+    /// <c>BaseEntity.Id</c> nesne kurulurken <c>Guid.CreateVersion7()</c> ile
+    /// doldugu icin anahtar her zaman dolu ve EF hicbir zaman <c>Added</c>
+    /// demiyor.
+    ///
+    /// <para>
+    /// <c>Payment.Complete</c>, <c>Fail</c>, <c>Refund</c> ve <c>Cancel</c>
+    /// her cagrida bir islem satiri ekliyor; bunlardan sonra cagrilmali.
+    /// </para>
+    /// </remarks>
+    void RegisterNewTransactions(Payment payment);
 }

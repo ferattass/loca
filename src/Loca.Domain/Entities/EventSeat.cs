@@ -168,6 +168,26 @@ public sealed class EventSeat : BaseEntity
         ReservationId = null;
     }
 
+    /// <summary>
+    /// Iade sonrasi koltugu yeniden satisa acar.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Release"/> satilmis koltugu bilerek reddediyor: normal
+    /// akista satilmis bir koltugun serbest birakilmasi hata demektir. Iade
+    /// bunun TEK istisnasi ve ayri bir metotla ifade ediliyor — <c>Release</c>
+    /// gevsetilseydi kural her yerde gevsemis olurdu.
+    /// </remarks>
+    public void ReturnToSaleAfterRefund()
+    {
+        if (Status != EventSeatStatus.Sold)
+            throw new DomainException("Yalnizca satilmis koltuk iade sonrasi satisa acilabilir.");
+
+        Status = EventSeatStatus.Available;
+        LockedUntilUtc = null;
+        LockedByUserId = null;
+        ReservationId = null;
+    }
+
     /// <summary>Bu oturum icin satisa kapatir.</summary>
     public void Disable()
     {

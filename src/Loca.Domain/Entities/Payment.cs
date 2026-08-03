@@ -103,6 +103,26 @@ public sealed class Payment : BaseEntity, IAggregateRoot, IOwnedResource
     public bool IsSuccessful => Status == PaymentStatus.Succeeded;
 
     /// <summary>
+    /// Saglayicida islem acildiginda donen kimligi kaydeder.
+    /// </summary>
+    /// <remarks>
+    /// Kimlik saklanmasaydi sonraki adimda saglayiciya "bu odemenin durumu
+    /// ne" diye sorulamazdi; callback'e guvenmemenin on kosulu bu kimligi
+    /// elde tutmak. Yalnizca sonuclanmamis odemede yazilabilir: tamamlanmis
+    /// bir odemenin kimligini degistirmek mutabakati bozardi.
+    /// </remarks>
+    public void AttachProviderReference(string reference)
+    {
+        if (string.IsNullOrWhiteSpace(reference))
+            throw new DomainException("Saglayici kimligi bos olamaz.");
+
+        if (Status != PaymentStatus.Pending)
+            throw new DomainException("Yalnizca sonuclanmamis odemenin saglayici kimligi yazilabilir.");
+
+        ProviderReference = reference.Trim();
+    }
+
+    /// <summary>
     /// Odemeyi basarili olarak kapatir.
     /// </summary>
     /// <returns>

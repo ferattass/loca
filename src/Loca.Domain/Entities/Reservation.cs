@@ -212,6 +212,23 @@ public sealed class Reservation : BaseEntity, IAggregateRoot, IOwnedResource
         CancelledAtUtc = utcNow;
     }
 
+    /// <summary>
+    /// Odemesi iade edildi; rezervasyon kapanir.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Cancel"/> onaylanmis rezervasyonu bilerek reddediyor
+    /// ("iade akisi gerekir"). Iade o akisin kendisi: para geri gonderildikten
+    /// SONRA cagriliyor, dolayisiyla koltugu geri vermek artik dogru.
+    /// </remarks>
+    public void MarkRefunded(DateTime utcNow)
+    {
+        if (Status != ReservationStatus.Confirmed)
+            throw new DomainException($"Bu durumdaki rezervasyon iade edilemez: {Status}.");
+
+        Status = ReservationStatus.Cancelled;
+        CancelledAtUtc = utcNow;
+    }
+
     /// <summary>Sure doldu; koltuklar geri birakilacak.</summary>
     public void Expire()
     {
