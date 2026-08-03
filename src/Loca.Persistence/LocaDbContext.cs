@@ -46,6 +46,11 @@ public sealed class LocaDbContext(DbContextOptions<LocaDbContext> options)
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<ReservationItem> ReservationItems => Set<ReservationItem>();
 
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     /// <summary>

@@ -53,6 +53,9 @@ public static class DependencyInjection
         services.AddScoped<IOrganizerRepository, OrganizerRepository>();
         services.AddScoped<IStudentVerificationRepository, StudentVerificationRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
+        services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<ITicketRepository, TicketRepository>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
 
         // Okuma tarafi: arayuzu Application'da, projeksiyonu burada.
         services.AddScoped<IEventQueries, EventQueries>();
