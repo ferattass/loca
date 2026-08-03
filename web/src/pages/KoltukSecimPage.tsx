@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -10,8 +10,10 @@ import {
 } from '../api/eventSessions';
 import { rezervasyonOlustur } from '../api/reservations';
 import { BolumHaritasi, type BolumOzeti } from '../components/BolumHaritasi';
+import { SecimOzetiPaneli, type SecimOzetiKoltugu } from '../components/SecimOzetiPaneli';
 import { DOLGU, SeatMap, type BolumVerisi } from '../components/SeatMap';
 import type { SeatStatus } from '../components/SeatStatePreview';
+import { sureBicimle } from '../hooks/useGeriSayim';
 
 /** Sunucu durumunun gorsel karsiligi. */
 const GORSEL_DURUM: Record<KoltukDurumu, SeatStatus> = {
@@ -28,6 +30,9 @@ const GORSEL_DURUM: Record<KoltukDurumu, SeatStatus> = {
 /** Sartname: bir kullanici tek oturumda en fazla bu kadar bilet alabilir. */
 const EN_FAZLA_KOLTUK = 6;
 
+/** Plan kac saniyede bir tazeleniyor; ust bilgideki gostergeyle de esler. */
+const YENILEME_ARALIGI_SANIYE = 15;
+
 const paraBicimi = new Intl.NumberFormat('tr-TR', {
   style: 'currency',
   currency: 'TRY',
@@ -37,9 +42,9 @@ const paraBicimi = new Intl.NumberFormat('tr-TR', {
 /**
  * Koltuk secimi ve rezervasyon acma ekrani.
  *
- * Secim yalnizca arayuzde tutulur; koltuklar ancak "Koltuklari kilitle"
- * denince sunucuda kilitlenir. Secildigi anda kilitlenseydi, plana bakip
- * vazgecen her kullanici koltuklari on dakika bloke ederdi.
+ * Secim yalnizca arayuzde tutulur; koltuklar ancak "Odemeye gec" denince
+ * sunucuda kilitlenir. Secildigi anda kilitlenseydi, plana bakip vazgecen
+ * her kullanici koltuklari on dakika bloke ederdi.
  */
 export function KoltukSecimPage() {
   const { id = '' } = useParams();
@@ -69,12 +74,12 @@ export function KoltukSecimPage() {
    */
   const anahtarRef = useRef<string | null>(null);
 
-  const { data, isPending, isError, error } = useQuery<KoltukMusaitligi>({
+  const { data, dataUpdatedAt, isPending, isError, error } = useQuery<KoltukMusaitligi>({
     queryKey: ['seat-availability', id],
     queryFn: () => koltukMusaitligiGetir(id),
     enabled: id.length > 0,
     // Baskasinin aldigi koltuk ekranda bos gorunmeye devam etmesin.
-    refetchInterval: 15_000,
+    refetchInterval: YENILEME_ARALIGI_SANIYE * 1_000,
     refetchOnWindowFocus: true,
   });
 
@@ -151,7 +156,7 @@ export function KoltukSecimPage() {
 
   const acikBolum = bolumler.find((bolum) => bolum.id === acikBolumId) ?? null;
 
-  const secilenler = useMemo(
+  const secilenler = useMemo<SecimOzetiKoltugu[]>(
     () => [...seciliIdler].map((koltukId) => ({ koltukId, ...fiyatlar.get(koltukId) })),
     [seciliIdler, fiyatlar],
   );
@@ -178,7 +183,7 @@ export function KoltukSecimPage() {
       if (kod === 'Reservation.SeatNotAvailable' || kod === 'Reservation.SeatTakenConcurrently') {
         setSeciliIdler(new Set());
         anahtarRef.current = null;
-        setUyari('Sectigin koltuklardan bazilari az once alindi. Plan yenilendi, tekrar sec.');
+        setUyari('Seçtiğin koltuklardan bazıları az önce alındı. Plan yenilendi, tekrar seç.');
         await queryClient.invalidateQueries({ queryKey: ['seat-availability', id] });
         return;
       }
@@ -186,7 +191,7 @@ export function KoltukSecimPage() {
       // Kalan hatalarda anahtar KORUNUYOR: istek sunucuya ulasmis ama cevap
       // donmemis olabilir. Ayni anahtarla tekrar denendiginde sunucu ikinci
       // bir rezervasyon acmaz, ilkinin sonucunu doner.
-      setUyari(hataMesaji(hata, 'Rezervasyon acilamadi.'));
+      setUyari(hataMesaji(hata, 'Rezervasyon açılamadı.'));
     },
   });
 
@@ -206,13 +211,18 @@ export function KoltukSecimPage() {
       }
 
       if (yeni.size >= EN_FAZLA_KOLTUK) {
-        setUyari(`Bir oturumda en fazla ${EN_FAZLA_KOLTUK} koltuk secebilirsin.`);
+        setUyari(`Bir oturumda en fazla ${EN_FAZLA_KOLTUK} koltuk seçebilirsin.`);
         return oncekiler;
       }
 
       yeni.add(koltukId);
       return yeni;
     });
+  }, []);
+
+  const temizle = useCallback(() => {
+    setSeciliIdler(new Set());
+    anahtarRef.current = null;
   }, []);
 
   if (isPending) {
@@ -223,7 +233,7 @@ export function KoltukSecimPage() {
           <div className="h-96 rounded-lg bg-surface-variant/40" />
         </div>
         <span className="sr-only" role="status">
-          Koltuk plani yukleniyor
+          Koltuk planı yükleniyor
         </span>
       </Sayfa>
     );
@@ -236,7 +246,7 @@ export function KoltukSecimPage() {
           role="alert"
           className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
         >
-          {hataMesaji(error, 'Koltuk plani yuklenemedi.')}
+          {hataMesaji(error, 'Koltuk planı yüklenemedi.')}
         </p>
       </Sayfa>
     );
@@ -244,13 +254,7 @@ export function KoltukSecimPage() {
 
   return (
     <Sayfa>
-      <header className="mb-stack-md">
-        <h1 className="font-headline text-headline-md text-on-surface">Koltuk secimi</h1>
-        <p className="font-body text-body-sm text-on-surface-variant">
-          En fazla {EN_FAZLA_KOLTUK} koltuk secebilirsin. Koltuklar kilitlendikten sonra
-          odemeyi tamamlaman icin sinirli suren olur.
-        </p>
-      </header>
+      <BaslikBlogu musaitlik={data} dataUpdatedAt={dataUpdatedAt} />
 
       {uyari && (
         <p
@@ -261,103 +265,176 @@ export function KoltukSecimPage() {
         </p>
       )}
 
-      {acikBolum === null ? (
-        <BolumHaritasi
-          bolumler={bolumOzetleri}
-          seciliBolumId={null}
-          onBolumSec={(bolumId) => {
-            setUyari(null);
-            setAcikBolumId(bolumId);
-          }}
-          seciliKoltukSayilari={bolumBazliSecim}
-        />
-      ) : (
-        <>
-          <div className="mb-stack-sm flex flex-wrap items-center justify-between gap-stack-sm">
-            <button
-              type="button"
-              onClick={() => setAcikBolumId(null)}
-              className="font-body text-body-sm text-primary underline underline-offset-2"
-            >
-              ← Tüm bölümler
-            </button>
-
-            <p className="font-headline text-body-md font-semibold text-on-surface">
-              {acikBolum.name}
-            </p>
-          </div>
-
-          <Aciklama />
-
-          {/*
-            Yalnizca ACIK BOLUMUN koltuklari ciziliyor. Tamami cizilseydi hem
-            ekran yine kalabaliklasir hem de alti yuz koltuklu bir salonda
-            gereksiz yere alti yuz SVG ogesi olusurdu.
-          */}
-          <SeatMap
-            bolumler={[acikBolum]}
-            seciliIdler={seciliIdler}
-            sunucuDurumlari={durumlar}
-            onKoltukSec={koltukSec}
-          />
-        </>
-      )}
-
-      {seciliIdler.size > 0 && (
-        <section
-          aria-label="Secim ozeti"
-          className="mt-stack-md rounded-lg border border-outline-variant/40 bg-surface-variant/30 p-stack-sm"
-        >
-          <ul className="mb-stack-sm space-y-base">
-            {secilenler.map((koltuk) => (
-              <li
-                key={koltuk.koltukId}
-                className="flex items-center justify-between font-body text-body-sm text-on-surface"
-              >
-                <span>
-                  {koltuk.etiket}
-                  <span className="ml-base text-on-surface-variant">({koltuk.tur})</span>
-                </span>
-                <span>{paraBicimi.format(koltuk.tutar ?? 0)}</span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="flex flex-wrap items-center justify-between gap-stack-sm border-t border-outline-variant/30 pt-stack-sm">
-            <p className="font-body text-body-md text-on-surface">
-              {seciliIdler.size} koltuk ·{' '}
-              <strong className="font-semibold">{paraBicimi.format(onizlemeToplam)}</strong>
-            </p>
-
-            <div className="flex items-center gap-stack-sm">
-              <button
-                type="button"
-                onClick={() => {
-                  setSeciliIdler(new Set());
-                  anahtarRef.current = null;
+      <div className="grid grid-cols-1 gap-stack-lg lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        <div className="min-w-0">
+          {acikBolum === null ? (
+            <div className="glass rounded-lg p-stack-sm md:p-stack-md">
+              <BolumHaritasi
+                bolumler={bolumOzetleri}
+                seciliBolumId={null}
+                onBolumSec={(bolumId) => {
+                  setUyari(null);
+                  setAcikBolumId(bolumId);
                 }}
-                className="font-body text-body-sm text-primary underline underline-offset-2"
-              >
-                Secimi temizle
-              </button>
-
+                seciliKoltukSayilari={bolumBazliSecim}
+              />
+            </div>
+          ) : (
+            <>
               <button
                 type="button"
-                onClick={() => olustur.mutate()}
-                disabled={olustur.isPending}
-                className="rounded-md bg-primary px-stack-md py-base font-body text-body-sm font-semibold text-on-primary disabled:opacity-60"
+                onClick={() => setAcikBolumId(null)}
+                className="mb-stack-sm font-body text-body-sm text-primary underline underline-offset-2"
               >
-                {olustur.isPending ? 'Kilitleniyor' : 'Koltuklari kilitle'}
+                ← Tüm bölümler
               </button>
-            </div>
-          </div>
 
-          <p className="mt-base font-body text-[11px] text-on-surface-variant">
-            Odenecek tutar sunucuda hesaplanir; buradaki toplam onizlemedir.
-          </p>
-        </section>
-      )}
+              <Aciklama />
+
+              {/*
+                Yalnizca ACIK BOLUMUN koltuklari ciziliyor. Tamami cizilseydi hem
+                ekran yine kalabaliklasir hem de alti yuz koltuklu bir salonda
+                gereksiz yere alti yuz SVG ogesi olusurdu.
+              */}
+              <div className="rounded-lg border border-outline-variant/40 bg-surface-container-low/40 p-stack-sm md:p-stack-md">
+                <SeatMap
+                  bolumler={[acikBolum]}
+                  seciliIdler={seciliIdler}
+                  sunucuDurumlari={durumlar}
+                  onKoltukSec={koltukSec}
+                />
+              </div>
+
+              <div className="mt-stack-sm">
+                <p className="font-body text-label-caps uppercase tracking-widest text-on-surface-variant">
+                  Mevcut görünüm
+                </p>
+                <p className="font-headline text-body-md font-semibold text-on-surface">
+                  {acikBolum.name}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
+        <aside className="lg:sticky lg:top-stack-md">
+          <SecimOzetiPaneli
+            koltuklar={secilenler}
+            toplam={onizlemeToplam}
+            paraBicimi={paraBicimi}
+            yukleniyor={olustur.isPending}
+            onOdemeyeGec={() => olustur.mutate()}
+            onTemizle={temizle}
+          />
+        </aside>
+      </div>
     </Sayfa>
+  );
+}
+
+/**
+ * Etkinlik baslik blogu.
+ *
+ * <b>Sag tarafta tasarimdaki geri sayim kartinin YERINE ne var.</b> Figma
+ * referansi burada "SURE DOLUYOR / 9:56" gibi bir kilit sayaci gosteriyor;
+ * ama bu ekranda henuz kilitlenmis bir rezervasyon YOK — kilit ancak
+ * "Odemeye gec" tiklaninca acilir (yukaridaki JSDoc'ta da anlatiliyor).
+ * Sahte bir geri sayim koymak "suren azaliyor, acele et" izlenimi verip
+ * kullaniciyi yanlis yonlendirirdi. Onun yerine GERCEK bir sure gosteriliyor:
+ * planin otomatik yenilenmesine (react-query'nin refetchInterval'i) kalan
+ * sure. Ayni gorsel agirlik, dogru bilgi.
+ */
+const oturumTarihi = new Intl.DateTimeFormat('tr-TR', {
+  dateStyle: 'long',
+  timeStyle: 'short',
+});
+
+/**
+ * Etkinlik bilgisi koltuk musaitligi yanitindan geliyor.
+ *
+ * Once sayfa yalnizca "Koltuk secimi" yaziyordu; kullanici hangi oturum icin
+ * koltuk sectigini goremiyor ve yanlis gune bilet alabiliyordu. Baslik ayri
+ * bir istekle cekilseydi plan ile baslik farkli anlarda gelirdi.
+ */
+function BaslikBlogu({
+  musaitlik,
+  dataUpdatedAt,
+}: {
+  musaitlik: KoltukMusaitligi;
+  dataUpdatedAt: number;
+}) {
+  return (
+    <header className="glass mb-stack-md flex flex-col gap-stack-md rounded-lg p-stack-md lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <span className="inline-flex items-center gap-base rounded-full border border-outline-variant/60 bg-surface-container-high/60 px-stack-sm py-[2px] font-body text-label-caps uppercase tracking-widest text-on-surface-variant">
+          <span
+            aria-hidden="true"
+            className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse-urgent"
+          />
+          {musaitlik.venueName} · {musaitlik.hallName}
+        </span>
+
+        <h1 className="mt-stack-sm font-display text-display-lg-mobile text-on-surface md:text-display-lg">
+          {musaitlik.eventTitle}
+        </h1>
+
+        <p className="mt-base font-body text-body-md text-primary">
+          {oturumTarihi.format(new Date(musaitlik.startsAtUtc))}
+        </p>
+
+        <p className="mt-base max-w-xl font-body text-body-sm text-on-surface-variant">
+          En fazla {EN_FAZLA_KOLTUK} koltuk seçebilirsin. Koltuklar yalnızca arayüzde tutulur;
+          ödemeye geçtiğinde sunucuda kısa süreliğine kilitlenir.
+        </p>
+      </div>
+
+      <YenilemeKarti dataUpdatedAt={dataUpdatedAt} />
+    </header>
+  );
+}
+
+/**
+ * Planin bir sonraki otomatik yenilemesine kalan sure.
+ *
+ * Baslangic noktasi react-query'nin `dataUpdatedAt` degeri — yani planin
+ * SUNUCUDAN son geldigi an. Yerel bir sayac sifirdan baslatilsaydi, sekme
+ * arka plandayken atlanan yenilemelerde gosterge gercek durumdan kopardi.
+ *
+ * Butunuyle `aria-hidden`: ekran okuyucu icin bu bir uyari degil, sadece
+ * gorsel bir suslemedir. Saniyede birkaç kez guncellenen bir metni "canli
+ * bolge" yapsaydik ekran okuyucu her tikte anons eder, kullaniciyi yorardi.
+ * Koltuklarin gercek durumu zaten her koltugun kendi aria-label'inda var.
+ */
+function YenilemeKarti({ dataUpdatedAt }: { dataUpdatedAt: number }) {
+  const [simdi, setSimdi] = useState(() => Date.now());
+
+  useEffect(() => {
+    const zamanlayici = window.setInterval(() => setSimdi(Date.now()), 250);
+    return () => window.clearInterval(zamanlayici);
+  }, []);
+
+  const gecenSaniye = Math.max(0, (simdi - dataUpdatedAt) / 1000);
+  const kalanSaniye = Math.max(0, Math.ceil(YENILEME_ARALIGI_SANIYE - gecenSaniye));
+  const kalanYuzde = Math.min(100, Math.max(0, (kalanSaniye / YENILEME_ARALIGI_SANIYE) * 100));
+
+  return (
+    <div aria-hidden="true" className="glass flex items-center gap-stack-sm rounded-lg px-stack-md py-stack-sm">
+      <div>
+        <p className="font-body text-label-caps uppercase tracking-widest text-secondary">
+          Otomatik yenileme
+        </p>
+        <p className="tabular font-display text-display-lg-mobile text-on-surface">
+          {sureBicimle(kalanSaniye)}
+        </p>
+      </div>
+
+      <div className="flex h-10 w-1.5 flex-col-reverse overflow-hidden rounded-full bg-surface-container-low md:h-12">
+        <div
+          className="w-full rounded-full bg-secondary transition-[height] duration-200"
+          style={{ height: `${kalanYuzde}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -370,11 +447,11 @@ export function KoltukSecimPage() {
  */
 function Aciklama() {
   const ogeler: Array<{ durum: SeatStatus; metin: string }> = [
-    { durum: 'Available', metin: 'Bos' },
-    { durum: 'Selected', metin: 'Sectiklerin' },
-    { durum: 'Locked', metin: 'Baskasi tutuyor' },
-    { durum: 'Sold', metin: 'Satilmis' },
-    { durum: 'Disabled', metin: 'Devre disi' },
+    { durum: 'Sold', metin: 'Satılmış' },
+    { durum: 'Available', metin: 'Boş' },
+    { durum: 'Selected', metin: 'Seçili' },
+    { durum: 'Locked', metin: 'Tutuluyor' },
+    { durum: 'Disabled', metin: 'Devre dışı' },
   ];
 
   // Renkler SeatMap'ten geliyor; burada tekrar yazilsaydi ikisi zamanla ayrisirdi.
@@ -402,7 +479,7 @@ function Aciklama() {
 function Sayfa({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-screen px-container-margin-mobile md:px-container-margin-desktop py-stack-lg">
-      <div className="mx-auto max-w-5xl">{children}</div>
+      <div className="mx-auto max-w-6xl">{children}</div>
     </main>
   );
 }
