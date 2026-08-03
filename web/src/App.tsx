@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { SiteKabugu } from './components/SiteKabugu';
 import { SeatStatePreview } from './components/SeatStatePreview';
 import { useOturumBaslat } from './hooks/useOturumBaslat';
 import { EtkinlikOlusturPage } from './pages/EtkinlikOlusturPage';
@@ -34,12 +35,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Kimlik ekranlari kabugun DISINDA: gezinme menusu henuz
+            erisilemeyecek sayfalari kullanicinin onune koyardi. */}
         <Route path="/giris" element={<LoginPage />} />
         <Route path="/kayit" element={<RegisterPage />} />
         <Route path="/sifremi-unuttum" element={<ForgotPasswordPage />} />
         <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
         <Route path="/yetkisiz" element={<UnauthorizedPage />} />
 
+        {/* Kalan her sayfa ortak kabugu (baslik + alt bilgi) paylasiyor.
+            Duzen rota seviyesinde: her sayfanin kendi icine baslik koymasi
+            gerekseydi biri unutulur ve o ekranda gezinme kaybolurdu. */}
+        <Route element={<SiteKabugu />}>
         <Route
           path="/"
           element={
@@ -148,6 +155,8 @@ export default function App() {
             </div>
           }
         />
+
+        </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
