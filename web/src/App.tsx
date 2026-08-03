@@ -8,6 +8,8 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { HomePage } from './pages/HomePage';
 import { KoltukSecimPage } from './pages/KoltukSecimPage';
 import { LoginPage } from './pages/LoginPage';
+import { MekanYonetimPage } from './pages/MekanYonetimPage';
+import { OturmaPlaniYonetimPage } from './pages/OturmaPlaniYonetimPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { RezervasyonPage } from './pages/RezervasyonPage';
@@ -76,6 +78,27 @@ export default function App() {
           element={
             <RoleRoute roller={['Organizer', 'Admin']}>
               <EtkinlikOlusturPage />
+            </RoleRoute>
+          }
+        />
+
+        {/* Mekan, salon ve oturma plani sistemin REFERANS verisi: organizator
+            bile degistiremez, yalnizca secer. Sunucuda da bu uclarin tamami
+            AdminOnly policy'siyle korunuyor. */}
+        <Route
+          path="/yonetim/mekanlar"
+          element={
+            <RoleRoute roller={['Admin']}>
+              <MekanYonetimPage />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/yonetim/oturma-planlari"
+          element={
+            <RoleRoute roller={['Admin']}>
+              <OturmaPlaniYonetimPage />
             </RoleRoute>
           }
         />

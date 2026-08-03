@@ -91,21 +91,54 @@ export function HomePage() {
         )}
       </section>
 
-      <section className="mt-stack-md max-w-2xl">
-        <h2 className="font-headline text-headline-md text-on-surface mb-stack-sm">Siradaki</h2>
-        <ul className="flex flex-col gap-base font-body text-body-md text-on-surface-variant">
-          <li>Mekan, salon ve oturma plani yonetimi — Gun 4</li>
-          <li>Etkinlik ve oturum tanimlama — Gun 5</li>
-          <li>Koltuk secimi ve rezervasyon — Gun 6</li>
-        </ul>
-
-        <Link
-          to="/tasarim"
-          className="inline-block mt-stack-sm font-body text-body-sm text-primary hover:underline"
-        >
-          Tasarim sistemi dogrulama sayfasi →
-        </Link>
-      </section>
+      <Kisayollar roller={goruntulenen?.roles ?? []} />
     </main>
+  );
+}
+
+/**
+ * Rolun gordugu ekranlar.
+ *
+ * <b>Menu sunucudan gelen rollere gore kuruluyor</b>, token claim'lerine
+ * gore degil: rol admin tarafindan degistirilmis olabilir ve elindeki
+ * token hâlâ eski rolu tasiyor olur. Gorunmeyen bag zaten koruma degil —
+ * gercek kontrol sunucudaki policy'lerde; buradaki filtre yalnizca
+ * kullaniciya erisemeyecegi bir sayfayi gostermemek icin.
+ */
+function Kisayollar({ roller }: { roller: string[] }) {
+  const adminMi = roller.includes('Admin');
+  const organizatorMu = adminMi || roller.includes('Organizer');
+
+  const baglantilar = [
+    { yol: '/rezervasyonlarim', metin: 'Rezervasyonlarim', gorunur: true },
+    { yol: '/etkinlikler/yeni', metin: 'Yeni etkinlik olustur', gorunur: organizatorMu },
+    { yol: '/yonetim/mekanlar', metin: 'Mekan ve salon yonetimi', gorunur: adminMi },
+    { yol: '/yonetim/oturma-planlari', metin: 'Oturma plani yonetimi', gorunur: adminMi },
+  ].filter((baglanti) => baglanti.gorunur);
+
+  return (
+    <section className="mt-stack-md max-w-2xl">
+      <h2 className="font-headline text-headline-md text-on-surface mb-stack-sm">Islemler</h2>
+
+      <ul className="flex flex-col gap-base">
+        {baglantilar.map((baglanti) => (
+          <li key={baglanti.yol}>
+            <Link
+              to={baglanti.yol}
+              className="font-body text-body-md text-primary hover:underline"
+            >
+              {baglanti.metin} →
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      <Link
+        to="/tasarim"
+        className="inline-block mt-stack-sm font-body text-body-sm text-on-surface-variant hover:underline"
+      >
+        Tasarim sistemi dogrulama sayfasi →
+      </Link>
+    </section>
   );
 }
