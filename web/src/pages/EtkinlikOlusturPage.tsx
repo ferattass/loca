@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
-import { hataMesaji } from '../api/client';
+import { dogrulamaHatalari, hataMesaji } from '../api/client';
 import {
   mekanlariGetir,
   planlariGetir,
@@ -44,6 +44,23 @@ export function EtkinlikOlusturPage() {
   const [planId, setPlanId] = useState('');
   const [afisId, setAfisId] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  const [hatalar, setHatalar] = useState<string[]>([]);
+
+  // Cocuk bilesenler ham hatayi geciriyor, metne cevirme burada yapiliyor.
+  // Once her bileşen kendi mesajini uretiyordu; o zaman ALAN BAZLI dogrulama
+  // hatalarina erisilemiyordu, cunku metne cevrilmis hatanin icinde liste
+  // kalmiyor. Kullanici da dort alan birden hataliyken yalnizca birini
+  // goruyordu.
+  const bildirHata = useCallback((gelen: unknown, varsayilan?: string) => {
+    if (gelen === null) {
+      setHata(null);
+      setHatalar([]);
+      return;
+    }
+
+    setHata(hataMesaji(gelen, varsayilan));
+    setHatalar(dogrulamaHatalari(gelen));
+  }, []);
 
   const adimlar = ['Etkinlik', 'Oturumlar', 'Bilet türleri', 'Afiş', 'Onay'];
 
@@ -79,21 +96,34 @@ export function EtkinlikOlusturPage() {
         </ol>
 
         {hata && (
-          <p
+          <div
             role="alert"
             className="mb-stack-sm rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
           >
-            {hata}
-          </p>
+            <p>{hata}</p>
+
+            {/*
+              Sunucu alan bazli hata dondurduğunde hepsi listeleniyor.
+              Tek satir gosterilseydi kullanici hatalari tek tek keşfetmek
+              icin formu birkac kez gondermek zorunda kalirdi.
+            */}
+            {hatalar.length > 1 && (
+              <ul className="mt-base list-disc space-y-[2px] pl-stack-md">
+                {hatalar.map((satir) => (
+                  <li key={satir}>{satir}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
 
         {adim === 1 && (
           <EtkinlikAdimi
-            onHata={setHata}
+            onHata={bildirHata}
             onTamam={(id, secilenSalon) => {
               setEtkinlikId(id);
               setSalonId(secilenSalon);
-              setHata(null);
+              bildirHata(null);
               setAdim(2);
             }}
           />
@@ -104,14 +134,14 @@ export function EtkinlikOlusturPage() {
             etkinlikId={etkinlikId}
             salonId={salonId}
             oturumlar={oturumlar}
-            onHata={setHata}
+            onHata={bildirHata}
             onEklendi={(kayit, secilenPlan) => {
               setOturumlar((eskiler) => [...eskiler, kayit]);
               setPlanId(secilenPlan);
-              setHata(null);
+              bildirHata(null);
             }}
             onDevam={() => {
-              setHata(null);
+              bildirHata(null);
               setAdim(3);
             }}
           />
@@ -122,13 +152,13 @@ export function EtkinlikOlusturPage() {
             etkinlikId={etkinlikId}
             planId={planId}
             turler={biletTurleri}
-            onHata={setHata}
+            onHata={bildirHata}
             onEklendi={(kayit) => {
               setBiletTurleri((eskiler) => [...eskiler, kayit]);
-              setHata(null);
+              bildirHata(null);
             }}
             onDevam={() => {
-              setHata(null);
+              bildirHata(null);
               setAdim(4);
             }}
           />
@@ -138,13 +168,13 @@ export function EtkinlikOlusturPage() {
           <AfisAdimi
             etkinlikId={etkinlikId}
             afisId={afisId}
-            onHata={setHata}
+            onHata={bildirHata}
             onYuklendi={(id) => {
               setAfisId(id);
-              setHata(null);
+              bildirHata(null);
             }}
             onDevam={() => {
-              setHata(null);
+              bildirHata(null);
               setAdim(5);
             }}
           />
@@ -156,9 +186,9 @@ export function EtkinlikOlusturPage() {
             oturumSayisi={oturumlar.length}
             turSayisi={biletTurleri.length}
             afisVar={afisId !== null}
-            onHata={setHata}
+            onHata={bildirHata}
             onGonderildi={() => {
-              setHata(null);
+              bildirHata(null);
               setGonderildi(true);
             }}
           />
@@ -192,10 +222,33 @@ export function EtkinlikOlusturPage() {
  * `datetime-local` alanı saat dilimi taşımaz; değeri olduğu gibi göndermek,
  * Türkiye'de saat 20:00 diye seçilen etkinliğin sunucuda 20:00 UTC (yani
  * yerel 23:00) olarak kaydedilmesi demek olurdu.
+ *
+ * <b>Geçersiz tarih burada yakalanıyor.</b> `datetime-local` alanı beş
+ * haneli yıl kabul ediyor (tarayıcı "132132" yazılmasına izin veriyor) ve
+ * `toISOString()` böyle bir değerde `RangeError` fırlatıyor. Önce bu hata
+ * yakalanmıyordu: istek sunucuya hiç gitmeden patlıyor, kullanıcı da
+ * sebebini söylemeyen genel bir hata mesajı görüyordu.
  */
-function yereldenUtc(deger: string): string {
-  return new Date(deger).toISOString();
+function yereldenUtc(deger: string, alan: string): string {
+  const tarih = new Date(deger);
+
+  if (Number.isNaN(tarih.getTime())) {
+    throw new Error(`"${alan}" geçerli bir tarih değil.`);
+  }
+
+  // ECMAScript tarih araligi ±8.64e15 ms (yaklasik ±275760 yil). Disina
+  // cikan deger toISOString'de RangeError firlatir.
+  const yil = tarih.getUTCFullYear();
+
+  if (yil < 2000 || yil > 2100) {
+    throw new Error(`"${alan}" alanındaki yıl (${yil}) makul aralıkta değil. Örnek: 2027.`);
+  }
+
+  return tarih.toISOString();
 }
+
+/** Cocuk bilesenlerin hata bildirme sozlesmesi. `null` temizler. */
+type HataBildir = (hata: unknown, varsayilan?: string) => void;
 
 function Alan({ children }: { children: React.ReactNode }) {
   return <div className="grid gap-stack-sm md:grid-cols-2">{children}</div>;
@@ -246,7 +299,7 @@ function EtkinlikAdimi({
   onHata,
 }: {
   onTamam: (etkinlikId: string, salonId: string) => void;
-  onHata: (mesaj: string | null) => void;
+  onHata: HataBildir;
 }) {
   const [kategoriId, setKategoriId] = useState('');
   const [baslik, setBaslik] = useState('');
@@ -288,14 +341,14 @@ function EtkinlikAdimi({
         cityId: sehirId,
         venueId: mekanId,
         hallId: salonId,
-        eventDateUtc: yereldenUtc(tarih),
+        eventDateUtc: yereldenUtc(tarih, 'Etkinlik tarihi ve saati'),
         durationMinutes: Number(sure),
-        salesStartsAtUtc: yereldenUtc(satisBas),
-        salesEndsAtUtc: yereldenUtc(satisBit),
+        salesStartsAtUtc: yereldenUtc(satisBas, 'Satış başlangıcı'),
+        salesEndsAtUtc: yereldenUtc(satisBit, 'Satış bitişi'),
         minimumAge: yasSiniri === '' ? null : Number(yasSiniri),
       }),
     onSuccess: (id) => onTamam(id, salonId),
-    onError: (h) => onHata(hataMesaji(h, 'Etkinlik oluşturulamadı.')),
+    onError: (h) => onHata(h, 'Etkinlik oluşturulamadı.'),
   });
 
   return (
@@ -446,7 +499,7 @@ function OturumAdimi({
   oturumlar: Array<{ id: string; baslangic: string }>;
   onEklendi: (kayit: { id: string; baslangic: string }, planId: string) => void;
   onDevam: () => void;
-  onHata: (mesaj: string | null) => void;
+  onHata: HataBildir;
 }) {
   const [planId, setPlanId] = useState('');
   const [bas, setBas] = useState('');
@@ -465,17 +518,17 @@ function OturumAdimi({
       oturumEkle(etkinlikId, {
         hallId: salonId,
         seatLayoutId: planId,
-        startsAtUtc: yereldenUtc(bas),
-        endsAtUtc: yereldenUtc(bit),
-        salesStartsAtUtc: yereldenUtc(satisBas),
-        salesEndsAtUtc: yereldenUtc(satisBit),
+        startsAtUtc: yereldenUtc(bas, 'Başlangıç'),
+        endsAtUtc: yereldenUtc(bit, 'Bitiş'),
+        salesStartsAtUtc: yereldenUtc(satisBas, 'Satış başlangıcı'),
+        salesEndsAtUtc: yereldenUtc(satisBit, 'Satış bitişi'),
       }),
     onSuccess: (id) => {
       onEklendi({ id, baslangic: bas }, planId);
       setBas('');
       setBit('');
     },
-    onError: (h) => onHata(hataMesaji(h, 'Oturum eklenemedi.')),
+    onError: (h) => onHata(h, 'Oturum eklenemedi.'),
   });
 
   return (
@@ -575,7 +628,7 @@ function BiletTuruAdimi({
   turler: Array<{ id: string; ad: string; fiyat: number }>;
   onEklendi: (kayit: { id: string; ad: string; fiyat: number }) => void;
   onDevam: () => void;
-  onHata: (mesaj: string | null) => void;
+  onHata: HataBildir;
 }) {
   const [ad, setAd] = useState('');
   const [fiyat, setFiyat] = useState('');
@@ -598,8 +651,8 @@ function BiletTuruAdimi({
         price: Number(fiyat),
         currency: 'TRY',
         quota: Number(kontenjan),
-        salesStartsAtUtc: yereldenUtc(satisBas),
-        salesEndsAtUtc: yereldenUtc(satisBit),
+        salesStartsAtUtc: yereldenUtc(satisBas, 'Satış başlangıcı'),
+        salesEndsAtUtc: yereldenUtc(satisBit, 'Satış bitişi'),
         requiresVerification: belgeIster,
         seatSectionId: bolumId === '' ? null : bolumId,
       }),
@@ -611,7 +664,7 @@ function BiletTuruAdimi({
       setBolumId('');
       setBelgeIster(false);
     },
-    onError: (h) => onHata(hataMesaji(h, 'Bilet türü eklenemedi.')),
+    onError: (h) => onHata(h, 'Bilet türü eklenemedi.'),
   });
 
   return (
@@ -731,7 +784,7 @@ function AfisAdimi({
   afisId: string | null;
   onYuklendi: (dosyaId: string) => void;
   onDevam: () => void;
-  onHata: (mesaj: string | null) => void;
+  onHata: HataBildir;
 }) {
   const [dosya, setDosya] = useState<File | null>(null);
 
@@ -742,7 +795,7 @@ function AfisAdimi({
       return dosyaId;
     },
     onSuccess: onYuklendi,
-    onError: (h) => onHata(hataMesaji(h, 'Afiş yüklenemedi.')),
+    onError: (h) => onHata(h, 'Afiş yüklenemedi.'),
   });
 
   return (
@@ -804,12 +857,12 @@ function OnayAdimi({
   turSayisi: number;
   afisVar: boolean;
   onGonderildi: () => void;
-  onHata: (mesaj: string | null) => void;
+  onHata: HataBildir;
 }) {
   const gonder = useMutation({
     mutationFn: () => onayaGonder(etkinlikId),
     onSuccess: onGonderildi,
-    onError: (h) => onHata(hataMesaji(h, 'Onaya gönderilemedi.')),
+    onError: (h) => onHata(h, 'Onaya gönderilemedi.'),
   });
 
   const kosullar = [

@@ -108,9 +108,31 @@ export function hataKodu(hata: unknown): string | undefined {
   return (hata.response?.data as ProblemDetails | undefined)?.code;
 }
 
+/**
+ * Sunucudan gelen alan bazli dogrulama hatalari.
+ *
+ * Tek satirlik ozet yerine tam liste gerektiginde kullanilir: bir formda
+ * dort alan birden hataliysa kullaniciya yalnizca ilkini gostermek, onu
+ * hatalari tek tek keşfetmeye zorlar.
+ */
+export function dogrulamaHatalari(hata: unknown): string[] {
+  if (!axios.isAxiosError(hata)) return [];
+
+  const govde = hata.response?.data as ProblemDetails | undefined;
+
+  return Object.values(govde?.errors ?? {}).flat();
+}
+
 /** Sunucudan gelen hatayi kullaniciya gosterilecek tek satira cevirir. */
 export function hataMesaji(hata: unknown, varsayilan = 'Beklenmeyen bir hata olustu.'): string {
-  if (!axios.isAxiosError(hata)) return varsayilan;
+  // ISTEK HIC GITMEMIS OLABILIR.
+  // Once yalnizca axios hatalari isleniyordu; istemcide olusan bir hata
+  // (gecersiz tarih, ag kopmasi) varsayilan metne dusuyordu ve kullanici
+  // "Etkinlik olusturulamadi." gibi hicbir sey soylemeyen bir cumle
+  // goruyordu. Gercek sebep artik gosteriliyor.
+  if (!axios.isAxiosError(hata)) {
+    return hata instanceof Error && hata.message ? hata.message : varsayilan;
+  }
 
   const govde = hata.response?.data as ProblemDetails | undefined;
 
@@ -118,6 +140,9 @@ export function hataMesaji(hata: unknown, varsayilan = 'Beklenmeyen bir hata olu
     const ilkAlan = Object.values(govde.errors)[0];
     if (ilkAlan?.length) return ilkAlan[0];
   }
+
+  // Sunucuya ulasilamadiysa response yok; axios'un kendi mesaji daha bilgili.
+  if (!hata.response) return hata.message || varsayilan;
 
   return govde?.detail ?? varsayilan;
 }
