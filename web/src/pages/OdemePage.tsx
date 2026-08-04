@@ -11,7 +11,8 @@ import {
   type OdemeTamamlamaSonucu,
 } from '../api/payments';
 import { rezervasyonGetir, type Rezervasyon } from '../api/reservations';
-import { QrKod } from '../components/QrKod';
+import { biletlerimGetir, type Bilet } from '../api/tickets';
+import { BiletKarti } from '../components/BiletKarti';
 import { sureBicimle, useGeriSayim } from '../hooks/useGeriSayim';
 
 /** Son bir dakikada sayac kirmiziya doner. */
@@ -62,10 +63,6 @@ function odemeHatasiniAcikla(hata: unknown, varsayilan: string): { mesaj: string
   return { mesaj, kod };
 }
 
-function paraFormatla(tutar: number, paraBirimi: string): string {
-  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: paraBirimi }).format(tutar);
-}
-
 /**
  * Odeme baslatma, tamamlama ve bilet gosterme akisi.
  *
@@ -73,6 +70,12 @@ function paraFormatla(tutar: number, paraBirimi: string): string {
  * ustune odeme adimini ekliyor. Odeme kaydinin kimligi yalnizca bu sayfanin
  * durumunda tutuluyor — sayfa yenilenirse akis bastan baslar, cunku
  * rezervasyon uzerinden mevcut bir odemeyi bulan bir uc yok.
+ *
+ * <para>
+ * Biletler odeme cevabindan DEGIL kendi ucundan okunuyor. Cevaptaki liste
+ * yalnizca o cagriya ozel; sayfa yenilendiginde kaybolurdu ve kullanici
+ * parasini odedigi bileti bir daha goremezdi.
+ * </para>
  */
 export function OdemePage() {
   const { rezervasyonId = '' } = useParams();
@@ -124,6 +127,14 @@ export function OdemePage() {
     enabled: odemeId !== null,
   });
 
+  // Bilet yalnizca odeme tamamlandiginda var; rezervasyon Confirmed
+  // olmadan sorulsaydi her acilista bos donen bir istek atilirdi.
+  const { data: biletler } = useQuery<Bilet[]>({
+    queryKey: ['tickets', rezervasyonId],
+    queryFn: () => biletlerimGetir(rezervasyonId),
+    enabled: rezervasyon?.status === 'Confirmed',
+  });
+
   const baslat = useMutation({
     mutationFn: () => {
       anahtarRef.current ??= crypto.randomUUID();
@@ -163,7 +174,12 @@ export function OdemePage() {
 
       if (sonuc.status === 'Succeeded') {
         // Rezervasyon artik Confirmed; detay sayfasi ve liste guncellenmeli.
-        await queryClient.invalidateQueries({ queryKey: ['reservation', rezervasyonId] });
+        // Bilet listesi de: "Biletlerim" onbellekte eski hâliyle durur ve
+        // kullanici az once aldigi bileti orada goremezdi.
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['reservation', rezervasyonId] }),
+          queryClient.invalidateQueries({ queryKey: ['tickets'] }),
+        ]);
       }
     },
     onError: (hata) => {
@@ -247,12 +263,13 @@ export function OdemePage() {
         </section>
       ) : (
         /*
-          Odemeyi AZ ONCE bu ekranda tamamlayan kullaniciya "zaten odendi"
-          denmiyor. Rezervasyon o an Confirmed'a geciyor ve durum metni
-          teknik olarak dogru oluyor ama kullanici acisindan sacma: parayi
-          bir saniye once odedi. Basari mesaji zaten asagida.
+          Odenmis rezervasyonda "zaten odendi" uyarisi hic cikmiyor.
+          Odemeyi az once yapan kullaniciya sacma geliyordu; sonradan geri
+          donen kullanici icin de bilgi degeri yok, asagida zaten biletleri
+          duruyor. Uyari yalnizca iptal ve suresi dolmus durumlar icin
+          anlamli.
         */
-        tamamlamaSonucu?.status !== 'Succeeded' && (
+        rezervasyon.status !== 'Confirmed' && (
           <p
             role="status"
             className="mb-stack-md rounded-lg border border-outline-variant/40 bg-surface-variant/30 px-stack-sm py-stack-sm font-body text-body-md text-on-surface"
@@ -299,29 +316,15 @@ export function OdemePage() {
       )}
 
       {/* Odeme / bilet alani */}
-      {tamamlamaSonucu?.status === 'Succeeded' ? (
-        <section aria-label="Biletler" className="space-y-stack-sm">
+      {rezervasyon.status === 'Confirmed' ? (
+        <section aria-label="Biletler" className="space-y-stack-md">
           <p className="font-body text-body-md font-semibold text-on-surface">
-            Ödeme tamamlandı, biletlerin hazır.
+            {tamamlamaSonucu?.status === 'Succeeded'
+              ? 'Ödeme tamamlandı, biletlerin hazır.'
+              : 'Biletlerin hazır.'}
           </p>
 
-          {tamamlamaSonucu.tickets.map((bilet) => (
-            <div
-              key={bilet.id}
-              className="rounded-lg border border-outline-variant/40 bg-surface-variant/20 p-stack-sm"
-            >
-              <p className="font-body text-body-md text-on-surface">{bilet.eventTitle}</p>
-              <p className="font-body text-body-sm text-on-surface-variant">
-                {bilet.seatLabel} · {bilet.ticketTypeName} ·{' '}
-                {tarihBicimi.format(new Date(bilet.eventStartsAtUtc))}
-              </p>
-              <p className="mb-stack-sm font-body text-body-sm text-on-surface-variant">
-                Bilet no: {bilet.ticketNumber} · {paraFormatla(bilet.price, bilet.currency)}
-              </p>
-
-              <QrKod kod={bilet.qrCode} />
-            </div>
-          ))}
+          {biletler?.map((bilet) => <BiletKarti key={bilet.id} bilet={bilet} />)}
         </section>
       ) : tamamlamaSonucu?.status === 'Failed' ? (
         <section

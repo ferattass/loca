@@ -77,3 +77,58 @@ export function SagOkIkonu(props: IkonProps) {
     </Sarmal>
   );
 }
+
+export function IndirIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </Sarmal>
+  );
+}
+
+export function BelgeIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+    </Sarmal>
+  );
+}
+
+export function GorselIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="8.5" cy="9.5" r="1.5" />
+      <path d="m21 16-5-5L5 20" />
+    </Sarmal>
+  );
+}
+
+/** Kamerayla QR okutma. Kose parantezleri okuyucu cercevesini anlatiyor. */
+export function OkutmaIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
+      <path d="M4 12h16" />
+    </Sarmal>
+  );
+}
+
+export function BiletIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <path d="M3 9V7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a2 2 0 0 0 0 6v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2a2 2 0 0 0 0-6z" />
+      <path d="M14 6v2m0 3v2m0 3v2" strokeDasharray="1 3" />
+    </Sarmal>
+  );
+}
+
+export function UyariIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <path d="M12 9v4m0 4h.01" />
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0" />
+    </Sarmal>
+  );
+}
