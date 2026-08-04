@@ -60,6 +60,7 @@ public static class DependencyInjection
         // Okuma tarafi: arayuzu Application'da, projeksiyonu burada.
         services.AddScoped<IEventQueries, EventQueries>();
         services.AddScoped<IReservationQueries, ReservationQueries>();
+        services.AddScoped<ITicketQueries, TicketQueries>();
 
         return services;
     }
