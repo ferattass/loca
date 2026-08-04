@@ -45,14 +45,14 @@ public sealed record AdminOzeti(
 
 /// <summary>Kuyruktaki tek bir mesaj.</summary>
 /// <remarks>
-/// <b>Govde tasinmiyor, yalnizca uzunlugu.</b> Outbox yuku e-posta adresi
-/// gibi kisisel veri iceriyor; yonetim ekraninda gosterilmesi o veriyi
-/// tarayici gecmisine ve ekran goruntulerine tasirdi.
+/// <b>Govde hic tasinmiyor.</b> Outbox yuku e-posta adresi gibi kisisel
+/// veri iceriyor; yonetim ekraninda gosterilmesi o veriyi tarayici
+/// gecmisine ve ekran goruntulerine tasirdi. Gorevlinin ihtiyaci olan
+/// bilgi mesajin turu, kac kez denendigi ve son hatasi.
 /// </remarks>
 public sealed record KuyrukMesaji(
     Guid Id,
     string Type,
-    int PayloadLength,
     int RetryCount,
     string? ErrorMessage,
     Guid? CorrelationId,

@@ -149,10 +149,6 @@ export function SistemPage() {
                   {tarihBicimi.format(new Date(mesaj.occurredAtUtc))}
                   {' · '}
                   {mesaj.retryCount} deneme
-                  {/* Govde uzunlugu gosteriliyor, icerigi degil: yuk
-                      e-posta adresi gibi kisisel veri tasiyor. */}
-                  {' · '}
-                  {mesaj.payloadLength} bayt
                 </p>
               </div>
 

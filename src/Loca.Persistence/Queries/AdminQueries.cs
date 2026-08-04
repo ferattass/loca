@@ -242,13 +242,18 @@ internal sealed class AdminQueries(LocaDbContext context) : IAdminQueries
         return await sorgu
             .OrderByDescending(message => message.OccurredAtUtc)
             .Take(limit)
-            // Govde TASINMIYOR, yalnizca uzunlugu: yuk e-posta adresi gibi
-            // kisisel veri iceriyor ve yonetim ekraninda gosterilmesi o
-            // veriyi tarayici gecmisine ve ekran goruntulerine tasirdi.
+            // Govde HIC TASINMIYOR: yuk e-posta adresi gibi kisisel veri
+            // iceriyor ve yonetim ekraninda gosterilmesi o veriyi tarayici
+            // gecmisine ve ekran goruntulerine tasirdi.
+            //
+            // Ilk hâlinde yukun uzunlugu (Payload.Length) da doniyordu ve
+            // bu 500 uretiyordu: Payload bir jsonb kolonu, Npgsql .Length
+            // ifadesini "Length adli JSON alani" diye cevirip
+            // (Payload ->> 'Length') NULL dondurdu, NULL'un int'e cast'i
+            // patladi. jsonb uzerinde .Length metin uzunlugu DEMEK DEGIL.
             .Select(message => new KuyrukMesaji(
                 message.Id,
                 message.Type,
-                message.Payload.Length,
                 message.RetryCount,
                 message.ErrorMessage,
                 message.CorrelationId,

@@ -111,8 +111,8 @@ public sealed class AdminController(ISender sender) : ApiControllerBase
     /// <c>Processed</c>.
     /// </param>
     /// <remarks>
-    /// Mesajin GOVDESI donmuyor, yalnizca uzunlugu: yuk e-posta adresi gibi
-    /// kisisel veri iceriyor.
+    /// Mesajin GOVDESI donmuyor: yuk e-posta adresi gibi kisisel veri
+    /// iceriyor.
     /// </remarks>
     [HttpGet("queue")]
     [ProducesResponseType<IReadOnlyList<KuyrukMesaji>>(StatusCodes.Status200OK)]

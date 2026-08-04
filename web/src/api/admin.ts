@@ -137,11 +137,10 @@ export async function rolDegistir(
 
 export type KuyrukFiltresi = 'Pending' | 'Retryable' | 'DeadLettered' | 'Processed';
 
+/** Mesajin govdesi BILEREK yok: kisisel veri iceriyor, sunucu hic gondermiyor. */
 export interface KuyrukMesaji {
   id: string;
   type: string;
-  /** Govde tasinmiyor; kisisel veri iceriyor. Yalnizca uzunlugu geliyor. */
-  payloadLength: number;
   retryCount: number;
   errorMessage: string | null;
   correlationId: string | null;

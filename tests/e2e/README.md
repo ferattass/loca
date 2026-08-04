@@ -18,9 +18,22 @@ pip install requests
 python tests/e2e/e2e_gun6.py            # tam senaryo (~2 dk, süre dolumu beklemesi dâhil)
 python tests/e2e/e2e_gun6.py --hizli    # süre dolumu beklemesini atla
 python tests/e2e/yaris_redis_kapali.py  # yarış durumu: Redis açık ve kapalı
+python tests/e2e/yetki_denetimi.py      # yetki matrisi (hızlı, ~5 sn)
 ```
 
 Her betik başarısız kontrol varsa sıfırdan farklı çıkış kodu döner.
+
+## `yetki_denetimi.py` ne yapıyor
+
+Diğerleri "akış çalışıyor mu" diye bakar; bu betik **"yetkisi olmayan gerçekten
+giremiyor mu"** diye bakar. Her ucu anonim, müşteri, organizatör ve admin oturumuyla
+ayrı ayrı deneyip beklenen durum kodunu karşılaştırır.
+
+Ayrıca sınır davranışlarını sınar: sayfa boyutu üst sınırı, negatif sayfa numarası,
+geçersiz rol adı, kendi admin rolünü kaldırma, işlenmiş mesajı kuyruğa geri koyma.
+
+Kuyruk yanıtının mesaj **gövdesini taşımadığını** da doğrular — gövde kişisel veri
+içeriyor ve bir gün yanlışlıkla DTO'ya eklenirse bu kontrol yakalar.
 
 ## `yaris_redis_kapali.py` neden ayrı
 
