@@ -128,6 +128,19 @@ public sealed class Ticket : BaseEntity
     public DateTime? UsedAtUtc { get; private set; }
     public DateTime? CancelledAtUtc { get; private set; }
 
+    /// <summary>
+    /// Satir surumu; eszamanli okutmalari ayirmak icin.
+    /// </summary>
+    /// <remarks>
+    /// Iki kapi cihazi ayni QR'i ayni anda okutursa ikisi de bileti
+    /// <c>Valid</c> gorup <see cref="MarkUsed"/> cagirabilir. Durum kontrolu
+    /// tek basina yetmiyor: kontrol ile kayit arasinda gecen surede digeri
+    /// yazmis oluyor. Surum damgasi ikinci yazmayi veritabani seviyesinde
+    /// reddettiriyor; biletin ekran goruntusuyle iki kisinin girmesini
+    /// engelleyen sey nihayetinde bu.
+    /// </remarks>
+    public uint Version { get; private set; }
+
     /// <summary>Giriste okutuldu.</summary>
     /// <remarks>
     /// Ikinci okutma reddedilir: ayni QR ile iki kisinin girmesi, bileti

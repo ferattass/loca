@@ -50,6 +50,16 @@ internal sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
                     .IsRequired();
             });
 
+        // EventSeat ile ayni desen: PostgreSQL'in xmin sistem kolonu satirin
+        // surumunu tutar ve her UPDATE'te kendiliginden degisir. Kapida iki
+        // cihaz ayni QR'i ayni anda okutursa ikincinin yazmasi burada
+        // reddedilir. Sistem kolonu oldugu icin tabloya yeni kolon eklenmiyor.
+        builder.Property(ticket => ticket.Version)
+            .HasColumnName("xmin")
+            .HasColumnType("xid")
+            .ValueGeneratedOnAddOrUpdate()
+            .IsConcurrencyToken();
+
         // Kullaniciya gosterilen numara. Tekil: iki biletin ayni numarayi
         // tasimasi bilet dogrulama ekraninda hangi satisin gecerli oldugunu
         // belirsizlestirirdi.
