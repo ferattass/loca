@@ -25,19 +25,25 @@ internal sealed class MockPaymentProvider(
     public string Name => "Mock";
 
     public async Task<PaymentResult> CreatePaymentAsync(
-        Guid paymentId, decimal amount, string currency, CancellationToken cancellationToken = default)
+        PaymentRequest request, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         await GecikmeyiTaklitEt(cancellationToken);
 
-        var referans = Referans(paymentId);
+        var referans = Referans(request.PaymentId);
 
+        // Musteri bilgisi BILEREK loglanmiyor: taklit saglayici da gercegi
+        // taklit ediyor, gercekte de kisisel veri odeme logunda durmaz.
         logger.LogInformation(
             "Taklit odeme baslatildi. OdemeId: {OdemeId}, Tutar: {Tutar} {Birim}, Referans: {Referans}",
-            paymentId,
-            amount,
-            currency,
+            request.PaymentId,
+            request.Amount,
+            request.Currency,
             referans);
 
+        // Yonlendirme adresi YOK: taklit saglayicinin odeme sayfasi da yok.
+        // Arayuz bu durumda kendi "Odemeyi tamamla" dugmesini gosteriyor.
         return PaymentResult.Success(referans);
     }
 
@@ -101,14 +107,17 @@ internal sealed class FailedPaymentProvider(ILogger<FailedPaymentProvider> logge
     public string Name => "FailedMock";
 
     public Task<PaymentResult> CreatePaymentAsync(
-        Guid paymentId, decimal amount, string currency, CancellationToken cancellationToken = default)
+        PaymentRequest request, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         // Baslatma BASARILI: gercek hayatta da islem acilir, sonra reddedilir.
         // Baslatmada basarisiz olsaydi "odeme baslatildi ama tamamlanmadi"
         // durumu hic olusmaz ve o yol test edilmemis kalirdi.
-        logger.LogInformation("Basarisiz taklit saglayici, odeme baslatildi. OdemeId: {OdemeId}", paymentId);
+        logger.LogInformation(
+            "Basarisiz taklit saglayici, odeme baslatildi. OdemeId: {OdemeId}", request.PaymentId);
 
-        return Task.FromResult(PaymentResult.Success($"FAIL-{paymentId:N}"));
+        return Task.FromResult(PaymentResult.Success($"FAIL-{request.PaymentId:N}"));
     }
 
     public Task<PaymentResult> VerifyPaymentAsync(

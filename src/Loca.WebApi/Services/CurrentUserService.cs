@@ -20,6 +20,17 @@ internal sealed class CurrentUserService(IHttpContextAccessor httpContextAccesso
 
     public string? Email => FindClaim(ClaimNames.Email);
 
+    /// <remarks>
+    /// <c>X-Forwarded-For</c> basligi OKUNMUYOR. Vekil sunucu arkasinda
+    /// calisirken gercek adresi o baslik tasir ama basligi istemci de
+    /// gonderebilir; dogrudan okunmasi adresi uydurulabilir yapardi. Vekil
+    /// arkasina alindiginda dogru cozum <c>ForwardedHeaders</c> ara
+    /// yazilimini guvenilen vekil listesiyle yapilandirmak; o zaman
+    /// <c>RemoteIpAddress</c> zaten dogru degeri gosterir.
+    /// </remarks>
+    public string? IpAddress =>
+        httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+
     public bool IsAuthenticated =>
         httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false;
 

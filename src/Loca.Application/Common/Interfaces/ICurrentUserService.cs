@@ -14,6 +14,18 @@ public interface ICurrentUserService
 
     string? Email { get; }
 
+    /// <summary>
+    /// Istegin geldigi adres. Arka plan islerinde ve okunamadigi durumda
+    /// <c>null</c>.
+    /// </summary>
+    /// <remarks>
+    /// Odeme saglayicisi dolandiricilik puanlamasi icin bu adresi istiyor.
+    /// Token'dan degil baglantidan okunuyor: istemcinin gonderdigi bir
+    /// degere guvenilseydi, adres istegin kendisi tarafindan uydurulabilir
+    /// ve puanlama anlamsizlasirdi.
+    /// </remarks>
+    string? IpAddress { get; }
+
     bool IsAuthenticated { get; }
 
     bool IsInRole(string roleName);

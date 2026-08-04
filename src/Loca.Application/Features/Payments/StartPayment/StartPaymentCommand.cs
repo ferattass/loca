@@ -37,6 +37,7 @@ public sealed class StartPaymentCommandValidator : AbstractValidator<StartPaymen
 internal sealed class StartPaymentCommandHandler(
     IPaymentRepository payments,
     IReservationRepository reservations,
+    IUserRepository users,
     IUnitOfWork unitOfWork,
     IPaymentService paymentService,
     ICurrentUserService currentUser,
@@ -95,8 +96,23 @@ internal sealed class StartPaymentCommandHandler(
         payments.Add(odeme);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // Musteri bilgisi saglayiciya GERCEK degerlerle gidiyor. Sabit yer
+        // tutucularla gonderilseydi saglayicinin dolandiricilik puanlamasi
+        // her islemi ayni kisi sanardi.
+        var kullanici = await users.GetByIdAsync(userId, cancellationToken);
+
+        if (kullanici is null)
+            return Result.Failure<PaymentDetail>(PaymentErrors.Unauthenticated);
+
         var sonuc = await paymentService.CreatePaymentAsync(
-            odeme.Id, odeme.Amount.Amount, odeme.Amount.Currency, cancellationToken);
+            new PaymentRequest(
+                odeme.Id,
+                odeme.Amount.Amount,
+                odeme.Amount.Currency,
+                new PaymentCustomer(
+                    userId, kullanici.FullName, kullanici.Email, currentUser.IpAddress),
+                Aciklama(rezervasyon)),
+            cancellationToken);
 
         if (!sonuc.Succeeded)
         {
@@ -126,11 +142,25 @@ internal sealed class StartPaymentCommandHandler(
             rezervasyon.Id,
             odeme.Amount);
 
-        return Result.Success(Detay(odeme, sonuc.Reference));
+        return Result.Success(Detay(odeme, sonuc.RedirectUrl));
     }
 
+    /// <summary>
+    /// Saglayicinin sepetinde gorunecek metin.
+    /// </summary>
+    /// <remarks>
+    /// Kart ekstresinde ve saglayici panelinde bu yaziyor. "Rezervasyon"
+    /// gibi genel bir metin yazilsaydi kullanici ekstresine bakip hangi
+    /// etkinlige odeme yaptigini cikaramaz, bankaya itiraz ederdi.
+    /// </remarks>
+    private static string Aciklama(Reservation rezervasyon) =>
+        rezervasyon.EventSession?.Event?.Title is { Length: > 0 } baslik
+            ? baslik
+            : "Etkinlik bileti";
+
     /// <param name="yonlendirme">
-    /// Saglayicinin odeme sayfasi. Taklit saglayicida anlamli bir adres yok.
+    /// Saglayicinin odeme sayfasi. Taklit saglayicida yok; arayuz o zaman
+    /// kendi tamamlama dugmesini gosteriyor.
     /// </param>
     private static PaymentDetail Detay(Payment odeme, string? yonlendirme) =>
         new(
@@ -139,9 +169,7 @@ internal sealed class StartPaymentCommandHandler(
             odeme.Status,
             odeme.Provider,
             odeme.ProviderReference,
-            yonlendirme is not null && yonlendirme.StartsWith("http", StringComparison.OrdinalIgnoreCase)
-                ? yonlendirme
-                : null,
+            yonlendirme,
             odeme.Amount.Amount,
             odeme.Amount.Currency,
             odeme.CompletedAtUtc,

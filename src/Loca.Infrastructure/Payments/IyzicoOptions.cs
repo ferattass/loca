@@ -34,9 +34,31 @@ public sealed class IyzicoOptions
     /// <summary>
     /// Checkout form tamamlaninca Iyzico'nun POST ile donecegi adres.
     /// </summary>
+    /// <remarks>
+    /// Bu adres <b>API'nin</b> ucu (<c>/api/v1/payments/iyzico/callback</c>),
+    /// arayuzun degil. Iyzico buraya tarayici uzerinden form POST'u yapiyor;
+    /// dogrudan arayuze gonderilseydi tek sayfa uygulama POST govdesindeki
+    /// token'i okuyamazdi.
+    ///
+    /// <para>
+    /// Yerel gelistirmede Iyzico <c>localhost</c>'a erisemez; bir tunel
+    /// (ngrok vb.) adresi yazilmali. Bkz. <c>docs/05-odeme-iyzico.md</c>.
+    /// </para>
+    /// </remarks>
     [Required]
     [Url]
     public string CallbackUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Odeme bittikten sonra kullanicinin geri gonderilecegi arayuz adresi.
+    /// </summary>
+    /// <remarks>
+    /// Kok adres; uzerine rezervasyon yolu ekleniyor. Kod icinde
+    /// sabitlenseydi ayni derleme farkli ortamlarda calisamazdi.
+    /// </remarks>
+    [Required]
+    [Url]
+    public string ReturnUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// <c>true</c> ise sandbox, <c>false</c> ise canli ortam kullanilir.

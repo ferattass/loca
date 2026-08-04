@@ -55,41 +55,51 @@ internal sealed class IyzicoPaymentProvider(
     // geri ayristiriliyor. Bkz. ReferansParcala.
     private const char ReferansAyraci = '|';
 
-    // IPaymentService sozlesmesi alici (buyer) ve adres bilgisi tasimiyor
-    // (kart verisi gibi bu bilgiler de kapsam disi tutuldu). Iyzico
-    // checkout form baslatirken bu alanlari zorunlu kildigindan asagida
-    // sabit yer tutucu degerler kullaniliyor. GERCEK ENTEGRASYONDA bu
-    // deger musteri kaydindan veya arayuzun genisletilmesiyle gelmeli;
-    // aksi halde Iyzico'nun dolandiricilik (fraud) puanlamasi gercek
-    // musteri bilgisiyle calismaz.
-    private const string YerTutucuIp = "1.1.1.1";
+    // Iyzico alici IP'sini zorunlu tutuyor ama istek arkada bir vekil
+    // sunucudan gelmisse gercek adres bilinemeyebiliyor. Bu durumda islem
+    // reddedilmek yerine bu adres gonderiliyor; alternatif, adres okunamadi
+    // diye odemeyi hic baslatmamak olurdu.
+    private const string BilinmeyenIp = "0.0.0.0";
+
+    // Iyzico kimlik numarasi alanini zorunlu tutuyor. Sistem kimlik numarasi
+    // TOPLAMIYOR (analiz belgesinde de yok) ve yalnizca bu alan icin
+    // toplamak, veriyi ihtiyactan fazla toplamak olurdu. Iyzico'nun
+    // dokumantasyonunda bu alan icin verilen ornek deger kullaniliyor;
+    // dolandiricilik puanlamasi bu alan olmadan da ad, e-posta ve IP ile
+    // calisiyor.
+    private const string KimlikNumarasiYok = "11111111111";
 
     private readonly IyzicoOptions _options = options.Value;
 
     public string Name => "Iyzico";
 
     public async Task<PaymentResult> CreatePaymentAsync(
-        Guid paymentId, decimal amount, string currency, CancellationToken cancellationToken = default)
+        PaymentRequest request, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         const string Yol = "/payment/iyzipos/checkoutform/initialize/auth/ecom";
 
-        var fiyat = FormatFiyat(amount);
-        var tanimlayici = paymentId.ToString("N");
+        var fiyat = FormatFiyat(request.Amount);
+        var tanimlayici = request.PaymentId.ToString("N");
+        var ip = string.IsNullOrWhiteSpace(request.Customer.IpAddress)
+            ? BilinmeyenIp
+            : request.Customer.IpAddress;
 
         var istek = new CheckoutFormInitializeRequest
         {
             Locale = Locale,
-            ConversationId = paymentId.ToString(),
+            ConversationId = request.PaymentId.ToString(),
             Price = fiyat,
             PaidPrice = fiyat,
-            Currency = currency,
+            Currency = request.Currency,
             BasketId = tanimlayici,
             PaymentGroup = "PRODUCT",
             CallbackUrl = _options.CallbackUrl,
-            Buyer = YerTutucuAlici(tanimlayici),
-            ShippingAddress = YerTutucuAdres(),
-            BillingAddress = YerTutucuAdres(),
-            BasketItems = [YerTutucuSepetKalemi(tanimlayici, fiyat)]
+            Buyer = Alici(request.Customer, ip),
+            ShippingAddress = Adres(request.Customer.FullName),
+            BillingAddress = Adres(request.Customer.FullName),
+            BasketItems = [SepetKalemi(tanimlayici, request.Description, fiyat)]
         };
 
         try
@@ -104,11 +114,18 @@ internal sealed class IyzicoPaymentProvider(
             // Reference'a checkout form token'i konur: kullanici odeme
             // sayfasini tamamladiktan sonra VerifyPaymentAsync bu token ile
             // gercek sonucu Iyzico'ya SORAR (callback'e guvenilmez).
-            return PaymentResult.Success(yanit.Token);
+            //
+            // paymentPageUrl kullanicinin karti girecegi sayfa. Iyzico bunu
+            // token'dan tureterek de verebiliyor ama adres yanittan
+            // okunuyor: sandbox ile canlinin alan adlari farkli ve adresi
+            // kod icinde kurmak, ortam degisiminde sessizce yanlis sayfaya
+            // gondermek demek olurdu.
+            return PaymentResult.Success(yanit.Token, yanit.PaymentPageUrl);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
-            logger.LogWarning(ex, "Iyzico odeme baslatma cagrisi basarisiz. OdemeId: {OdemeId}", paymentId);
+            logger.LogWarning(
+                ex, "Iyzico odeme baslatma cagrisi basarisiz. OdemeId: {OdemeId}", request.PaymentId);
             return PaymentResult.Failure("Odeme saglayicisina ulasilamadi.");
         }
     }
@@ -189,7 +206,9 @@ internal sealed class IyzicoPaymentProvider(
             ConversationId = paymentId.ToString(),
             PaymentTransactionId = islemKimligi,
             Price = FormatFiyat(amount),
-            Ip = YerTutucuIp
+            // Iade ve iptal sunucudan yapiliyor; ortada bir tarayici yok,
+            // dolayisiyla tasinacak bir kullanici adresi de yok.
+            Ip = BilinmeyenIp
         };
 
         try
@@ -227,7 +246,9 @@ internal sealed class IyzicoPaymentProvider(
             Locale = Locale,
             ConversationId = paymentId.ToString(),
             PaymentId = iyzicoOdemeKimligi,
-            Ip = YerTutucuIp
+            // Iade ve iptal sunucudan yapiliyor; ortada bir tarayici yok,
+            // dolayisiyla tasinacak bir kullanici adresi de yok.
+            Ip = BilinmeyenIp
         };
 
         try
@@ -316,33 +337,57 @@ internal sealed class IyzicoPaymentProvider(
     private static string FormatFiyat(decimal tutar) =>
         tutar.ToString("0.00", CultureInfo.InvariantCulture);
 
-    private static Buyer YerTutucuAlici(string tanimlayici) => new()
+    /// <remarks>
+    /// Iyzico ad ile soyadi ayri istiyor, bizde tek alan var. Son bosluktan
+    /// bolunuyor; bosluk yoksa soyad alanina adin kendisi yaziliyor —
+    /// alan bos birakilamiyor ve uydurma bir soyad koymak kisiyi yanlis
+    /// tanimlamak olurdu.
+    /// </remarks>
+    private static Buyer Alici(PaymentCustomer musteri, string ip)
     {
-        Id = tanimlayici,
-        Name = "Musteri",
-        Surname = "Musteri",
-        GsmNumber = "+905000000000",
-        Email = "odeme@loca.app",
-        IdentityNumber = "11111111111",
-        RegistrationAddress = "Belirtilmedi",
-        Ip = YerTutucuIp,
-        City = "Istanbul",
-        Country = "Turkiye"
-    };
+        var bosluk = musteri.FullName.LastIndexOf(' ');
+        var ad = bosluk > 0 ? musteri.FullName[..bosluk] : musteri.FullName;
+        var soyad = bosluk > 0 ? musteri.FullName[(bosluk + 1)..] : musteri.FullName;
 
-    private static IyzicoAddress YerTutucuAdres() => new()
+        return new Buyer
+        {
+            // Iyzico'daki alici kimligi bizim kullanici kimligimiz: ayni
+            // kisinin farkli odemeleri saglayici tarafinda da ayni kisi
+            // olarak gorunuyor, dolandiricilik puanlamasi buna bakiyor.
+            Id = musteri.UserId.ToString(),
+            Name = ad,
+            Surname = soyad,
+            GsmNumber = "+905000000000",
+            Email = musteri.Email,
+            IdentityNumber = KimlikNumarasiYok,
+            RegistrationAddress = "Belirtilmedi",
+            Ip = ip,
+            City = "Istanbul",
+            Country = "Turkiye"
+        };
+    }
+
+    /// <remarks>
+    /// Adres alanlari zorunlu ama satilan sey dijital bir bilet: teslimat
+    /// adresi diye bir sey yok. Iletisim adi gercek, adres satiri
+    /// "Belirtilmedi" — uydurma bir sokak adresi yazmak kayitlari
+    /// kirletirdi.
+    /// </remarks>
+    private static IyzicoAddress Adres(string adSoyad) => new()
     {
-        ContactName = "Musteri Musteri",
+        ContactName = adSoyad,
         City = "Istanbul",
         Country = "Turkiye",
         Address = "Belirtilmedi"
     };
 
-    private static BasketItem YerTutucuSepetKalemi(string tanimlayici, string fiyat) => new()
+    private static BasketItem SepetKalemi(string tanimlayici, string aciklama, string fiyat) => new()
     {
         Id = tanimlayici,
-        Name = "Rezervasyon",
+        Name = aciklama,
         Category1 = "Bilet",
+        // Fiziksel teslimat yok; yanlis tip gonderilseydi Iyzico kargo
+        // sureci bekleyen bir islem acardi.
         ItemType = "VIRTUAL",
         Price = fiyat
     };
@@ -443,6 +488,10 @@ internal sealed class CheckoutFormInitializeResponse
 {
     public string? Status { get; init; }
     public string? Token { get; init; }
+
+    /// <summary>Kullanicinin karti girecegi Iyzico sayfasi.</summary>
+    public string? PaymentPageUrl { get; init; }
+
     public string? ErrorCode { get; init; }
     public string? ErrorMessage { get; init; }
 }

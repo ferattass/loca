@@ -4,16 +4,62 @@ namespace Loca.Application.Common.Interfaces;
 /// Odeme saglayicisinin sonucu.
 /// </summary>
 /// <param name="Reference">Saglayicinin islem kimligi. Mutabakat ve iade icin.</param>
+/// <param name="RedirectUrl">
+/// Kullanicinin karti girecegi saglayici sayfasi. Taklit saglayicida
+/// <c>null</c>.
+/// </param>
 /// <param name="FailureReason">
 /// Basarisizlik sebebi. <b>Kart bilgisi icermez</b> — saglayici cevabi ham
 /// hâliyle tasinsaydi kart verisi denetim tablosuna ve loglara sizardi.
 /// </param>
-public sealed record PaymentResult(bool Succeeded, string? Reference, string? FailureReason)
+/// <remarks>
+/// <b><see cref="RedirectUrl"/> ayri bir alan, <see cref="Reference"/>'tan
+/// turetilmiyor.</b> Onceki hâlinde adres, referansin "http" ile baslayip
+/// baslamadigina bakilarak cikariliyordu; Iyzico'nun referansi bir token
+/// oldugu icin adres hicbir zaman uretilmedi ve kullanici odeme sayfasina
+/// hic gonderilmedi. Iki farkli bilgi iki farkli alanda durmali.
+/// </remarks>
+public sealed record PaymentResult(
+    bool Succeeded, string? Reference, string? RedirectUrl, string? FailureReason)
 {
-    public static PaymentResult Success(string reference) => new(true, reference, null);
+    public static PaymentResult Success(string reference, string? redirectUrl = null) =>
+        new(true, reference, redirectUrl, null);
 
-    public static PaymentResult Failure(string reason) => new(false, null, reason);
+    public static PaymentResult Failure(string reason) => new(false, null, null, reason);
 }
+
+/// <summary>
+/// Odemeyi yapan kisi.
+/// </summary>
+/// <remarks>
+/// <b>Kart bilgisi burada da YOK.</b> Bunlar saglayicinin dolandiricilik
+/// puanlamasi icin istedigi kimlik alanlari; kart verisiyle ilgisi yok.
+///
+/// <para>
+/// Onceki hâlinde bu bilgiler saglayiciya sabit yer tutucu olarak
+/// gonderiliyordu ("Musteri Musteri", 11111111111). Yer tutucu ile calisan
+/// bir dolandiricilik puanlamasi her islemi ayni kisi sanar; canliya
+/// cikmadan once kapatilmasi gereken bir acikti.
+/// </para>
+/// </remarks>
+/// <param name="IpAddress">
+/// Istegi yapan tarayicinin adresi. Bilinmiyorsa <c>null</c>; saglayici
+/// zorunlu tutuyorsa uygulama tarafi kendi degerini koyar.
+/// </param>
+public sealed record PaymentCustomer(
+    Guid UserId,
+    string FullName,
+    string Email,
+    string? IpAddress);
+
+/// <summary>Saglayicida acilacak odeme islemi.</summary>
+public sealed record PaymentRequest(
+    Guid PaymentId,
+    decimal Amount,
+    string Currency,
+    PaymentCustomer Customer,
+    /// <summary>Saglayicinin sepet satirinda gorunecek metin.</summary>
+    string Description);
 
 /// <summary>
 /// Odeme saglayicisi sozlesmesi.
@@ -38,7 +84,7 @@ public interface IPaymentService
 
     /// <summary>Odemeyi baslatir; saglayici tarafinda bir islem acar.</summary>
     Task<PaymentResult> CreatePaymentAsync(
-        Guid paymentId, decimal amount, string currency, CancellationToken cancellationToken = default);
+        PaymentRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saglayicidaki islemin gercek durumunu sorar.
