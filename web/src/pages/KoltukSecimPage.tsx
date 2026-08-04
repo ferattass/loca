@@ -12,6 +12,7 @@ import { rezervasyonOlustur } from '../api/reservations';
 import { BolumHaritasi, type BolumOzeti } from '../components/BolumHaritasi';
 import { SecimOzetiPaneli, type SecimOzetiKoltugu } from '../components/SecimOzetiPaneli';
 import { DOLGU, SeatMap, type BolumVerisi } from '../components/SeatMap';
+import { SolOkIkonu } from '../components/ui/Ikon';
 import type { SeatStatus } from '../components/SeatStatePreview';
 import { sureBicimle } from '../hooks/useGeriSayim';
 
@@ -286,7 +287,8 @@ export function KoltukSecimPage() {
                 onClick={() => setAcikBolumId(null)}
                 className="mb-stack-sm font-body text-body-sm text-primary underline underline-offset-2"
               >
-                ← Tüm bölümler
+                <SolOkIkonu className="h-4 w-4" />
+                Tüm bölümler
               </button>
 
               <Aciklama />

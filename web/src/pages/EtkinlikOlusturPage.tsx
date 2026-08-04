@@ -20,6 +20,7 @@ import {
 } from '../api/events';
 import { planGetir } from '../api/seatLayouts';
 import { Button } from '../components/ui/Button';
+import { CarpiIkonu, OnayIkonu } from '../components/ui/Ikon';
 import { TextField } from '../components/ui/TextField';
 
 /**
@@ -89,7 +90,9 @@ export function EtkinlikOlusturPage() {
                 }`}
               >
                 {numara}. {ad}
-                {durum === 'tamam' && ' ✓'}
+                {durum === 'tamam' && (
+                  <OnayIkonu className="ml-base inline-block h-3.5 w-3.5 align-[-2px]" />
+                )}
               </li>
             );
           })}
@@ -884,7 +887,14 @@ function OnayAdimi({
             key={kosul.metin}
             className={`font-body text-body-sm ${kosul.saglandi ? 'text-on-surface' : 'text-error'}`}
           >
-            {kosul.saglandi ? '✓' : '✗'} {kosul.metin}
+            <span className="inline-flex items-center gap-base">
+              {kosul.saglandi ? (
+                <OnayIkonu etiket="Sağlandı" className="h-4 w-4" />
+              ) : (
+                <CarpiIkonu etiket="Eksik" className="h-4 w-4" />
+              )}
+              {kosul.metin}
+            </span>
           </li>
         ))}
       </ul>
