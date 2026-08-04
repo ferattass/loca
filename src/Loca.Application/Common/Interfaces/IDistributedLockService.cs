@@ -35,6 +35,15 @@ public interface IDistributedLockService
         IReadOnlyCollection<string> keys,
         TimeSpan ttl,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Kilit altyapisina su an ulasilabiliyor mu.</summary>
+    /// <remarks>
+    /// Yonetim panelindeki saglik gostergesi icin. Sistem Redis kapaliyken
+    /// de calismaya devam ettigi icin (savunma bir halka eksilerek), bu
+    /// durumun bir yerde GORUNUR olmasi gerekiyor; aksi halde kilit
+    /// katmaninin gunlerdir devre disi oldugu fark edilmez.
+    /// </remarks>
+    Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>

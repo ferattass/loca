@@ -61,6 +61,7 @@ public static class DependencyInjection
         services.AddScoped<IEventQueries, EventQueries>();
         services.AddScoped<IReservationQueries, ReservationQueries>();
         services.AddScoped<ITicketQueries, TicketQueries>();
+        services.AddScoped<IAdminQueries, AdminQueries>();
 
         return services;
     }

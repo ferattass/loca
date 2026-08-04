@@ -110,6 +110,30 @@ internal sealed class RedisDistributedLockService(
 
     // Donus tipi arayuz degil somut sinif: metot private ve tek cagrilan yer
     // zaten arayuze yukseltiyor (CA1859).
+    public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var database = connection.GetDatabase();
+
+        if (database is null)
+            return false;
+
+        try
+        {
+            // PING: veri yazmadan baglantiyi olcen en ucuz cagri. Deneme
+            // amacli bir anahtar yazilsaydi saglik kontrolu veriyi
+            // degistiren bir islem hâline gelirdi.
+            await database.PingAsync();
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is RedisConnectionException or RedisTimeoutException or RedisServerException)
+        {
+            return false;
+        }
+    }
+
     private NoOpLock Degraded(Exception? exception)
     {
         // Uyari seviyesinde: hata degil ama sessiz gecilmemeli. Bu satiri

@@ -44,5 +44,31 @@ internal sealed class OutboxRepository(LocaDbContext context) : IOutboxRepositor
             .Take(batchSize)
             .ToListAsync(cancellationToken);
 
+    public async Task<OutboxQueueCounts> CountByStateAsync(
+        CancellationToken cancellationToken = default)
+    {
+        // Tek gidis donus: uc ayri COUNT sorgusu yerine gruplayip
+        // bellekte ayristiriliyor. Panel her acilista cagriliyor.
+        var gruplar = await context.OutboxMessages
+            .Where(message => message.ProcessedAtUtc == null)
+            .GroupBy(message => message.RetryCount)
+            .Select(grup => new { Deneme = grup.Key, Adet = grup.Count() })
+            .ToListAsync(cancellationToken);
+
+        return new OutboxQueueCounts(
+            Pending: gruplar.Where(g => g.Deneme == 0).Sum(g => g.Adet),
+            Retryable: gruplar
+                .Where(g => g.Deneme > 0 && g.Deneme < OutboxMessage.MaxRetryCount)
+                .Sum(g => g.Adet),
+            DeadLettered: gruplar
+                .Where(g => g.Deneme >= OutboxMessage.MaxRetryCount)
+                .Sum(g => g.Adet));
+    }
+
+    public Task<OutboxMessage?> GetByIdAsync(
+        Guid id, CancellationToken cancellationToken = default) =>
+        context.OutboxMessages.FirstOrDefaultAsync(
+            message => message.Id == id, cancellationToken);
+
     public void Add(OutboxMessage message) => context.OutboxMessages.Add(message);
 }

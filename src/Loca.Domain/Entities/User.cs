@@ -81,6 +81,20 @@ public sealed class User : BaseEntity, IAggregateRoot
         _userRoles.Add(new UserRole(Id, role.Id));
     }
 
+    /// <summary>Rolu geri alir.</summary>
+    /// <remarks>
+    /// Rolu olmayan kullanicidan rol almak hata degil: cagiran taraf ayni
+    /// sonuca ulasmis oluyor. Hata firlatilsaydi arayuzun once "bu rol
+    /// var mi" diye sorup sonra silmesi gerekirdi ve iki cagri arasinda
+    /// baskasi rolu almis olabilirdi.
+    /// </remarks>
+    public void RemoveRole(Role role)
+    {
+        ArgumentNullException.ThrowIfNull(role);
+
+        _userRoles.RemoveAll(userRole => userRole.RoleId == role.Id);
+    }
+
     public void AddRefreshToken(RefreshToken refreshToken)
     {
         ArgumentNullException.ThrowIfNull(refreshToken);

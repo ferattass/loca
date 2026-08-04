@@ -112,4 +112,29 @@ public sealed class OutboxMessage : BaseEntity
         // tablo gereksiz yere sisirdi.
         ErrorMessage = error.Length > 1000 ? error[..1000] : error;
     }
+
+    /// <summary>Olu mektubu kuyruga geri koyar.</summary>
+    /// <remarks>
+    /// <b>Elle tetiklenir, kendiliginden olmaz.</b> Hakki tuketen mesaj bir
+    /// sebeple basarisiz oldu; sebep giderilmeden geri konursa yeniden
+    /// tukenir ve kuyruk bosuna calisir. Karari veren kisi, sorunun
+    /// cozuldugunu bilen kisi olmali.
+    ///
+    /// <para>
+    /// Deneme sayaci sifirlanmiyor, <b>bire</b> cekiliyor: kaydin daha once
+    /// basarisiz oldugu bilgisi kaybolmamali, mesaj "yeniden denenecek"
+    /// kumesine dusmeli ki ilk kez gonderilen mesajlarin sirasini isgal
+    /// etmesin.
+    /// </para>
+    /// </remarks>
+    public void RequeueFromDeadLetter()
+    {
+        if (IsProcessed)
+            throw new DomainException("Islenmis mesaj kuyruga geri konamaz.");
+
+        if (!IsDeadLettered)
+            throw new DomainException("Yalnizca deneme hakki tukenmis mesaj geri konabilir.");
+
+        RetryCount = 1;
+    }
 }
