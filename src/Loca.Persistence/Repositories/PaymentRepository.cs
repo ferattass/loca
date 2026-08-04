@@ -28,6 +28,11 @@ internal sealed class PaymentRepository(LocaDbContext context) : IPaymentReposit
                 payment.Status == PaymentStatus.Pending,
             cancellationToken);
 
+    public Task<Payment?> GetByProviderReferenceAsync(
+        string providerReference, CancellationToken cancellationToken = default) =>
+        context.Payments.FirstOrDefaultAsync(
+            payment => payment.ProviderReference == providerReference, cancellationToken);
+
     public Task<Payment?> GetByIdempotencyKeyAsync(
         Guid userId, string idempotencyKey, CancellationToken cancellationToken = default) =>
         context.Payments.FirstOrDefaultAsync(

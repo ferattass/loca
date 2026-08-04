@@ -24,6 +24,9 @@ public sealed record PaymentDetail(
     DateTime CreatedAt,
     IReadOnlyList<PaymentAttempt> Attempts);
 
+/// <summary>Saglayici geri donusunun isaret ettigi odeme.</summary>
+public sealed record ProviderCallbackTarget(Guid PaymentId, Guid ReservationId);
+
 /// <summary>Odeme uzerindeki tek bir saglayici etkilesimi.</summary>
 public sealed record PaymentAttempt(
     PaymentTransactionType Type,

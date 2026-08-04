@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { hataKodu, hataMesaji } from '../api/client';
 import {
@@ -79,11 +79,22 @@ function odemeHatasiniAcikla(hata: unknown, varsayilan: string): { mesaj: string
  */
 export function OdemePage() {
   const { rezervasyonId = '' } = useParams();
+  const [aramaParametreleri] = useSearchParams();
   const queryClient = useQueryClient();
+
+  /**
+   * Saglayicinin odeme sayfasindan donen kullanici.
+   *
+   * Sunucudaki callback ucu tarayiciyi buraya bu parametreyle yolluyor.
+   * Odeme kimligi sayfanin durumunda tutuldugu icin, yonlendirmeden sonra
+   * o durum bos olurdu; parametre olmasaydi kullanici parasini odemis ama
+   * ekranda yeniden "Odemeyi baslat" goruyor olurdu.
+   */
+  const donusOdemeId = aramaParametreleri.get('odemeId');
 
   const [islemHatasi, setIslemHatasi] = useState<string | null>(null);
   const [koltuklarSerbest, setKoltuklarSerbest] = useState(false);
-  const [odemeId, setOdemeId] = useState<string | null>(null);
+  const [odemeId, setOdemeId] = useState<string | null>(donusOdemeId);
   const [tamamlamaSonucu, setTamamlamaSonucu] = useState<OdemeTamamlamaSonucu | null>(null);
 
   /**
@@ -158,7 +169,7 @@ export function OdemePage() {
   });
 
   const tamamla = useMutation({
-    mutationFn: () => odemeTamamla(odemeId as string),
+    mutationFn: (id: string) => odemeTamamla(id),
     onSuccess: async (sonuc) => {
       setIslemHatasi(null);
       setTamamlamaSonucu(sonuc);
@@ -188,6 +199,28 @@ export function OdemePage() {
       if (kod && KOLTUK_SERBEST_KODLARI.has(kod)) setKoltuklarSerbest(true);
     },
   });
+
+  /**
+   * Saglayicidan donuldugunde tamamlama ISTEMCIDEN cagriliyor.
+   *
+   * Sunucudaki callback ucu odemeyi kapatmiyor cunku o istekte oturum
+   * belirtecimiz yok (bkz. ResolveProviderCallbackQuery). Buradaki cagri
+   * kullanicinin kendi oturumuyla gidiyor ve sunucu sonucu yine
+   * saglayiciya sorarak dogruluyor.
+   *
+   * Bir kez calismasi ref ile garanti altinda: bagimlilik dizisindeki
+   * herhangi bir degisiklik ikinci bir tamamlama istegi gonderseydi, ilki
+   * bileti uretmisken ikincisi "zaten odendi" cevabi donerdi.
+   */
+  const otomatikTamamlandiRef = useRef(false);
+
+  useEffect(() => {
+    if (donusOdemeId === null || otomatikTamamlandiRef.current) return;
+    if (rezervasyon?.status !== 'Pending') return;
+
+    otomatikTamamlandiRef.current = true;
+    tamamla.mutate(donusOdemeId);
+  }, [donusOdemeId, rezervasyon?.status, tamamla]);
 
   if (isPending) {
     return (
@@ -358,7 +391,7 @@ export function OdemePage() {
         ) : (
           <button
             type="button"
-            onClick={() => tamamla.mutate()}
+            onClick={() => tamamla.mutate(odemeId)}
             disabled={tamamla.isPending}
             className="rounded-md bg-primary px-stack-md py-base font-body text-body-sm font-semibold text-on-primary disabled:opacity-60"
           >

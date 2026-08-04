@@ -60,6 +60,14 @@ public interface IPaymentRepository
     Task<Payment?> GetPendingByReservationAsync(
         Guid reservationId, CancellationToken cancellationToken = default);
 
+    /// <summary>Saglayicinin verdigi kimlikle odemeyi bulur.</summary>
+    /// <remarks>
+    /// Saglayici callback'i yalnizca kendi kimligini biliyor; bizim odeme
+    /// kimligimizi tasimiyor. Bu yuzden donus yolu bu sorgudan geciyor.
+    /// </remarks>
+    Task<Payment?> GetByProviderReferenceAsync(
+        string providerReference, CancellationToken cancellationToken = default);
+
     Task<Payment?> GetByIdempotencyKeyAsync(
         Guid userId, string idempotencyKey, CancellationToken cancellationToken = default);
 
