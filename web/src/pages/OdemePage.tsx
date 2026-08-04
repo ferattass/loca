@@ -246,14 +246,22 @@ export function OdemePage() {
           </p>
         </section>
       ) : (
-        <p
-          role="status"
-          className="mb-stack-md rounded-lg border border-outline-variant/40 bg-surface-variant/30 px-stack-sm py-stack-sm font-body text-body-md text-on-surface"
-        >
-          {rezervasyon.status === 'Pending'
-            ? REZERVASYON_DURUM_METNI.Expired
-            : REZERVASYON_DURUM_METNI[rezervasyon.status]}
-        </p>
+        /*
+          Odemeyi AZ ONCE bu ekranda tamamlayan kullaniciya "zaten odendi"
+          denmiyor. Rezervasyon o an Confirmed'a geciyor ve durum metni
+          teknik olarak dogru oluyor ama kullanici acisindan sacma: parayi
+          bir saniye once odedi. Basari mesaji zaten asagida.
+        */
+        tamamlamaSonucu?.status !== 'Succeeded' && (
+          <p
+            role="status"
+            className="mb-stack-md rounded-lg border border-outline-variant/40 bg-surface-variant/30 px-stack-sm py-stack-sm font-body text-body-md text-on-surface"
+          >
+            {rezervasyon.status === 'Pending'
+              ? REZERVASYON_DURUM_METNI.Expired
+              : REZERVASYON_DURUM_METNI[rezervasyon.status]}
+          </p>
+        )
       )}
 
       <section
