@@ -22,6 +22,11 @@ import { RezervasyonlarimPage } from './pages/RezervasyonlarimPage';
 import { SeatLayoutPage } from './pages/SeatLayoutPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { RoleRoute } from './components/RoleRoute';
+import { YonetimKabugu } from './components/YonetimKabugu';
+import { KullanicilarPage } from './pages/yonetim/KullanicilarPage';
+import { OdemelerPage } from './pages/yonetim/OdemelerPage';
+import { OzetPage } from './pages/yonetim/OzetPage';
+import { SistemPage } from './pages/yonetim/SistemPage';
 
 /**
  * Uygulama yonlendirmesi.
@@ -130,29 +135,8 @@ export default function App() {
           }
         />
 
-        {/* Mekan, salon ve oturma plani sistemin REFERANS verisi: organizator
-            bile degistiremez, yalnizca secer. Sunucuda da bu uclarin tamami
-            AdminOnly policy'siyle korunuyor. */}
-        <Route
-          path="/yonetim/mekanlar"
-          element={
-            <RoleRoute roller={['Admin']}>
-              <MekanYonetimPage />
-            </RoleRoute>
-          }
-        />
-
-        <Route
-          path="/yonetim/oturma-planlari"
-          element={
-            <RoleRoute roller={['Admin']}>
-              <OturmaPlaniYonetimPage />
-            </RoleRoute>
-          }
-        />
-
-        {/* Koltuk plani yonetimi yalnizca admin'e acik; sunucuda da
-            toggle-active ucu AdminOnly policy'siyle korunuyor. */}
+        {/* Koltuk plani duzenleme yonetim kabugunun DISINDA: tam genislikte
+            bir tuval istiyor ve yandaki menu calisma alanini daraltiyordu. */}
         <Route
           path="/oturma-planlari/:id"
           element={
@@ -177,6 +161,26 @@ export default function App() {
           }
         />
 
+        </Route>
+
+        {/* Yonetim KENDI kabugunda: site kabugunun ust menusu sekiz
+            baglantiya cikip okunamaz hâle geliyordu ve yonetici hangi
+            baglamda oldugunu kaybediyordu. Yetki hem burada hem sunucudaki
+            AdminOnly policy'sinde; buradaki yalnizca kullanici deneyimi. */}
+        <Route
+          path="/yonetim"
+          element={
+            <RoleRoute roller={['Admin']}>
+              <YonetimKabugu />
+            </RoleRoute>
+          }
+        >
+          <Route index element={<OzetPage />} />
+          <Route path="odemeler" element={<OdemelerPage />} />
+          <Route path="kullanicilar" element={<KullanicilarPage />} />
+          <Route path="sistem" element={<SistemPage />} />
+          <Route path="mekanlar" element={<MekanYonetimPage />} />
+          <Route path="oturma-planlari" element={<OturmaPlaniYonetimPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

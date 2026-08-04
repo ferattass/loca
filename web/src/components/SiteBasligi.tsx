@@ -40,8 +40,10 @@ export function SiteBasligi() {
     { yol: '/hesabim', metin: 'Hesabım', gorunur: girisYapildi },
     { yol: '/etkinlikler/yeni', metin: 'Etkinlik oluştur', gorunur: organizatorMu },
     { yol: '/kapi', metin: 'Kapı', gorunur: organizatorMu },
-    { yol: '/yonetim/mekanlar', metin: 'Mekânlar', gorunur: adminMi },
-    { yol: '/yonetim/oturma-planlari', metin: 'Planlar', gorunur: adminMi },
+    // Yonetim sayfalari tek baglantiya indi: Mekanlar ve Planlar artik
+    // yonetim kabugunun kendi menusunde. Ust menu sekiz baglantiya
+    // ciktiginda hangisinin ne oldugu ancak okunarak anlasiliyordu.
+    { yol: '/yonetim', metin: 'Yönetim', gorunur: adminMi },
   ].filter((baglanti) => baglanti.gorunur);
 
   return (
