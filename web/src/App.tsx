@@ -7,6 +7,7 @@ import { useOturumBaslat } from './hooks/useOturumBaslat';
 import { EtkinlikOlusturPage } from './pages/EtkinlikOlusturPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { HomePage } from './pages/HomePage';
+import { KapiOkutmaPage } from './pages/KapiOkutmaPage';
 import { KesfetPage } from './pages/KesfetPage';
 import { KoltukSecimPage } from './pages/KoltukSecimPage';
 import { LoginPage } from './pages/LoginPage';
@@ -112,6 +113,19 @@ export default function App() {
           element={
             <RoleRoute roller={['Organizer', 'Admin']}>
               <EtkinlikOlusturPage />
+            </RoleRoute>
+          }
+        />
+
+        {/* Kapi ekrani organizatore acik: bileti okutan kisi etkinligin
+            sahibi veya gorevlisi. Sunucu ayrica biletin ait oldugu
+            etkinligin sahipligini kontrol ediyor — organizator baska bir
+            organizatorun biletini okutamiyor. */}
+        <Route
+          path="/kapi"
+          element={
+            <RoleRoute roller={['Organizer', 'Admin']}>
+              <KapiOkutmaPage />
             </RoleRoute>
           }
         />

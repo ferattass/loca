@@ -39,6 +39,7 @@ export function SiteBasligi() {
     { yol: '/biletlerim', metin: 'Biletlerim', gorunur: girisYapildi },
     { yol: '/hesabim', metin: 'Hesabım', gorunur: girisYapildi },
     { yol: '/etkinlikler/yeni', metin: 'Etkinlik oluştur', gorunur: organizatorMu },
+    { yol: '/kapi', metin: 'Kapı', gorunur: organizatorMu },
     { yol: '/yonetim/mekanlar', metin: 'Mekânlar', gorunur: adminMi },
     { yol: '/yonetim/oturma-planlari', metin: 'Planlar', gorunur: adminMi },
   ].filter((baglanti) => baglanti.gorunur);
