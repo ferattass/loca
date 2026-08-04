@@ -27,7 +27,13 @@ public static class DependencyInjection
 
         // Validator'lar elle kaydedilmez; yeni bir validator yazildiginda
         // kendiliginden devreye girsin diye assembly taranir.
-        services.AddValidatorsFromAssembly(assembly);
+        //
+        // includeInternalTypes ZORUNLU. Varsayilan tarama yalnizca public
+        // siniflari buluyor; internal yazilmis bir validator hicbir hata
+        // vermeden ATLANIYOR ve o komut dogrulanmadan calisiyor. Bu sessiz
+        // davranis 4 Agu'da yakalandi: gecersiz bir rol adi 400 yerine 404
+        // dondu cunku validator hic kosmamisti.
+        services.AddValidatorsFromAssembly(assembly, includeInternalTypes: true);
 
         // Ozellik ici yardimci servisler. Assembly taramasina girmedikleri icin
         // acikca kaydedilir.
