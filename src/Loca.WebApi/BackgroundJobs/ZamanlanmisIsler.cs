@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hangfire;
 using Loca.Application.Features.Outbox.ProcessOutbox;
 using Loca.Application.Features.Outbox.ScheduledReports;
@@ -75,7 +76,17 @@ public static class ZamanlanmisIsKaydi
     /// dogrudan etkiledigi icin sik, gunluk rapor gunde bir kez.
     /// </para>
     /// </remarks>
-    public static void TekrarlayanIsleriKaydet(IRecurringJobManager yonetici)
+    /// <param name="sureDolumuSaniye">
+    /// Sure dolumu turunun sikligi. <c>Reservation:ExpirySweepSeconds</c>
+    /// ayarindan geliyor.
+    /// <b>Gun 7'ye kadar bu ayar OLU idi:</b> Gun 6'da bir
+    /// <c>BackgroundService</c> onu okuyordu, is Hangfire'a tasininca sabit
+    /// <c>Cron.Minutely</c> yazildi ve ayar hicbir yerden okunmaz oldu —
+    /// ama hem <c>appsettings</c>'te hem kabul betiklerinin belgesinde
+    /// durmaya devam etti. Yani "kilit suresini kisalt, tur da siklassin"
+    /// diyen biri sessizce yalnizca birincisini elde ediyordu.
+    /// </param>
+    public static void TekrarlayanIsleriKaydet(IRecurringJobManager yonetici, int sureDolumuSaniye)
     {
         ArgumentNullException.ThrowIfNull(yonetici);
 
@@ -84,7 +95,7 @@ public static class ZamanlanmisIsKaydi
         yonetici.AddOrUpdate<ZamanlanmisIsler>(
             "rezervasyon-sure-dolumu",
             isler => isler.SuresiDolanRezervasyonlariKapatAsync(),
-            Cron.Minutely);
+            SureDolumuCron(sureDolumuSaniye));
 
         yonetici.AddOrUpdate<ZamanlanmisIsler>(
             "outbox-isle",
@@ -116,4 +127,28 @@ public static class ZamanlanmisIsKaydi
             isler => isler.OluMektuplariRaporlaAsync(),
             Cron.Hourly);
     }
+
+    /// <summary>
+    /// Saniye cinsinden sikligi cron ifadesine cevirir.
+    /// </summary>
+    /// <remarks>
+    /// Hangfire'in <c>Cron</c> yardimcilari en sik dakikalik ifade
+    /// uretiyor; saniye hassasiyeti icin <b>alti alanli</b> ifade elle
+    /// yaziliyor (ilk alan saniye). Altmis ve ustu degerlerde dakikalik
+    /// ifadeye donuluyor: alti alanli bir ifadeyi dakikalik siklikta
+    /// kullanmanin kazanci yok, okunurlugu ise kaybi var.
+    ///
+    /// <para>
+    /// <b>Cron tek basina yetmiyor:</b> Hangfire zamanlanmis isleri kendi
+    /// yoklama araliginda ariyor ve varsayilan aralik 15 saniye. Bes
+    /// saniyelik bir cron yazilip yoklama araligina dokunulmasaydi is yine
+    /// on bes saniyede bir kosardi — yani ayar gorunurde islerdi, gercekte
+    /// islemezdi. Yoklama araligi <c>Program.cs</c>'te bu degere gore
+    /// kisiltiliyor.
+    /// </para>
+    /// </remarks>
+    public static string SureDolumuCron(int saniye) =>
+        saniye is > 0 and < 60
+            ? string.Create(CultureInfo.InvariantCulture, $"*/{saniye} * * * * *")
+            : Cron.Minutely();
 }
