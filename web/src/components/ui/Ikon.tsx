@@ -132,3 +132,12 @@ export function UyariIkonu(props: IkonProps) {
     </Sarmal>
   );
 }
+
+/** Mobil menu dugmesi. Dar ekranda "Menü" kelimesi baslik satirini tasiriyordu. */
+export function MenuIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </Sarmal>
+  );
+}
