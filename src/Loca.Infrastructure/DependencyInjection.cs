@@ -1,4 +1,6 @@
 using Loca.Application.Common.Interfaces;
+using Loca.Application.Features.Admin.Settings;
+using Loca.Infrastructure.Email;
 using Loca.Infrastructure.Authentication;
 using Loca.Infrastructure.Concurrency;
 using Loca.Infrastructure.Messaging;
@@ -31,8 +33,24 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IPasswordResetTokenGenerator, PasswordResetTokenGenerator>();
 
-        // Gun 9'da Mailpit uzerinden calisan SMTP uygulamasiyla degistirilecek.
-        services.AddScoped<IPasswordResetNotifier, DevelopmentPasswordResetNotifier>();
+        // --- E-posta --------------------------------------------------------
+        // Sir ayarlar (SMTP sifresi) Data Protection ile sifreleniyor;
+        // veritabani yedegini eline geciren biri cozemesin.
+        services.AddDataProtection();
+        services.AddMemoryCache();
+        services.AddScoped<ISecretProtector, DataProtectionSecretProtector>();
+
+        services.AddScoped<SmtpOptionsProvider>();
+        services.AddScoped<ISmtpSettingsReader>(saglayici =>
+            saglayici.GetRequiredService<SmtpOptionsProvider>());
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+        // Sifirlama baglantisi artik gercekten e-postayla gidiyor.
+        // Gelistirme uygulamasi (token'i log'a yazan) YEDEK OLARAK
+        // BIRAKILMADI: sessizce ona dusulseydi, uretimde SMTP'yi kurmayi
+        // unutan biri hicbir uyari almadan token'lari log dosyasina
+        // yazdirmis olurdu.
+        services.AddScoped<IPasswordResetNotifier, EmailPasswordResetNotifier>();
 
         services
             .AddOptions<StorageOptions>()
