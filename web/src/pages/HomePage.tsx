@@ -8,19 +8,10 @@ import { rezervasyonlarimGetir, type RezervasyonOzeti } from '../api/reservation
 import { biletlerimGetir, type Bilet } from '../api/tickets';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/TextField';
-import {
-  BiletIkonu,
-  OkutmaIkonu,
-  OnayIkonu,
-  SagOkIkonu,
-  UyariIkonu,
-} from '../components/ui/Ikon';
+import { BiletIkonu, OnayIkonu, SagOkIkonu, UyariIkonu } from '../components/ui/Ikon';
 import { useAuthStore } from '../stores/authStore';
 
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long', timeStyle: 'short' });
-
-const paraBicimi = (tutar: number, birim: string) =>
-  new Intl.NumberFormat('tr-TR', { style: 'currency', currency: birim }).format(tutar);
 
 const ROL_METNI: Record<string, string> = {
   Admin: 'Yönetici',

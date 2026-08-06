@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using Loca.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Loca.Infrastructure.Payments;
 
@@ -41,7 +40,7 @@ namespace Loca.Infrastructure.Payments;
 /// </remarks>
 internal sealed class IyzicoPaymentProvider(
     HttpClient httpClient,
-    IOptions<IyzicoOptions> options,
+    IyzicoSettingsProvider ayarSaglayici,
     ILogger<IyzicoPaymentProvider> logger) : IPaymentService
 {
     // Uygulama Turkiye pazari icin calistigindan sabit "tr" yeterli;
@@ -69,8 +68,6 @@ internal sealed class IyzicoPaymentProvider(
     // calisiyor.
     private const string KimlikNumarasiYok = "11111111111";
 
-    private readonly IyzicoOptions _options = options.Value;
-
     public string Name => "Iyzico";
 
     public async Task<PaymentResult> CreatePaymentAsync(
@@ -79,6 +76,20 @@ internal sealed class IyzicoPaymentProvider(
         ArgumentNullException.ThrowIfNull(request);
 
         const string Yol = "/payment/iyzipos/checkoutform/initialize/auth/ecom";
+
+        // Ayarlar HER CAGRIDA okunuyor: panelden girilen bir anahtarin
+        // etkili olmasi icin uygulamanin yeniden baslatilmasi gerekmiyor.
+        // Onbellek ayar deposunda (otuz saniye), burada degil.
+        var ayarlar = await ayarSaglayici.GetOptionsAsync(cancellationToken);
+
+        if (!ayarlar.Yapilandirilmis)
+        {
+            logger.LogWarning(
+                "Iyzico anahtarlari eksik; odeme baslatilamadi. OdemeId: {OdemeId}",
+                request.PaymentId);
+
+            return PaymentResult.Failure("Odeme saglayicisi yapilandirilmamis.");
+        }
 
         var fiyat = FormatFiyat(request.Amount);
         var tanimlayici = request.PaymentId.ToString("N");
@@ -95,7 +106,7 @@ internal sealed class IyzicoPaymentProvider(
             Currency = request.Currency,
             BasketId = tanimlayici,
             PaymentGroup = "PRODUCT",
-            CallbackUrl = _options.CallbackUrl,
+            CallbackUrl = ayarlar.CallbackUrl,
             Buyer = Alici(request.Customer, ip),
             ShippingAddress = Adres(request.Customer.FullName),
             BillingAddress = Adres(request.Customer.FullName),
@@ -278,12 +289,15 @@ internal sealed class IyzicoPaymentProvider(
     /// ayni cikti uretseler bile) imza ile govdenin farkli oldugu bir durum
     /// riske girerdi.
     /// </remarks>
-    private async Task<TYanit?> IstekGonderAsync<TYanit>(string yol, object govde, CancellationToken cancellationToken)
+    private async Task<TYanit?> IstekGonderAsync<TYanit>(
+        string yol, object govde, CancellationToken cancellationToken)
     {
+        var ayarlar = await ayarSaglayici.GetOptionsAsync(cancellationToken);
+
         var govdeJson = JsonSerializer.Serialize(govde, JsonSecenekleri);
         var rastgeleDeger = IyzicoSignature.RastgeleDeger();
 
-        using var istek = new HttpRequestMessage(HttpMethod.Post, new Uri(_options.BaseUrl + yol))
+        using var istek = new HttpRequestMessage(HttpMethod.Post, new Uri(ayarlar.BaseUrl + yol))
         {
             Content = new StringContent(govdeJson, Encoding.UTF8, "application/json")
         };
@@ -291,7 +305,8 @@ internal sealed class IyzicoPaymentProvider(
         istek.Headers.TryAddWithoutValidation("x-iyzi-rnd", rastgeleDeger);
         istek.Headers.TryAddWithoutValidation(
             "Authorization",
-            IyzicoSignature.YetkilendirmeBasligi(_options.ApiKey, _options.SecretKey, rastgeleDeger, yol, govdeJson));
+            IyzicoSignature.YetkilendirmeBasligi(
+                ayarlar.ApiKey, ayarlar.SecretKey, rastgeleDeger, yol, govdeJson));
 
         using var yanit = await httpClient.SendAsync(istek, cancellationToken);
         var icerik = await yanit.Content.ReadAsStringAsync(cancellationToken);

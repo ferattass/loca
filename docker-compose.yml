@@ -92,19 +92,39 @@ services:
       AdminSeed__Email: ${ADMIN_EMAIL}
       AdminSeed__Password: ${ADMIN_PASSWORD}
       AdminSeed__FullName: ${ADMIN_FULL_NAME}
+
+      # Anahtar adi Smtp__From DEGIL Smtp__FromAddress: SmtpOptions o adi
+      # okuyor. Yanlis ad sessizce yok sayilirdi — gonderen adresi bos
+      # kalir, uygulama "SMTP yapilandirilmamis" der ve sebebi burada
+      # oldugu hic akla gelmezdi.
       Smtp__Host: mailpit
       Smtp__Port: 1025
-      Smtp__From: ${SMTP_FROM}
+      Smtp__FromAddress: ${SMTP_FROM}
+      Smtp__FromName: Loca
+
       Storage__Path: /app/uploads
+
+      # Sir ayarlarin sifreleme anahtarlari. Volume'a baglanmasa her
+      # yeniden baslatmada yeni anahtar uretilir ve o ana kadar sifreli
+      # yazilmis SMTP sifresi cozulemez hâle gelirdi. Uygulama cokmez,
+      # sessizce "ayar tanimli degil" der — yani hata gorunmezdi.
+      DataProtection__KeyPath: /app/keys
+
       Reservation__LockMinutes: ${RESERVATION_LOCK_MINUTES}
       Reservation__ExtendMinutes: ${RESERVATION_EXTEND_MINUTES}
       Reservation__MaxSeatsPerUserPerSession: ${MAX_SEATS_PER_USER_PER_SESSION}
       App__BaseUrl: ${APP_BASE_URL}
       App__WebUrl: ${WEB_BASE_URL}
+
+      # Arayuz nginx uzerinden geliyor; gercek istemci adresini o tasiyor.
+      # Bu liste bos birakilsaydi X-Forwarded-For hic okunmaz, API butun
+      # istekleri nginx'ten geliyor sanardi.
+      App__TrustedProxies__0: ${WEB_PROXY_IP}
     ports:
       - "5000:8080"
     volumes:
       - uploads:/app/uploads
+      - dpkeys:/app/keys
     depends_on:
       postgres:
         condition: service_healthy
@@ -116,19 +136,28 @@ services:
     profiles: [app]
     build:
       context: ./web
+      args:
+        # Vite ortam degiskenlerini paket icine YAZIYOR; calisma aninda
+        # okunamiyorlar. Bu yuzden adres derleme argumani olarak veriliyor.
+        #
+        # Deger "/api/v1" — mutlak adres degil. Arayuz istegi kendi
+        # kokune atiyor, nginx api konteynerine tasiyor; boylece arayuz
+        # ile API tarayici acisindan AYNI SITE oluyor ve CORS'a gerek
+        # kalmiyor.
+        VITE_API_BASE_URL: /api/v1
     container_name: loca-web
-    environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
     ports:
-      - "5173:5173"
+      - "5173:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks: [loca-net]
 
 volumes:
   pgdata:
   redisdata:
   uploads:
+  dpkeys:
 
 networks:
   loca-net:

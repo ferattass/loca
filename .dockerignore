@@ -1,0 +1,45 @@
+# Docker imaji kurulurken baglama girmeyecekler.
+#
+# ASIL SEBEP KATMAN ONBELLEGI DEGIL, DOGRULUK.
+# Dockerfile once yalnizca proje dosyalarini kopyalayip `dotnet restore`
+# calistiriyor; ardindan `COPY src/ src/` geliyor. Bu dosya olmasaydi o
+# kopyalama, yereldeki obj/ klasorlerini de tasir ve konteynerde az once
+# uretilmis project.assets.json'un uzerine YAZARDI. Yerel dosya paket
+# yollarini C:\Users\...\.nuget\packages seklinde tutuyor; konteynerde
+# oyle bir yol yok ve derleme "Package Dapper.AOT ... was not found"
+# diye kaliyor — paket aslinda indirilmis oldugu hâlde.
+#
+# Ikincil fayda: baglam kucululuyor. web/node_modules tek basina yuz
+# binlerce dosya ve hepsi Docker daemon'a gonderiliyordu.
+
+# .NET derleme ciktilari
+**/bin/
+**/obj/
+
+# Node
+**/node_modules/
+web/dist/
+
+# Yerel sirlar ve ortam dosyalari — imaja GIRMEMELI.
+# Degerler calisma aninda ortam degiskeniyle veriliyor.
+.env
+*.user
+
+# Surum kontrolu ve gelistirme araclari
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+
+# Testler ve belgeler imaja gerek duymuyor
+tests/
+docs/
+tools/
+**/*.md
+!README.md
+
+# Playwright ve tarayici ciktilari
+.playwright-mcp/
+**/report.md
+**/*.png

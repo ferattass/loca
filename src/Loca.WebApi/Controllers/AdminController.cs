@@ -207,4 +207,49 @@ public sealed class AdminController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> TestSmtp(CancellationToken cancellationToken) =>
         ToResponse(await sender.Send(new TestSmtpConnectionCommand(), cancellationToken));
+
+    /// <summary>Odeme ayarlari: saglayici anahtarlari ve havale bilgileri.</summary>
+    /// <remarks>
+    /// <b>Anahtarlarin KENDISI donmez</b>, yalnizca tanimli olup olmadiklari
+    /// (<c>hasApiKey</c>, <c>hasSecretKey</c>).
+    ///
+    /// <para>
+    /// <c>activeProvider</c> su an CALISAN saglayici ve panelden
+    /// degistirilemiyor: saglayici secimi acilista bir kez yapiliyor,
+    /// istek basina secilseydi ayni odemenin baslatilmasi ve tamamlanmasi
+    /// iki farkli saglayiciya dusebilirdi. Yonetici panelde anahtar girip
+    /// "neden calismiyor" diye sormasin diye gorunur.
+    /// </para>
+    /// </remarks>
+    [HttpGet("settings/payment")]
+    [ProducesResponseType<OdemeAyarlari>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> PaymentSettings(CancellationToken cancellationToken) =>
+        ToResponse(await sender.Send(new GetPaymentSettingsQuery(), cancellationToken));
+
+    /// <summary>Odeme ayarlarini gunceller.</summary>
+    /// <remarks>
+    /// Anahtar alanlari BOS gonderilirse mevcut anahtarlar korunur.
+    /// Silmek icin <c>clearIyzicoKeys</c>; bu olmadan bir kez kaydedilen
+    /// anahtar hicbir zaman kaldirilamazdi.
+    ///
+    /// <para>
+    /// Anahtarlar veritabanina <b>sifrelenmis</b> yaziliyor (Data
+    /// Protection). Veritabani baglanti dizesi ve JWT anahtari BURAYA
+    /// GIRMIYOR: onlar uygulamanin ayaga kalkmasi icin gerekli ve
+    /// panelden degistirilebilir olmalari, panele erisen birinin
+    /// altyapiyi ele gecirmesi demek olurdu.
+    /// </para>
+    /// </remarks>
+    [HttpPut("settings/payment")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdatePaymentSettings(
+        [FromBody] UpdatePaymentSettingsCommand request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return ToResponse(await sender.Send(request, cancellationToken));
+    }
 }

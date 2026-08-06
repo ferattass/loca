@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Loca.Infrastructure.Payments;
 
 /// <summary>
@@ -20,7 +18,6 @@ public sealed class IyzicoOptions
     /// acikca tasinir; yine de user-secrets'ta tutulur zira SecretKey ile
     /// birlikte tek bir merchant kimlik bilgisi seti olusturur.
     /// </summary>
-    [Required]
     public string ApiKey { get; set; } = string.Empty;
 
     /// <summary>
@@ -28,7 +25,6 @@ public sealed class IyzicoOptions
     /// kullanilir; hicbir zaman istek govdesine, loga veya hata mesajina
     /// yazilmaz (bkz. <see cref="IyzicoSignature"/> ve <see cref="IyzicoPaymentProvider"/>).
     /// </summary>
-    [Required]
     public string SecretKey { get; set; } = string.Empty;
 
     /// <summary>
@@ -45,8 +41,6 @@ public sealed class IyzicoOptions
     /// (ngrok vb.) adresi yazilmali. Bkz. <c>docs/05-odeme-iyzico.md</c>.
     /// </para>
     /// </remarks>
-    [Required]
-    [Url]
     public string CallbackUrl { get; set; } = string.Empty;
 
     /// <summary>
@@ -56,8 +50,6 @@ public sealed class IyzicoOptions
     /// Kok adres; uzerine rezervasyon yolu ekleniyor. Kod icinde
     /// sabitlenseydi ayni derleme farkli ortamlarda calisamazdi.
     /// </remarks>
-    [Required]
-    [Url]
     public string ReturnUrl { get; set; } = string.Empty;
 
     /// <summary>
@@ -75,4 +67,16 @@ public sealed class IyzicoOptions
     public string BaseUrl => UseSandbox
         ? "https://sandbox-api.iyzipay.com"
         : "https://api.iyzipay.com";
+
+    /// <summary>Odeme baslatmaya yetecek kadar ayar var mi.</summary>
+    /// <remarks>
+    /// Zorunluluk artik acilista degil KULLANIM ANINDA kontrol ediliyor:
+    /// anahtarlar panelden girilebildigi icin acilista eksik olmalari
+    /// normal ve uygulamanin bu yuzden hic ayaga kalkmamasi yanlis
+    /// olurdu.
+    /// </remarks>
+    public bool Yapilandirilmis =>
+        !string.IsNullOrWhiteSpace(ApiKey)
+        && !string.IsNullOrWhiteSpace(SecretKey)
+        && !string.IsNullOrWhiteSpace(CallbackUrl);
 }

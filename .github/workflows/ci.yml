@@ -1,0 +1,246 @@
+name: CI
+
+# Her itmede ve her PR'de kosuyor. Yalnizca main'de kossaydi hata ancak
+# birlestirmeden sonra gorunurdu — yani duzeltmesi en pahali anda.
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main, develop]
+
+# Ayni dala arka arkaya itme yapildiginda eskisini iptal et: bes dakika
+# once gecersiz kalmis bir kosunun sonucunu beklemenin anlami yok.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — derleme ve testler
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      # NuGet paketleri onbellege aliniyor; restore her kosuda sifirdan
+      # indirmesin. Anahtar proje dosyalarinin ozetinden uretiliyor, yani
+      # bagimlilik degisince onbellek kendiliginden yenileniyor.
+      - name: NuGet onbellegi
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: nuget-
+
+      - run: dotnet restore
+
+      # TreatWarningsAsErrors acik: uyari da derlemeyi kiriyor.
+      # --no-restore, restore adiminin tekrar kosmasini engelliyor.
+      - name: Derle
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Birim ve architecture testleri
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+  frontend:
+    name: Arayuz — tip kontrolu ve paket
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # ci, install degil: kilit dosyasina birebir uyuyor ve uymuyorsa
+      # sessizce guncellemek yerine hata veriyor.
+      - run: npm ci
+
+      - name: Tip kontrolu
+        run: npx tsc --noEmit
+
+      - run: npm run lint
+
+      - name: Paket
+        run: npm run build
+
+  imajlar:
+    name: Docker imajlari kuruluyor
+    runs-on: ubuntu-latest
+    # Kod gecmeden imaj kurmanin anlami yok.
+    needs: [backend, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Imajlar KURULUYOR ama itilmiyor: kayit defteri hesabi yok ve asil
+      # sorulan soru "Dockerfile calisiyor mu". Bu adim olmadan bozuk bir
+      # Dockerfile ancak deploy sirasinda ortaya cikardi.
+      - name: API imaji
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Loca.WebApi/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Arayuz imaji
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  kabul:
+    name: Uctan uca kabul testleri
+    runs-on: ubuntu-latest
+    needs: [backend]
+
+    # Kabul betikleri gercek veritabani ve gercek Redis istiyor; sahte
+    # nesne kullanmiyorlar. Servisler is icinde ayaga kaldiriliyor.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: loca
+          POSTGRES_USER: loca_user
+          POSTGRES_PASSWORD: ci_sifresi
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U loca_user -d loca"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+      mailpit:
+        image: axllent/mailpit:latest
+        ports: ['1025:1025', '8025:8025']
+
+    env:
+      ConnectionStrings__Default: Host=localhost;Port=5432;Database=loca;Username=loca_user;Password=ci_sifresi
+      ConnectionStrings__Redis: localhost:6379
+      Jwt__Secret: ci_ortami_icin_gecici_anahtar_en_az_otuz_iki_karakter
+      AdminSeed__Email: admin@loca.dev
+      AdminSeed__Password: Loca!Admin2026
+      AdminSeed__FullName: Sistem Yoneticisi
+      # Kilit suresi kisaltiliyor: sure dolumu testi on dakika beklemesin.
+      # Tur sikligi da ayrica veriliyor — biri olmadan digeri yetmiyor.
+      Reservation__LockMinutes: '1'
+      Reservation__ExpirySweepSeconds: '5'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install requests
+
+      - name: API'yi arka planda baslat
+        run: |
+          dotnet run --project src/Loca.WebApi --urls http://localhost:5000 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:5000/health && break
+            sleep 2
+          done
+          curl -sf http://localhost:5000/health/hazir
+
+      # Sirali kosuyorlar: hepsi ayni veritabanini kullaniyor ve paralel
+      # kosarlarsa birbirlerinin koltuklarini kapatirlar.
+      - name: Rezervasyon ve eszamanlilik
+        run: python tests/e2e/e2e_gun6.py
+
+      - name: Odeme, bilet ve outbox
+        run: python tests/e2e/e2e_gun7.py
+
+      - name: Yetki matrisi
+        run: python tests/e2e/yetki_denetimi.py
+
+      - name: Ayarlar ve posta gonderimi
+        run: python tests/e2e/e2e_ayarlar.py
+
+  kabul-guvenlik:
+    name: Guvenlik kabul testi
+    runs-on: ubuntu-latest
+    needs: [backend]
+
+    # AYRI IS olmasinin sebebi: bu betik API'nin DAR hiz sinirlariyla
+    # ayaga kalkmasini istiyor. Ayni API ustunde diger betiklerle birlikte
+    # kossaydi onlar sinira takilirdi — yaris testi tek IP'den elli
+    # kullanici kaydediyor.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: loca
+          POSTGRES_USER: loca_user
+          POSTGRES_PASSWORD: ci_sifresi
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U loca_user -d loca"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    env:
+      ConnectionStrings__Default: Host=localhost;Port=5432;Database=loca;Username=loca_user;Password=ci_sifresi
+      ConnectionStrings__Redis: localhost:6379
+      Jwt__Secret: ci_ortami_icin_gecici_anahtar_en_az_otuz_iki_karakter
+      AdminSeed__Email: admin@loca.dev
+      AdminSeed__Password: Loca!Admin2026
+      AdminSeed__FullName: Sistem Yoneticisi
+      RateLimit__Auth__PermitLimit: '10'
+      RateLimit__Auth__WindowSeconds: '60'
+      RateLimit__PasswordReset__PermitLimit: '3'
+      RateLimit__PasswordReset__WindowSeconds: '900'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: API'yi arka planda baslat
+        run: |
+          dotnet run --project src/Loca.WebApi --urls http://localhost:5000 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:5000/health && break
+            sleep 2
+          done
+
+      - run: python tests/e2e/e2e_guvenlik.py

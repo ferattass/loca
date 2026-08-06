@@ -7,6 +7,7 @@ using Loca.Infrastructure.Messaging;
 using Loca.Infrastructure.Payments;
 using Loca.Infrastructure.Services;
 using Loca.Infrastructure.Storage;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -36,7 +37,21 @@ public static class DependencyInjection
         // --- E-posta --------------------------------------------------------
         // Sir ayarlar (SMTP sifresi) Data Protection ile sifreleniyor;
         // veritabani yedegini eline geciren biri cozemesin.
-        services.AddDataProtection();
+        var dataProtection = services.AddDataProtection();
+
+        // Anahtarlarin KALICI olmasi sart. Varsayilan konum konteynerde
+        // imajin kendi dosya sisteminde kaliyor, yani her deploy'da yeni
+        // anahtar uretiliyor ve o ana kadar sifrelenmis her sey cozulemez
+        // hâle geliyor — yonetici SMTP sifresini her seferinde yeniden
+        // girmek zorunda kalirdi. Uygulama cokmuyor (cozulemeyen sir
+        // "tanimli degil" sayiliyor), bu yuzden hata sessiz olurdu.
+        var anahtarYolu = configuration["DataProtection:KeyPath"];
+
+        if (!string.IsNullOrWhiteSpace(anahtarYolu))
+        {
+            dataProtection.PersistKeysToFileSystem(new DirectoryInfo(anahtarYolu));
+        }
+
         services.AddMemoryCache();
         services.AddScoped<ISecretProtector, DataProtectionSecretProtector>();
 
@@ -102,16 +117,20 @@ public static class DependencyInjection
         var secilenSaglayici =
             configuration[$"{PaymentOptions.SectionName}:Provider"] ?? "Mock";
 
+        // Ayar saglayicisi HER ZAMAN kayitli: yonetim paneli anahtarlari
+        // okuyup yaziyor ve bu, hangi saglayicinin secildiginden bagimsiz.
+        // Yalnizca Iyzico secildiginde kaydedilseydi panel Mock ortaminda
+        // "ayarlar okunamadi" derdi.
+        services.AddScoped<IyzicoSettingsProvider>();
+        services.AddScoped<IPaymentSettingsReader>(saglayici =>
+            saglayici.GetRequiredService<IyzicoSettingsProvider>());
+
         if (secilenSaglayici.Equals("Iyzico", StringComparison.OrdinalIgnoreCase))
         {
-            // Iyzico ayarlari yalnizca Iyzico secildiginde zorunlu. Kosulsuz
-            // dogrulansaydi, taklit saglayiciyla calisan gelistirme ortami ve
-            // staj teslimi Iyzico anahtari olmadan hic ayaga kalkmazdi.
-            services
-                .AddOptions<IyzicoOptions>()
-                .Bind(configuration.GetSection(IyzicoOptions.SectionName))
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
+            // ValidateOnStart KALDIRILDI: anahtarlar artik veritabaninda da
+            // olabiliyor, acilis aninda eksik gorunmeleri normal ve
+            // uygulamanin bu yuzden hic ayaga kalkmamasi yanlis olurdu.
+            // Eksiklik odeme baslatilirken anlasiliyor.
 
             // Typed client: HttpClient omrunu fabrika yonetiyor. Elle
             // olusturulan bir HttpClient ya soket tuketir ya da DNS
