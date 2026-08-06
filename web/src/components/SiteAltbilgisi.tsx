@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 
+import { Logo } from './ui/Logo';
+
 /**
  * Alt bilgi.
  *
@@ -13,14 +15,8 @@ export function SiteAltbilgisi() {
     <footer className="mt-stack-lg border-t border-outline-variant/40 bg-surface-container-lowest">
       <div className="mx-auto grid max-w-7xl gap-stack-md px-container-margin-mobile py-stack-lg md:grid-cols-4 md:px-container-margin-desktop">
         <div>
-          <div className="mb-stack-sm flex items-center gap-base">
-            <span
-              aria-hidden="true"
-              className="grid h-7 w-7 place-items-center rounded-md bg-primary font-headline text-body-sm font-extrabold text-on-primary"
-            >
-              L
-            </span>
-            <span className="font-display text-title-lg tracking-wide text-on-surface">LOCA</span>
+          <div className="mb-stack-sm">
+            <Logo bicim="yatay" className="h-8 w-auto" />
           </div>
 
           <p className="font-body text-body-sm text-on-surface-variant">
