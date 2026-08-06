@@ -12,8 +12,22 @@ namespace Loca.Infrastructure.Payments;
 /// uzerindeki aciklama); bu yuzden IYZWSv2 imzalama burada elle uygulaniyor.
 /// Algoritma: <c>rastgele deger + istek yolu + istek govdesi</c> HMAC-SHA256
 /// ile SecretKey kullanilarak imzalanir, sonucu hex'e cevrilir ve
-/// <c>apiKey=...&amp;randomKey=...&amp;signature=...</c> parametre dizesi
+/// <c>apiKey:...&amp;randomKey:...&amp;signature:...</c> parametre dizesi
 /// Base64 ile kodlanip <c>IYZWSv2 &lt;base64&gt;</c> seklinde donulur.
+///
+/// <para>
+/// <b>Ayrac iki nokta, esittir DEGIL.</b> Bicim sorgu dizesine benzedigi
+/// icin <c>apiKey=...</c> yazilmisti ve Iyzico her istegi reddediyordu.
+/// Hata mesaji "Gecersiz istek" (kod 11) — yani govdeyle ilgiliymis gibi
+/// gorunuyor, oysa istek govdeye hic bakilmadan reddediliyor. Kasten
+/// bozulmus bir govde de AYNI hatayi verdigi icin sorunun kimlik
+/// dogrulamada oldugu anlasildi.
+/// </para>
+///
+/// <para>
+/// Bu hata yalnizca gercek bir anahtarla ortaya cikabilirdi: taklit
+/// saglayiciyla kosan butun testler yesildi ve imzayi hic denemediler.
+/// </para>
 /// </remarks>
 internal sealed class IyzicoSignature
 {
@@ -63,8 +77,11 @@ internal sealed class IyzicoSignature
 
         var imza = Convert.ToHexString(imzaBaytlari).ToLowerInvariant();
 
+        // Ayrac ":" — "=" DEGIL. Dizi sorgu dizesine benzedigi icin esittir
+        // yazmak dogru gorunuyor ama Iyzico o hâlde basligi hic
+        // cozemiyor ve istegi govdeye bakmadan reddediyor.
         var yetkilendirmeParametreleri = string.Create(
-            CultureInfo.InvariantCulture, $"apiKey={apiKey}&randomKey={randomKey}&signature={imza}");
+            CultureInfo.InvariantCulture, $"apiKey:{apiKey}&randomKey:{randomKey}&signature:{imza}");
 
         var base64ParametreDizesi = Convert.ToBase64String(Encoding.UTF8.GetBytes(yetkilendirmeParametreleri));
 
