@@ -36,15 +36,24 @@ export default {
         'on-primary-fixed': '#23005c',
         'on-primary-fixed-variant': '#5516be',
 
-        // --- Secondary (Cyan) — bilgi, veri gorsellestirme ---
-        secondary: '#4cd7f6',
-        'on-secondary': '#003640',
-        'secondary-container': '#03b5d3',
-        'on-secondary-container': '#00424e',
-        'secondary-fixed': '#acedff',
-        'secondary-fixed-dim': '#4cd7f6',
-        'on-secondary-fixed': '#001f26',
-        'on-secondary-fixed-variant': '#004e5c',
+        // --- Secondary (Magenta) — bilgi, veri gorsellestirme ---
+        //
+        // ONCE CAMGOBEGIYDI (#4cd7f6). Logo mor-magenta bir degrade
+        // uzerine kurulu ve icinde hicbir mavi-yesil ton yok; camgobegi
+        // arayuzde markanin disindan gelmis gibi duruyordu. Degradenin
+        // pembe ucu (#fd2d6e) orneklenip ikincil renk ailesi ona gore
+        // kuruldu.
+        //
+        // Koyu temada ana ton ACIK olmali (metin ve ikon bu renkte
+        // yaziliyor); logonun kendi pembesi container tonuna kondu.
+        secondary: '#ffb1c8',
+        'on-secondary': '#5e1133',
+        'secondary-container': '#fd2d6e',
+        'on-secondary-container': '#ffd9e2',
+        'secondary-fixed': '#ffd9e2',
+        'secondary-fixed-dim': '#ffb1c8',
+        'on-secondary-fixed': '#3f0021',
+        'on-secondary-fixed-variant': '#8c1246',
 
         // --- Tertiary (Amber) — gecici kilit / uyari ---
         tertiary: '#ffb869',
@@ -75,6 +84,13 @@ export default {
           sold: '#494454', // satilmis
           disabled: '#211e27', // devre disi (bozuk koltuk / kolon arkasi)
         },
+      },
+
+      // Logodaki degrade. Uc renk de isaretten orneklendi; arayuzde
+      // markayla ayni gecisi kullanan yerler (bilet karti serit,
+      // kahraman bolumu) buradan besleniyor.
+      backgroundImage: {
+        'loca-degrade': 'linear-gradient(135deg, #3b1b92 0%, #aa2484 55%, #fd2d6e 100%)',
       },
 
       fontFamily: {
@@ -117,7 +133,7 @@ export default {
       boxShadow: {
         'glow-primary': '0 0 15px rgba(208, 188, 255, 0.35)',
         'glow-primary-lg': '0 0 28px rgba(208, 188, 255, 0.5)',
-        'glow-secondary': '0 0 15px rgba(76, 215, 246, 0.35)',
+        'glow-secondary': '0 0 15px rgba(253, 45, 110, 0.35)',
         'glow-tertiary': '0 0 12px rgba(255, 184, 105, 0.45)',
         'glow-error': '0 0 15px rgba(255, 180, 171, 0.35)',
       },

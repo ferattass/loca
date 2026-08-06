@@ -104,7 +104,9 @@ export function BiletKarti({ bilet }: BiletKartiProps) {
             kartin nerede basladigini gozle ayirt ettiriyor. */}
         <div
           aria-hidden="true"
-          className="h-2 w-full bg-gradient-to-r from-[#6d3bd7] via-[#a078ff] to-[#4cd7f6] sm:h-auto sm:w-2 sm:bg-gradient-to-b"
+          // Serit logonun degradesini tasiyor: kartin ustunde zaten
+          // Loca logosu var ve ikisi ayni geciste olmali.
+          className="h-2 w-full bg-gradient-to-r from-[#3b1b92] via-[#aa2484] to-[#fd2d6e] sm:h-auto sm:w-2 sm:bg-gradient-to-b"
         />
 
         <div className="min-w-0 flex-1 p-stack-md">
