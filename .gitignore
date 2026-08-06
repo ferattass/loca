@@ -50,3 +50,7 @@ logs/
 Thumbs.db
 .DS_Store
 desktop.ini
+
+# Python kabul betiklerinin onbellegi
+__pycache__/
+*.pyc
