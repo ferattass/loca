@@ -123,6 +123,24 @@ export function dogrulamaHatalari(hata: unknown): string[] {
   return Object.values(govde?.errors ?? {}).flat();
 }
 
+/**
+ * Ayni hatalar, alan adina gore gruplanmis hâlde.
+ *
+ * Liste hâli bir kutuya toplu yaziliyor; bu hâl her mesaji KENDI alaninin
+ * altina koymak icin. Ikisi de gerekiyor: kisa formda hatanin hangi alana
+ * ait oldugu listeden okunabiliyor ama uzun bir formda kullanici hatayi
+ * alanla eslestirmek zorunda kaliyor.
+ *
+ * Anahtarlar sunucudan geldigi gibi: FluentValidation ozellik adini
+ * kullaniyor, yani `Host`, `FromAddress` — istemcideki alan adlariyla
+ * karistirmamak icin buyuk harfle basliyorlar.
+ */
+export function alanHatalari(hata: unknown): Record<string, string[]> {
+  if (!axios.isAxiosError(hata)) return {};
+
+  return (hata.response?.data as ProblemDetails | undefined)?.errors ?? {};
+}
+
 /** Sunucudan gelen hatayi kullaniciya gosterilecek tek satira cevirir. */
 export function hataMesaji(hata: unknown, varsayilan = 'Beklenmeyen bir hata olustu.'): string {
   // ISTEK HIC GITMEMIS OLABILIR.

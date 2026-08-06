@@ -156,3 +156,55 @@ export async function kuyrukGetir(durum: KuyrukFiltresi): Promise<KuyrukMesaji[]
 export async function mesajiKuyrugaKoy(mesajId: string): Promise<void> {
   await api.post(`/admin/queue/${mesajId}/requeue`);
 }
+
+/**
+ * SMTP ayarlari.
+ *
+ * Sifrenin KENDISI hicbir zaman gelmiyor, yalnizca tanimli olup olmadigi
+ * (`hasPassword`). Gelseydi panele erisen herkes posta hesabinin sifresini
+ * okuyabilirdi ve o sifre baska yerlerde de kullaniliyor olabilir.
+ */
+export interface SmtpAyarlari {
+  host: string;
+  port: number;
+  useSsl: boolean;
+  userName: string | null;
+  hasPassword: boolean;
+  fromAddress: string;
+  fromName: string;
+  /** `Database` panelden girilmis, `Configuration` sunucu dosyasindan, `None` tanimsiz. */
+  source: 'Database' | 'Configuration' | 'Mixed' | 'None';
+  isConfigured: boolean;
+}
+
+export async function smtpAyarlariGetir(): Promise<SmtpAyarlari> {
+  const { data } = await api.get<SmtpAyarlari>('/admin/settings/smtp');
+  return data;
+}
+
+export interface SmtpKayit {
+  host: string;
+  port: number;
+  useSsl: boolean;
+  userName: string | null;
+  /** Bos birakilirsa mevcut sifre KORUNUR. Silmek icin `clearPassword`. */
+  password: string | null;
+  fromAddress: string;
+  fromName: string;
+  clearPassword: boolean;
+}
+
+export async function smtpAyarlariKaydet(ayarlar: SmtpKayit): Promise<void> {
+  await api.put('/admin/settings/smtp', ayarlar);
+}
+
+export interface SmtpTestSonucu {
+  succeeded: boolean;
+  error: string | null;
+}
+
+/** Sunucuya baglanmayi dener, posta GONDERMEZ. */
+export async function smtpBaglantisiDene(): Promise<SmtpTestSonucu> {
+  const { data } = await api.post<SmtpTestSonucu>('/admin/settings/smtp/test');
+  return data;
+}
