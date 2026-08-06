@@ -117,15 +117,25 @@ export async function etkinlikDetayiGetir(id: string): Promise<EtkinlikDetayi> {
 export interface EtkinlikListesiParametreleri {
   sayfaNo?: number;
   sayfaBoyutu?: number;
+  kategoriId?: string;
+  arama?: string;
 }
 
 export async function etkinlikleriGetir(
   parametreler: EtkinlikListesiParametreleri = {},
 ): Promise<SayfaliSonuc<EtkinlikOzeti>> {
-  const { sayfaNo = 1, sayfaBoyutu = 24 } = parametreler;
+  const { sayfaNo = 1, sayfaBoyutu = 24, kategoriId, arama } = parametreler;
 
   const { data } = await api.get<SayfaliSonuc<EtkinlikOzeti>>('/events', {
-    params: { pageNumber: sayfaNo, pageSize: sayfaBoyutu },
+    // Bos degerler GONDERILMIYOR: sunucu bos metni "bos olana gore
+    // suz" diye yorumlamasa da sorgu dizesi sisiyor ve react-query'nin
+    // onbellek anahtari her tus vurusunda degisiyor.
+    params: {
+      pageNumber: sayfaNo,
+      pageSize: sayfaBoyutu,
+      categoryId: kategoriId,
+      search: arama?.trim() || undefined,
+    },
   });
 
   return data;

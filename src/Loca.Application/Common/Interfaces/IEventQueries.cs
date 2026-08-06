@@ -50,7 +50,25 @@ public interface IEventQueries
 /// <c>true</c>; aksi hâlde taslak etkinlikler de listede gorunur ve
 /// organizatorun henuz duyurmadigi isi disari sizar.
 /// </param>
+/// <param name="CategoryId">
+/// Verilirse yalnizca o kategorideki etkinlikler doner.
+/// <b>Suzme sunucuda yapiliyor, istemcide degil.</b> Istemcide yapilsaydi
+/// yalnizca o an cekilmis sayfa suzulur, katalogun geri kalani filtrenin
+/// disinda kalirdi — kullanici "bu kategoride 3 etkinlik var" sanardi.
+/// Veritabanindaki (CityId, CategoryId, EventDateUtc) index'i zaten bu
+/// sorgu icin kuruldu.
+/// </param>
+/// <param name="Search">
+/// Etkinlik basliginda gecen metin. Buyuk/kucuk harf duyarsiz.
+/// <c>ToLower</c> DEGIL <c>ILIKE</c> kullaniliyor: <c>ToLower</c> kolon
+/// uzerinde fonksiyon cagirdigi icin index'i devre disi birakiyor ve
+/// calisan makinenin kulturune bagli — Turkce kulturde buyuk I noktasiz
+/// i'ye donuyor ve ISTANBUL ile istanbul beklenmedik bicimde farkli
+/// sayilabiliyordu (bkz. Gun 4, 14 numarali sorun).
+/// </param>
 public sealed record EventListFilter(
     Guid? OrganizerId,
     bool OnlyPublic,
-    PaginationRequest Pagination);
+    PaginationRequest Pagination,
+    Guid? CategoryId = null,
+    string? Search = null);

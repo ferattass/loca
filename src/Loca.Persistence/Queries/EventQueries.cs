@@ -2,6 +2,7 @@ using Loca.Application.Common.Interfaces;
 using Loca.Application.Common.Models;
 using Loca.Application.Features.Events.Common;
 using Loca.Domain.Enums;
+using Loca.Persistence.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Loca.Persistence.Queries;
@@ -40,6 +41,22 @@ internal sealed class EventQueries(LocaDbContext context) : IEventQueries
 
         if (filter.OnlyPublic)
             sorgu = sorgu.Where(ev => PublicStatuses.Contains(ev.Status));
+
+        if (filter.CategoryId is { } kategori)
+            sorgu = sorgu.Where(ev => ev.CategoryId == kategori);
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            // ILIKE, ToLower degil: ToLower kolon uzerinde fonksiyon
+            // cagirdigi icin index kullanilamaz hâle geliyor ve calisan
+            // makinenin kulturune bagli (Turkce'de buyuk I noktasiz i'ye
+            // donuyor). Kalip karakterleri (%, _, \) kaciriliyor — adinda
+            // % gecen bir etkinlik aranirken kalip "her sey" anlamina
+            // gelirdi.
+            var kalip = LikePattern.Contains(filter.Search);
+
+            sorgu = sorgu.Where(ev => EF.Functions.ILike(ev.Title, kalip));
+        }
 
         // Sayim sayfalamadan ONCE: toplam kayit sayisi sayfa buyuklugunden
         // bagimsizdir.

@@ -10,17 +10,22 @@ namespace Loca.Application.Features.Events.GetEvents;
 /// Etkinlik listesi.
 /// </summary>
 /// <remarks>
-/// Filtre, arama ve cache Gun 8'e ait (yol haritasinin "yapilmayacaklar"
-/// listesi bugun icin bunlari kapsam disi tutuyor). Bugun yalnizca
-/// sayfalama ve gorunurluk kurali var.
-///
-/// <para>
 /// <paramref name="Mine"/> ile organizator kendi taslaklarini gorebilir;
 /// bu bayrak olmadan taslak etkinlikler hicbir listede gorunmezdi ve
 /// organizator olusturdugu kaydi bulamazdi.
+///
+/// <para>
+/// <b>Suzme sunucuda.</b> Kesfet ekrani zaten bir sayfa etkinlik cekiyor
+/// ve kategorileri o listeden turetebilirdi; ama o zaman filtre yalnizca
+/// cekilmis sayfa uzerinde calisir, katalogun geri kalani disarida
+/// kalirdi — kullanici "bu kategoride uc etkinlik var" sanardi.
 /// </para>
 /// </remarks>
-public sealed record GetEventsQuery(bool Mine, PaginationRequest Pagination)
+public sealed record GetEventsQuery(
+    bool Mine,
+    PaginationRequest Pagination,
+    Guid? CategoryId = null,
+    string? Search = null)
     : IRequest<Result<PagedResult<EventListItem>>>;
 
 internal sealed class GetEventsQueryHandler(
@@ -44,7 +49,10 @@ internal sealed class GetEventsQueryHandler(
         var filter = new EventListFilter(
             OrganizerId: request.Mine ? currentUser.UserId : null,
             OnlyPublic: !request.Mine && !admin,
-            Pagination: request.Pagination);
+            Pagination: request.Pagination,
+            CategoryId: request.CategoryId,
+            // Bos arama "bos metni ara" demek degil "arama yok" demek.
+            Search: string.IsNullOrWhiteSpace(request.Search) ? null : request.Search);
 
         var sonuc = await queries.GetPagedAsync(filter, cancellationToken);
 

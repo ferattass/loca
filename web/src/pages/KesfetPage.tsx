@@ -32,15 +32,26 @@ export function KesfetPage() {
     queryFn: kategorileriGetir,
   });
 
+  // Secili kategori. null = tumu.
+  const [kategoriId, setKategoriId] = useState<string | null>(null);
+
   const etkinlikSorgu = useQuery({
-    queryKey: ['discover-events'],
-    queryFn: () => etkinlikleriGetir({ sayfaBoyutu: 24 }),
+    // Kategori onbellek anahtarinda: filtre degistiginde react-query yeni
+    // bir istek atiyor ve onceki sonucu geri geldiginde uzerine yazmiyor.
+    queryKey: ['discover-events', kategoriId],
+    queryFn: () => etkinlikleriGetir({ sayfaBoyutu: 24, kategoriId: kategoriId ?? undefined }),
   });
 
   const yaklasanlar = yaklasanlariAyikla(etkinlikSorgu.data?.items ?? []);
-  const oneCikanlar = yaklasanlar.slice(0, 3);
+
+  // Kategori seciliyken uc taneyle sinirlamak yanlis olurdu: kullanici
+  // artik "one cikanlara" degil o kategorinin tamamina bakiyor.
+  const oneCikanlar = kategoriId ? yaklasanlar : yaklasanlar.slice(0, 3);
+
   const mekanOzet = mekanlaraGoreOzetle(yaklasanlar).slice(0, 5);
   const sehir = enYogunSehir(yaklasanlar);
+
+  const seciliKategori = kategoriSorgu.data?.find((kategori) => kategori.id === kategoriId) ?? null;
 
   const etkinlikHata = etkinlikSorgu.isError
     ? hataMesaji(etkinlikSorgu.error, 'Etkinlikler yüklenemedi.')
@@ -63,12 +74,25 @@ export function KesfetPage() {
           kategoriler={kategoriSorgu.data ?? []}
           yukleniyor={kategoriSorgu.isPending}
           hata={kategoriHata}
+          seciliId={kategoriId}
+          onSec={setKategoriId}
         />
 
         <OneCikanlarBolumu
+          baslik={seciliKategori ? seciliKategori.name : 'Öne Çıkanlar'}
+          altBaslik={
+            seciliKategori
+              ? `${seciliKategori.name} kategorisindeki yaklaşan etkinlikler`
+              : 'En yakın tarihli etkinlikler'
+          }
           etkinlikler={oneCikanlar}
           yukleniyor={etkinlikSorgu.isPending}
           hata={etkinlikHata}
+          bosMetin={
+            seciliKategori
+              ? 'Bu kategoride yaklaşan etkinlik yok.'
+              : 'Şu anda yaklaşan etkinlik yok.'
+          }
         />
 
         <EtrafindaBolumu
@@ -133,9 +157,17 @@ interface KategorilerBolumuProps {
   kategoriler: EtkinlikKategorisi[];
   yukleniyor: boolean;
   hata: string | null;
+  seciliId: string | null;
+  onSec: (id: string | null) => void;
 }
 
-function KategorilerBolumu({ kategoriler, yukleniyor, hata }: KategorilerBolumuProps) {
+function KategorilerBolumu({
+  kategoriler,
+  yukleniyor,
+  hata,
+  seciliId,
+  onSec,
+}: KategorilerBolumuProps) {
   return (
     <section aria-labelledby="kategoriler-baslik" className="flex flex-col gap-stack-sm">
       <div className="flex items-center justify-between gap-stack-sm">
@@ -143,9 +175,18 @@ function KategorilerBolumu({ kategoriler, yukleniyor, hata }: KategorilerBolumuP
           Kategoriler
         </h2>
 
-        {/* Kategoriye gore filtreleme ekrani yok; bu yuzden tiklanabilir
-            degil, yalnizca tasarimdaki basligin gorsel karsiligi. */}
-        <span className="font-body text-label-caps text-on-surface-variant">TÜMÜNÜ GÖR</span>
+        {/* Filtre seciliyken cikiyor: hicbir filtre yokken "tumunu
+            goster" demek, zaten gorulen sey icin bir dugme koymak
+            olurdu. */}
+        {seciliId !== null && (
+          <button
+            type="button"
+            onClick={() => onSec(null)}
+            className="font-body text-label-caps text-primary transition-colors hover:text-on-surface"
+          >
+            TÜMÜNÜ GÖR
+          </button>
+        )}
       </div>
 
       {hata && (
@@ -176,17 +217,41 @@ function KategorilerBolumu({ kategoriler, yukleniyor, hata }: KategorilerBolumuP
 
       {!yukleniyor && kategoriler.length > 0 && (
         <div className="flex flex-wrap gap-stack-md">
-          {kategoriler.map((kategori) => (
-            <div key={kategori.id} className="flex flex-col items-center gap-base">
-              <span
-                aria-hidden="true"
-                className="grid h-16 w-16 place-items-center rounded-full bg-surface-container-high text-primary"
+          {kategoriler.map((kategori) => {
+            const secili = kategori.id === seciliId;
+
+            return (
+              <button
+                key={kategori.id}
+                type="button"
+                // Ayni kategoriye tekrar basmak filtreyi KALDIRIYOR:
+                // secimi geri almanin yolu, secmenin yoluyla ayni yerde
+                // olmali; yoksa kullanici "tumunu gor" dugmesini
+                // aramak zorunda kaliyor.
+                onClick={() => onSec(secili ? null : kategori.id)}
+                aria-pressed={secili}
+                className="flex flex-col items-center gap-base"
               >
-                {kategoriIkonu(kategori.slug)}
-              </span>
-              <span className="font-body text-body-sm text-on-surface">{kategori.name}</span>
-            </div>
-          ))}
+                <span
+                  aria-hidden="true"
+                  className={`grid h-16 w-16 place-items-center rounded-full transition-colors ${
+                    secili
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container-high text-primary hover:bg-surface-container-highest'
+                  }`}
+                >
+                  {kategoriIkonu(kategori.slug)}
+                </span>
+                <span
+                  className={`font-body text-body-sm ${
+                    secili ? 'font-semibold text-primary' : 'text-on-surface'
+                  }`}
+                >
+                  {kategori.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </section>
@@ -194,12 +259,22 @@ function KategorilerBolumu({ kategoriler, yukleniyor, hata }: KategorilerBolumuP
 }
 
 interface OneCikanlarBolumuProps {
+  baslik: string;
+  altBaslik: string;
+  bosMetin: string;
   etkinlikler: EtkinlikOzeti[];
   yukleniyor: boolean;
   hata: string | null;
 }
 
-function OneCikanlarBolumu({ etkinlikler, yukleniyor, hata }: OneCikanlarBolumuProps) {
+function OneCikanlarBolumu({
+  baslik,
+  altBaslik,
+  bosMetin,
+  etkinlikler,
+  yukleniyor,
+  hata,
+}: OneCikanlarBolumuProps) {
   return (
     <section
       id={ONE_CIKANLAR_ID}
@@ -207,12 +282,15 @@ function OneCikanlarBolumu({ etkinlikler, yukleniyor, hata }: OneCikanlarBolumuP
       className="scroll-mt-24 flex flex-col gap-stack-sm"
     >
       <div>
+        {/* Baslik disaridan: kategori seciliyken bolum artik "one
+            cikanlar" degil o kategorinin listesi ve ayni basligi
+            birakmak yanlis bilgi olurdu. */}
         <h2 id="one-cikanlar-baslik" className="font-headline text-headline-md text-on-surface">
-          Öne Çıkanlar
+          {baslik}
         </h2>
         {/* Sunucuda bir "trend" sinyali yok; siralama tarihe gore —
             gercekte olcebildigimiz tek kriter bu. */}
-        <p className="font-body text-body-sm text-on-surface-variant">En yakın tarihli etkinlikler</p>
+        <p className="font-body text-body-sm text-on-surface-variant">{altBaslik}</p>
       </div>
 
       {hata && (
@@ -234,7 +312,7 @@ function OneCikanlarBolumu({ etkinlikler, yukleniyor, hata }: OneCikanlarBolumuP
 
       {!yukleniyor && !hata && etkinlikler.length === 0 && (
         <p className="rounded-lg border border-outline-variant/40 bg-surface-variant/20 px-stack-sm py-stack-md font-body text-body-sm text-on-surface-variant">
-          Şu anda yaklaşan bir etkinlik yok.
+          {bosMetin}
         </p>
       )}
 

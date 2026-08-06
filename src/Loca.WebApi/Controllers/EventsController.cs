@@ -44,18 +44,28 @@ public sealed class EventsController(ISender sender) : ApiControllerBase
     /// <c>true</c> ise yalnizca istegi yapan organizatorun etkinlikleri
     /// (taslaklar dahil) doner.
     /// </param>
+    /// <param name="categoryId">Verilirse yalnizca o kategoridekiler.</param>
+    /// <param name="search">
+    /// Baslikta gecen metin, buyuk/kucuk harf duyarsiz. Suzme SUNUCUDA:
+    /// istemcide yapilsaydi yalnizca cekilmis sayfa suzulur, katalogun
+    /// geri kalani filtrenin disinda kalirdi.
+    /// </param>
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType<PagedResult<EventListItem>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetList(
         [FromQuery] bool mine = false,
+        [FromQuery] Guid? categoryId = null,
+        [FromQuery] string? search = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         var query = new GetEventsQuery(
             mine,
-            new PaginationRequest { PageNumber = pageNumber, PageSize = pageSize });
+            new PaginationRequest { PageNumber = pageNumber, PageSize = pageSize },
+            categoryId,
+            search);
 
         return ToResponse(await sender.Send(query, cancellationToken));
     }
