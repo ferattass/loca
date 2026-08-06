@@ -8,10 +8,12 @@ using Loca.Application.Features.Auth.Refresh;
 using Loca.Application.Features.Auth.Register;
 using Loca.Application.Features.Auth.ResetPassword;
 using Loca.Application.Features.Auth.RevokeToken;
+using Loca.WebApi.Authorization;
 using Loca.WebApi.Contracts.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Loca.WebApi.Controllers;
 
@@ -29,6 +31,7 @@ public sealed class AuthController(ISender sender) : ApiControllerBase
     /// <summary>Yeni kullanici kaydi olusturur ve oturum acar.</summary>
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
     [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -50,6 +53,7 @@ public sealed class AuthController(ISender sender) : ApiControllerBase
     /// <summary>E-posta ve sifre ile oturum acar.</summary>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
     [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login(
@@ -65,6 +69,7 @@ public sealed class AuthController(ISender sender) : ApiControllerBase
     /// <summary>Refresh token'i yenisiyle degistirir.</summary>
     [HttpPost("refresh")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
     [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Refresh(
@@ -131,6 +136,7 @@ public sealed class AuthController(ISender sender) : ApiControllerBase
     /// </remarks>
     [HttpPost("forgot-password")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.PasswordReset)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ForgotPassword(
@@ -146,6 +152,7 @@ public sealed class AuthController(ISender sender) : ApiControllerBase
     /// <summary>Sifirlama token'i ile yeni sifre belirler.</summary>
     [HttpPost("reset-password")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.PasswordReset)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
