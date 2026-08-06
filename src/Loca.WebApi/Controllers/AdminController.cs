@@ -4,7 +4,9 @@ using Loca.Application.Features.Admin.Common;
 using Loca.Application.Features.Admin.GetOverview;
 using Loca.Application.Features.Admin.GetPayments;
 using Loca.Application.Features.Admin.GetQueue;
+using Loca.Application.Features.Admin.GetUserDetail;
 using Loca.Application.Features.Admin.GetUsers;
+using Loca.Application.Features.Admin.Settings;
 using Loca.Domain.Enums;
 using Loca.WebApi.Authorization;
 using Loca.WebApi.Contracts.Admin;
@@ -83,6 +85,19 @@ public sealed class AdminController(ISender sender) : ApiControllerBase
                     new PaginationRequest { PageNumber = pageNumber, PageSize = pageSize })),
             cancellationToken));
 
+    /// <summary>Tek kullanicinin tum bilgisi ve son hareketleri.</summary>
+    /// <remarks>
+    /// Sifre ozeti, oturum belirteci ve bilet QR kodlari <b>donmez</b>.
+    /// Yonetici bir kullanicinin biletlerini gormeli ama o biletlerle
+    /// kapidan gecebilmemeli.
+    /// </remarks>
+    [HttpGet("users/{id:guid}")]
+    [ProducesResponseType<AdminKullaniciDetayi>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UserDetail(Guid id, CancellationToken cancellationToken) =>
+        ToResponse(await sender.Send(new GetUserDetailQuery(id), cancellationToken));
+
     /// <summary>Kullaniciya rol verir veya geri alir.</summary>
     /// <remarks>
     /// Admin kendi admin rolunu alamaz: tek adminli bir sistemde panele
@@ -135,4 +150,61 @@ public sealed class AdminController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Requeue(Guid id, CancellationToken cancellationToken) =>
         ToResponse(await sender.Send(new RequeueMessageCommand(id), cancellationToken));
+
+    /// <summary>SMTP ayarlari.</summary>
+    /// <remarks>
+    /// <b>Sifrenin kendisi donmez</b>, yalnizca tanimli olup olmadigi
+    /// (<c>hasPassword</c>). Donseydi panele erisen herkes posta hesabinin
+    /// sifresini okuyabilirdi ve o sifre baska yerlerde de kullaniliyor
+    /// olabilir.
+    ///
+    /// <para>
+    /// <c>source</c> alani degerin nereden geldigini soyluyor:
+    /// <c>Database</c> panelden girilmis, <c>Configuration</c>
+    /// appsettings/user-secrets'tan geliyor, <c>None</c> hic tanimli
+    /// degil. Yonetici "ben girmedim ama calisiyor" durumunu
+    /// anlayabilmeli.
+    /// </para>
+    /// </remarks>
+    [HttpGet("settings/smtp")]
+    [ProducesResponseType<SmtpAyarlari>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SmtpSettings(CancellationToken cancellationToken) =>
+        ToResponse(await sender.Send(new GetSmtpSettingsQuery(), cancellationToken));
+
+    /// <summary>SMTP ayarlarini gunceller.</summary>
+    /// <remarks>
+    /// Sifre alani BOS gonderilirse mevcut sifre korunur, silinmez. Panel
+    /// sifreyi hic gostermedigi icin form her acildiginda o alan bos
+    /// geliyor; bos degeri yazsaydik yonetici baska bir alani
+    /// duzelttiginde sifreyi farkinda olmadan silerdi.
+    ///
+    /// <para>
+    /// Sifre veritabanina <b>sifrelenmis</b> yaziliyor (Data Protection);
+    /// veritabani yedegini eline geciren biri cozemez.
+    /// </para>
+    /// </remarks>
+    [HttpPut("settings/smtp")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateSmtpSettings(
+        [FromBody] UpdateSmtpSettingsCommand request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return ToResponse(await sender.Send(request, cancellationToken));
+    }
+
+    /// <summary>SMTP sunucusuna baglanmayi dener; posta gondermez.</summary>
+    /// <remarks>
+    /// Basarisiz baglanti <b>200</b> doner, hata degil: yonetici ekranda
+    /// sebebi gormek istiyor ve bu bir sunucu arizasi degil, denemenin
+    /// sonucu.
+    /// </remarks>
+    [HttpPost("settings/smtp/test")]
+    [ProducesResponseType<SmtpTestSonucu>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> TestSmtp(CancellationToken cancellationToken) =>
+        ToResponse(await sender.Send(new TestSmtpConnectionCommand(), cancellationToken));
 }

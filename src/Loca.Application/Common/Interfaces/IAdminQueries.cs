@@ -28,6 +28,10 @@ public interface IAdminQueries
     Task<PagedResult<AdminKullanici>> GetUsersAsync(
         AdminKullaniciFiltresi filtre, CancellationToken cancellationToken = default);
 
+    /// <summary>Tek kullanicinin tum bilgisi ve son hareketleri.</summary>
+    Task<AdminKullaniciDetayi?> GetUserDetailAsync(
+        Guid id, CancellationToken cancellationToken = default);
+
     /// <param name="durum">
     /// <c>Pending</c>, <c>Retryable</c>, <c>DeadLettered</c> veya
     /// <c>Processed</c>.

@@ -115,3 +115,62 @@ public sealed record AdminKullaniciFiltresi(
     string? Search,
     string? Role,
     PaginationRequest Pagination);
+
+/// <summary>Kullanicinin son hareketlerinden bir satir.</summary>
+public sealed record KullaniciRezervasyonu(
+    Guid Id,
+    string EventTitle,
+    DateTime SessionStartsAtUtc,
+    ReservationStatus Status,
+    int SeatCount,
+    decimal TotalAmount,
+    string Currency,
+    DateTime CreatedAt);
+
+/// <remarks>
+/// <b>QR kodu tasinmiyor.</b> Yonetici bir kullanicinin biletlerini
+/// gormeli ama o biletlerle kapidan gecebilmemeli.
+/// </remarks>
+public sealed record KullaniciBileti(
+    Guid Id,
+    string TicketNumber,
+    string EventTitle,
+    string SeatLabel,
+    DateTime EventStartsAtUtc,
+    TicketStatus Status,
+    decimal Price,
+    string Currency);
+
+public sealed record KullaniciOdemesi(
+    Guid Id,
+    PaymentStatus Status,
+    string Provider,
+    decimal Amount,
+    string Currency,
+    DateTime? CompletedAtUtc,
+    string? FailureReason,
+    DateTime CreatedAt);
+
+/// <param name="TotalSpent">Basarili odemelerin toplami; iadeler dusulmemis.</param>
+/// <param name="IsActive">
+/// Hesap acik mi. Kapali hesap giris yapamaz ama gecmis kayitlari durur.
+/// </param>
+public sealed record AdminKullaniciDetayi(
+    Guid Id,
+    string FullName,
+    string Email,
+    string? PhoneNumber,
+    bool EmailConfirmed,
+    bool IsActive,
+    IReadOnlyList<string> Roles,
+    DateTime CreatedAt,
+    DateTime? LastLoginAt,
+    int ReservationCount,
+    int TicketCount,
+    int PaymentCount,
+    decimal TotalSpent,
+    decimal TotalRefunded,
+    string Currency,
+    IReadOnlyList<KullaniciRezervasyonu> RecentReservations,
+    IReadOnlyList<KullaniciBileti> RecentTickets,
+    IReadOnlyList<KullaniciOdemesi> RecentPayments);

@@ -219,6 +219,126 @@ internal sealed class AdminQueries(LocaDbContext context) : IAdminQueries
         };
     }
 
+    /// <remarks>
+    /// Son hareketler ONAR satirla sinirli. Tamami cekilseydi yillardir
+    /// kullanan birinin sayfasi binlerce satir tasir ve panel acilmazdi;
+    /// yoneticinin ilk bakista aradigi sey zaten "son ne oldu".
+    /// </remarks>
+    public async Task<AdminKullaniciDetayi?> GetUserDetailAsync(
+        Guid id, CancellationToken cancellationToken = default)
+    {
+        const int SonKayitSayisi = 10;
+
+        var kullanici = await context.Users
+            .Where(user => user.Id == id)
+            .Select(user => new
+            {
+                user.Id,
+                user.FullName,
+                user.Email,
+                user.PhoneNumber,
+                user.EmailConfirmed,
+                user.IsActive,
+                user.CreatedAt,
+                user.LastLoginAt,
+                Roller = user.UserRoles.Select(userRole => userRole.Role!.Name).ToList()
+            })
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (kullanici is null)
+            return null;
+
+        var rezervasyonlar = await context.Reservations
+            .Where(reservation => reservation.UserId == id)
+            .OrderByDescending(reservation => reservation.CreatedAt)
+            .Take(SonKayitSayisi)
+            .Select(reservation => new KullaniciRezervasyonu(
+                reservation.Id,
+                reservation.EventSession!.Event!.Title,
+                reservation.EventSession!.StartsAtUtc,
+                reservation.Status,
+                reservation.Items.Count,
+                reservation.TotalAmount.Amount,
+                reservation.TotalAmount.Currency,
+                reservation.CreatedAt))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var biletler = await context.Tickets
+            .Where(ticket => ticket.UserId == id)
+            .OrderByDescending(ticket => ticket.IssuedAtUtc)
+            .Take(SonKayitSayisi)
+            // QR kodu YOK: yonetici biletleri gormeli ama onlarla kapidan
+            // gecebilmemeli.
+            .Select(ticket => new KullaniciBileti(
+                ticket.Id,
+                ticket.TicketNumber,
+                ticket.EventTitle,
+                ticket.SeatLabel,
+                ticket.EventStartsAtUtc,
+                ticket.Status,
+                ticket.Price.Amount,
+                ticket.Price.Currency))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var odemeler = await context.Payments
+            .Where(payment => payment.UserId == id)
+            .OrderByDescending(payment => payment.CreatedAt)
+            .Take(SonKayitSayisi)
+            .Select(payment => new KullaniciOdemesi(
+                payment.Id,
+                payment.Status,
+                payment.Provider,
+                payment.Amount.Amount,
+                payment.Amount.Currency,
+                payment.CompletedAtUtc,
+                payment.FailureReason,
+                payment.CreatedAt))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        // Toplamlar SON ONDAN degil tum gecmisten hesaplaniyor: "bu
+        // kullanici ne kadar harcadi" sorusunun cevabi son on odeme degil.
+        var toplamlar = await context.Payments
+            .Where(payment => payment.UserId == id)
+            .GroupBy(payment => payment.Status)
+            .Select(grup => new
+            {
+                Durum = grup.Key,
+                Adet = grup.Count(),
+                Tutar = grup.Sum(payment => payment.Amount.Amount)
+            })
+            .ToListAsync(cancellationToken);
+
+        var rezervasyonSayisi = await context.Reservations
+            .CountAsync(reservation => reservation.UserId == id, cancellationToken);
+
+        var biletSayisi = await context.Tickets
+            .CountAsync(ticket => ticket.UserId == id, cancellationToken);
+
+        return new AdminKullaniciDetayi(
+            kullanici.Id,
+            kullanici.FullName,
+            kullanici.Email,
+            kullanici.PhoneNumber,
+            kullanici.EmailConfirmed,
+            kullanici.IsActive,
+            kullanici.Roller,
+            kullanici.CreatedAt,
+            kullanici.LastLoginAt,
+            rezervasyonSayisi,
+            biletSayisi,
+            toplamlar.Sum(t => t.Adet),
+            toplamlar.Where(t => t.Durum == PaymentStatus.Succeeded).Sum(t => t.Tutar),
+            toplamlar.Where(t => t.Durum == PaymentStatus.Refunded).Sum(t => t.Tutar),
+            "TRY",
+            rezervasyonlar,
+            biletler,
+            odemeler);
+    }
+
     public async Task<IReadOnlyList<KuyrukMesaji>> GetQueueAsync(
         string durum, int limit, CancellationToken cancellationToken = default)
     {
