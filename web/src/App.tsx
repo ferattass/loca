@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SiteKabugu } from './components/SiteKabugu';
@@ -16,6 +16,8 @@ import { OturmaPlaniYonetimPage } from './pages/OturmaPlaniYonetimPage';
 import { OdemePage } from './pages/OdemePage';
 import { BiletlerimPage } from './pages/BiletlerimPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { BulunamadiPage } from './pages/BulunamadiPage';
+import { EtkinlikDetayPage } from './pages/EtkinlikDetayPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { RezervasyonPage } from './pages/RezervasyonPage';
 import { RezervasyonlarimPage } from './pages/RezervasyonlarimPage';
@@ -60,6 +62,15 @@ export default function App() {
             kalmasin. Korumali olsaydi arama motorlari da hicbir seyi
             goremezdi. */}
         <Route path="/" element={<KesfetPage />} />
+
+        {/* Etkinlik detayi GIRIS ISTEMEZ, vitrinin devami.
+
+            "/etkinlikler/yeni" ile CAKISMIYOR: React Router rotalari
+            yazilma sirasina gore degil ozgullugune gore eslestiriyor ve
+            sabit parca (yeni) degiskenden (:id) once geliyor. Sira
+            onemli olsaydi asagida tanimli "yeni" rotasi hicbir zaman
+            calismazdi. */}
+        <Route path="/etkinlikler/:id" element={<EtkinlikDetayPage />} />
 
         <Route
           path="/hesabim"
@@ -162,6 +173,17 @@ export default function App() {
           }
         />
 
+        {/* Tanimsiz adres KABUGUN ICINDE: 404 sayfasi baslik ve alt bilgi
+            olmadan aciliyordu, yani kullanicinin gezinecek hicbir menusu
+            kalmiyordu — kaybolan kisiyi bir de yalniz birakmak olurdu.
+
+            Sessizce ana sayfaya yonlendirmenin yerini aldi. Yonlendirme
+            bir hatayi tamamen ortuyordu: etkinlik karti /etkinlikler/:id
+            adresine bagliydi, o rota hic tanimli degildi ve "Bilet al"a
+            basan kullanici ana sayfaya donuyordu. Kirik bir baglanti,
+            calisan bir baglanti gibi davraniyordu. */}
+        <Route path="*" element={<BulunamadiPage />} />
+
         </Route>
 
         {/* Yonetim KENDI kabugunda: site kabugunun ust menusu sekiz
@@ -185,7 +207,6 @@ export default function App() {
           <Route path="oturma-planlari" element={<OturmaPlaniYonetimPage />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

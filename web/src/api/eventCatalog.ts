@@ -49,6 +49,71 @@ export interface EtkinlikOzeti {
   sessionCount: number;
 }
 
+/** GET /events/{id} icindeki oturum (EventSessionItem). */
+export interface OturumOzeti {
+  id: string;
+  startsAtUtc: string;
+  endsAtUtc: string;
+  salesStartsAtUtc: string;
+  salesEndsAtUtc: string;
+  hallId: string;
+  hallName: string;
+  seatLayoutId: string;
+  seatLayoutName: string;
+  status: 'Scheduled' | 'Cancelled' | 'Completed';
+  seatsGenerated: boolean;
+}
+
+/** GET /events/{id} icindeki bilet turu (TicketTypeItem). */
+export interface BiletTuruOzeti {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  quota: number;
+  salesStartsAtUtc: string;
+  salesEndsAtUtc: string;
+  requiresVerification: boolean;
+  seatSectionId: string | null;
+  seatSectionName: string | null;
+  isActive: boolean;
+}
+
+/** GET /events/{id} (EventDetail). */
+export interface EtkinlikDetayi {
+  id: string;
+  title: string;
+  description: string;
+  cancellationPolicy: string;
+  categoryId: string;
+  categoryName: string;
+  organizerId: string;
+  organizerName: string;
+  cityId: string;
+  cityName: string;
+  venueId: string;
+  venueName: string;
+  hallId: string;
+  hallName: string;
+  eventDateUtc: string;
+  durationMinutes: number;
+  salesStartsAtUtc: string;
+  salesEndsAtUtc: string;
+  status: EtkinlikDurumu;
+  posterFileId: string | null;
+  minimumAge: number | null;
+  publishedAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  sessions: OturumOzeti[];
+  ticketTypes: BiletTuruOzeti[];
+}
+
+export async function etkinlikDetayiGetir(id: string): Promise<EtkinlikDetayi> {
+  const { data } = await api.get<EtkinlikDetayi>(`/events/${id}`);
+  return data;
+}
+
 export interface EtkinlikListesiParametreleri {
   sayfaNo?: number;
   sayfaBoyutu?: number;
