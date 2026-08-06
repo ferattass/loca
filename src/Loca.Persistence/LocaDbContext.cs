@@ -53,6 +53,8 @@ public sealed class LocaDbContext(DbContextOptions<LocaDbContext> options)
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+
     /// <summary>
     /// PostgreSQL'in benzersizlik ihlali hata kodu.
     /// </summary>

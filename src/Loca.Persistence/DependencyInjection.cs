@@ -4,6 +4,7 @@ using Loca.Persistence.Interceptors;
 using Loca.Persistence.Queries;
 using Loca.Persistence.Repositories;
 using Loca.Persistence.Seeding;
+using Loca.Persistence.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,6 +63,10 @@ public static class DependencyInjection
         services.AddScoped<IReservationQueries, ReservationQueries>();
         services.AddScoped<ITicketQueries, TicketQueries>();
         services.AddScoped<IAdminQueries, AdminQueries>();
+
+        // Calisma aninda degistirilebilen ayarlar. Sir olanlar sifreli
+        // saklaniyor; sifreleyici Infrastructure'da.
+        services.AddScoped<ISettingsStore, SettingsStore>();
 
         return services;
     }
