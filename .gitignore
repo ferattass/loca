@@ -54,3 +54,7 @@ desktop.ini
 # Python kabul betiklerinin onbellegi
 __pycache__/
 *.pyc
+
+# Baglanti tarayicisinin uretttigi rapor — her kosuda degisiyor
+tools/link-checker/report.md
+tools/link-checker/node_modules/

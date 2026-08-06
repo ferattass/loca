@@ -1,0 +1,13 @@
+{
+  "name": "site-link-checker",
+  "version": "1.0.0",
+  "description": "Crawls a website with headless Chromium and reports broken links + console errors as Markdown.",
+  "type": "module",
+  "main": "crawl.mjs",
+  "scripts": {
+    "crawl": "node crawl.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}
