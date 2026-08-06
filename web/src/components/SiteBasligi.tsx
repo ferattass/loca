@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 
+import { Logo } from './ui/Logo';
+
 import { cikisYap } from '../api/auth';
 import { useAuthStore } from '../stores/authStore';
 
@@ -49,14 +51,8 @@ export function SiteBasligi() {
   return (
     <header className="sticky top-0 z-50 border-b border-outline-variant/40 bg-surface-container-lowest/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-stack-md px-container-margin-mobile py-stack-sm md:px-container-margin-desktop">
-        <Link to="/" className="flex items-center gap-base">
-          <span
-            aria-hidden="true"
-            className="grid h-8 w-8 place-items-center rounded-md bg-primary font-headline text-body-sm font-extrabold text-on-primary"
-          >
-            L
-          </span>
-          <span className="font-display text-title-lg tracking-wide text-on-surface">LOCA</span>
+        <Link to="/" className="flex shrink-0 items-center" aria-label="Loca ana sayfa">
+          <Logo bicim="yatay" className="h-7 w-auto md:h-8" />
         </Link>
 
         {/* Genis ekranda yatay menu, dar ekranda acilir menu. Tasarimdaki

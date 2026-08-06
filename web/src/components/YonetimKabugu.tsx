@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 
+import { Logo } from './ui/Logo';
+
 import { useAuthStore } from '../stores/authStore';
 import { SolOkIkonu } from './ui/Ikon';
 
@@ -65,13 +67,7 @@ export function YonetimKabugu() {
       <header className="sticky top-0 z-50 border-b border-outline-variant/40 bg-surface-container-lowest/95 backdrop-blur">
         <div className="flex items-center gap-stack-sm px-container-margin-mobile py-stack-sm md:px-stack-md">
           <NavLink to="/" className="flex items-center gap-base">
-            <span
-              aria-hidden="true"
-              className="grid h-8 w-8 place-items-center rounded-md bg-primary font-headline text-body-sm font-extrabold text-on-primary"
-            >
-              L
-            </span>
-            <span className="font-display text-title-lg tracking-wide text-on-surface">LOCA</span>
+            <Logo bicim="yatay" className="h-7 w-auto" />
           </NavLink>
 
           <span className="rounded-full border border-outline-variant px-stack-sm py-[2px] font-body text-[11px] uppercase tracking-widest text-on-surface-variant">

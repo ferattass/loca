@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
+import { Logo } from './ui/Logo';
+
 interface AuthLayoutProps {
   baslik: string;
   aciklama: string;
@@ -22,16 +24,13 @@ export function AuthLayout({
   return (
     <main className="min-h-screen flex items-center justify-center px-container-margin-mobile py-stack-lg">
       <div className="w-full max-w-md">
-        <div className="text-center mb-stack-md">
-          <Link
-            to="/"
-            className="font-display text-display-lg-mobile text-primary drop-shadow-[0_0_18px_rgba(208,188,255,0.35)]"
-          >
-            LOCA
+        {/* Giris ekraninda dikey logo: alt yazisi ("ETKINLIK · BILET ·
+            KOLTUK") zaten logonun parcasi, ayrica bir aciklama satiri
+            yazmak ayni seyi iki kez soylemek olurdu. */}
+        <div className="mb-stack-md flex justify-center">
+          <Link to="/" aria-label="Loca ana sayfa">
+            <Logo bicim="dikey" className="h-40 w-auto" />
           </Link>
-          <p className="font-body text-label-caps text-on-surface-variant uppercase mt-base">
-            Etkinlik ve Koltuk Rezervasyonu
-          </p>
         </div>
 
         <div className="glass-high rounded-xl p-stack-md">

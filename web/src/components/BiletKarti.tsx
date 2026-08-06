@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
+
+import { Logo } from './ui/Logo';
 import { QRCodeSVG } from 'qrcode.react';
 
 import { biletiGorselIndir, biletiPdfIndir } from '../lib/biletIndir';
@@ -107,9 +109,11 @@ export function BiletKarti({ bilet }: BiletKartiProps) {
 
         <div className="min-w-0 flex-1 p-stack-md">
           <div className="flex items-start justify-between gap-stack-sm">
-            <span className="font-display text-body-sm font-extrabold uppercase tracking-[0.3em] text-[#6d3bd7]">
-              Loca
-            </span>
+            {/* Bilet karti ACIK zeminli — yazisi lacivert olan varyant
+                kullaniliyor. Koyu tema varyanti burada okunmazdi. Kart
+                ayrica PDF ve gorsel olarak indiriliyor; oradaki zemin de
+                beyaz. */}
+            <Logo bicim="yatay" acikZemin className="h-6 w-auto" />
             <span className="shrink-0 rounded-full bg-[#6d3bd7]/10 px-stack-sm py-[3px] font-body text-[11px] font-semibold uppercase tracking-wider text-[#5516be]">
               {bilet.ticketTypeName}
             </span>
