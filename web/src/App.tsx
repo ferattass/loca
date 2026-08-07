@@ -23,6 +23,9 @@ import { RezervasyonPage } from './pages/RezervasyonPage';
 import { RezervasyonlarimPage } from './pages/RezervasyonlarimPage';
 import { SeatLayoutPage } from './pages/SeatLayoutPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
+import { IletisimPage } from './pages/bilgi/IletisimPage';
+import { KullanimKosullariPage } from './pages/bilgi/KullanimKosullariPage';
+import { YardimPage } from './pages/bilgi/YardimPage';
 import { RoleRoute } from './components/RoleRoute';
 import { YonetimKabugu } from './components/YonetimKabugu';
 import { AyarlarPage } from './pages/yonetim/AyarlarPage';
@@ -72,6 +75,12 @@ export default function App() {
             onemli olsaydi asagida tanimli "yeni" rotasi hicbir zaman
             calismazdi. */}
         <Route path="/etkinlikler/:id" element={<EtkinlikDetayPage />} />
+
+        {/* Bilgi sayfalari: alt bilgideki uc baglantinin karsiligi. Onceden
+            duz metin olarak duruyorlardi cunku sayfalari yoktu. */}
+        <Route path="/yardim" element={<YardimPage />} />
+        <Route path="/iletisim" element={<IletisimPage />} />
+        <Route path="/kullanim-kosullari" element={<KullanimKosullariPage />} />
 
         <Route
           path="/hesabim"

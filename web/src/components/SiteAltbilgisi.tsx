@@ -5,10 +5,11 @@ import { Logo } from './ui/Logo';
 /**
  * Alt bilgi.
  *
- * Tasarimdaki dort sutunun ucu (Explore / Support / Settings) HENUZ
- * karsiligi olmayan sayfalara isaret ediyordu; olmayan sayfaya baglanti
- * vermek kullaniciyi bos ekrana goturur. Var olan bolumler baglanti,
- * olmayanlar duz metin olarak duruyor ve sayfalari yazildikca baglaniyor.
+ * Tasarimdaki dort sutunun ucu (Explore / Support / Settings) karsiligi
+ * olmayan sayfalara isaret ediyordu; olmayan sayfaya baglanti vermek
+ * kullaniciyi bos ekrana goturecegi icin o baglantilar bir sure duz metin
+ * olarak durdu. Uc bilgi sayfasi (yardim, iletisim, kullanim kosullari)
+ * yazildi ve baglandi — alt bilgide artik tiklanmayan oge yok.
  */
 export function SiteAltbilgisi() {
   return (
@@ -37,10 +38,9 @@ export function SiteAltbilgisi() {
         </FooterSutunu>
 
         <FooterSutunu baslik="Bilgi">
-          {/* Bu sayfalar henuz yok; baglanti verilseydi bos ekrana giderdi. */}
-          <li className="font-body text-body-sm text-on-surface-variant/50">Yardım merkezi</li>
-          <li className="font-body text-body-sm text-on-surface-variant/50">İletişim</li>
-          <li className="font-body text-body-sm text-on-surface-variant/50">Kullanım koşulları</li>
+          <FooterBaglantisi yol="/yardim">Yardım merkezi</FooterBaglantisi>
+          <FooterBaglantisi yol="/iletisim">İletişim</FooterBaglantisi>
+          <FooterBaglantisi yol="/kullanim-kosullari">Kullanım koşulları</FooterBaglantisi>
         </FooterSutunu>
       </div>
 
