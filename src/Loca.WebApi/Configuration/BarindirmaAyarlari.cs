@@ -35,7 +35,10 @@ internal static class BarindirmaAyarlari
         var degerler = new Dictionary<string, string?>(StringComparer.Ordinal);
 
         if (Environment.GetEnvironmentVariable("DATABASE_URL") is { Length: > 0 } veritabani)
-            degerler["ConnectionStrings:Default"] = PostgresBaglantisi(veritabani);
+        {
+            degerler["ConnectionStrings:Default"] =
+                PostgresBaglantisi(veritabani, builder.Environment.IsProduction());
+        }
 
         if (Environment.GetEnvironmentVariable("REDIS_URL") is { Length: > 0 } redis)
             degerler["ConnectionStrings:Redis"] = RedisBaglantisi(redis);
@@ -57,22 +60,30 @@ internal static class BarindirmaAyarlari
     /// <summary>
     /// <c>postgres://kullanici:sifre@sunucu:5432/db</c> → Npgsql anahtar-deger.
     /// </summary>
+    /// <param name="uretim">
+    /// Uretimde <c>SSL Mode=Require</c>, disinda <c>Prefer</c>.
+    /// </param>
     /// <remarks>
-    /// <c>SSL Mode=Prefer</c>, <c>Require</c> DEGIL. Yonetilen
-    /// veritabanlari SSL istiyor ve baglanti internetten gectigi icin
-    /// sifreli olmasi sart; ama ayni imaj SSL'i hic acmamis bir Postgres'e
-    /// (yerel dogrulama, konteyner yigini) baglandiginda <c>Require</c>
-    /// "No SSL enabled connection from this host is configured" ile
-    /// patliyor ve uygulama hic ayaga kalkmiyor. <c>Prefer</c> sunucu
-    /// destekliyorsa SSL kuruyor, desteklemiyorsa duz devam ediyor —
-    /// yani uretimde sifreli, yerelde calisir.
+    /// <b>Ikisinin ayrilmasi bilincli.</b> Uretimde baglanti internetten
+    /// geciyor ve sifresiz olmamali; <c>Prefer</c> sunucu SSL sunmuyorsa
+    /// SESSIZCE duz metne dusuyor, yani araya giren biri SSL'i
+    /// gizleyerek trafigi acik hâle getirebilirdi. <c>Require</c> boyle
+    /// bir durumda baglanmayi reddediyor.
+    ///
+    /// <para>
+    /// Uretim disinda <c>Prefer</c>: ayni imaj SSL'i hic acmamis bir
+    /// Postgres'e (yerel dogrulama, konteyner yigini) baglandiginda
+    /// <c>Require</c> "No SSL enabled connection from this host is
+    /// configured" ile patliyor ve uygulama hic ayaga kalkmiyor. Yerelde
+    /// trafik makinenin disina cikmadigi icin risk de yok.
+    /// </para>
     ///
     /// <para>
     /// <c>Trust Server Certificate</c> gerekiyor cunku bu saglayicilarin
     /// sertifikalari kendinden imzali.
     /// </para>
     /// </remarks>
-    private static string PostgresBaglantisi(string url)
+    private static string PostgresBaglantisi(string url, bool uretim)
     {
         var adres = new Uri(url);
         var kimlik = adres.UserInfo.Split(':', 2);
@@ -88,9 +99,11 @@ internal static class BarindirmaAyarlari
         var sunucu = FormattableString.Invariant(
             $"Host={adres.Host};Port={port};Database={veritabani};");
 
+        var sslModu = uretim ? "Require" : "Prefer";
+
         return sunucu
             + $"Username={kullanici};Password={sifre};"
-            + "SSL Mode=Prefer;Trust Server Certificate=true";
+            + $"SSL Mode={sslModu};Trust Server Certificate=true";
     }
 
     /// <summary>
