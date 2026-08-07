@@ -66,9 +66,18 @@ public interface IEventQueries
 /// i'ye donuyor ve ISTANBUL ile istanbul beklenmedik bicimde farkli
 /// sayilabiliyordu (bkz. Gun 4, 14 numarali sorun).
 /// </param>
+/// <param name="FromUtc">
+/// Bu andan itibaren baslayan etkinlikler. Aralik SUNUCUDA suzuluyor:
+/// istemcide yapilsaydi filtre yalnizca cekilmis sayfa uzerinde calisir,
+/// "bugun hic etkinlik yok" diyen bir ekran katalogun geri kalanini
+/// gormemis olurdu.
+/// </param>
+/// <param name="ToUtc">Bu andan once baslayanlar (bitis haric).</param>
 public sealed record EventListFilter(
     Guid? OrganizerId,
     bool OnlyPublic,
     PaginationRequest Pagination,
     Guid? CategoryId = null,
-    string? Search = null);
+    string? Search = null,
+    DateTime? FromUtc = null,
+    DateTime? ToUtc = null);

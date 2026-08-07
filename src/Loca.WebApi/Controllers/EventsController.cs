@@ -57,6 +57,8 @@ public sealed class EventsController(ISender sender) : ApiControllerBase
         [FromQuery] bool mine = false,
         [FromQuery] Guid? categoryId = null,
         [FromQuery] string? search = null,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -65,7 +67,9 @@ public sealed class EventsController(ISender sender) : ApiControllerBase
             mine,
             new PaginationRequest { PageNumber = pageNumber, PageSize = pageSize },
             categoryId,
-            search);
+            search,
+            fromUtc,
+            toUtc);
 
         return ToResponse(await sender.Send(query, cancellationToken));
     }

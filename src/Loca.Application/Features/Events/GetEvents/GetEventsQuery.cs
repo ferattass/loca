@@ -25,7 +25,9 @@ public sealed record GetEventsQuery(
     bool Mine,
     PaginationRequest Pagination,
     Guid? CategoryId = null,
-    string? Search = null)
+    string? Search = null,
+    DateTime? FromUtc = null,
+    DateTime? ToUtc = null)
     : IRequest<Result<PagedResult<EventListItem>>>;
 
 internal sealed class GetEventsQueryHandler(
@@ -52,7 +54,9 @@ internal sealed class GetEventsQueryHandler(
             Pagination: request.Pagination,
             CategoryId: request.CategoryId,
             // Bos arama "bos metni ara" demek degil "arama yok" demek.
-            Search: string.IsNullOrWhiteSpace(request.Search) ? null : request.Search);
+            Search: string.IsNullOrWhiteSpace(request.Search) ? null : request.Search,
+            FromUtc: request.FromUtc,
+            ToUtc: request.ToUtc);
 
         var sonuc = await queries.GetPagedAsync(filter, cancellationToken);
 

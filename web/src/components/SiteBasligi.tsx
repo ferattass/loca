@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Logo } from './ui/Logo';
 import { CarpiIkonu, MenuIkonu } from './ui/Ikon';
@@ -17,6 +17,8 @@ import { useAuthStore } from '../stores/authStore';
  */
 export function SiteBasligi() {
   const navigate = useNavigate();
+  const konum = useLocation();
+  const [aramaParametreleri] = useSearchParams();
   const { kullanici, refreshToken, oturumKapat } = useAuthStore();
   const [menuAcik, setMenuAcik] = useState(false);
 
@@ -36,17 +38,59 @@ export function SiteBasligi() {
     }
   };
 
+  // Giris yapmamis kullanici ONCEDEN tek sekme goruyordu ("Keşfet"): geri
+  // kalan her baglanti oturuma bagliydi. Vitrine ilk gelen kisi menuye
+  // bakip sitenin tek sayfadan ibaret oldugunu sanabilirdi. Herkese acik
+  // olan ne varsa artik menude.
+  // Giris yapmamis kullanici ONCEDEN tek sekme goruyordu ("Keşfet"): geri
+  // kalan her baglanti oturuma bagliydi. Vitrine ilk gelen kisi menuye
+  // bakip sitenin tek sayfadan ibaret oldugunu sanabilirdi. Herkese acik
+  // olan ne varsa artik menude.
+  //
+  // "Bugün" ayni rotaya sorgu dizesiyle gidiyor; secili gorunmesi bu
+  // yuzden NavLink'e birakilamiyor (NavLink sorgu dizesine bakmaz, ikisi
+  // de secili gorunurdu). Aktiflik acikca hesaplaniyor.
+  const bugunSecili = konum.pathname === '/' && aramaParametreleri.get('ne_zaman') === 'bugun';
+  const kesfetSecili = konum.pathname === '/' && !bugunSecili;
+
   const baglantilar = [
-    { yol: '/', metin: 'Keşfet', gorunur: true },
-    { yol: '/rezervasyonlarim', metin: 'Rezervasyonlarım', gorunur: girisYapildi },
-    { yol: '/biletlerim', metin: 'Biletlerim', gorunur: girisYapildi },
-    { yol: '/hesabim', metin: 'Hesabım', gorunur: girisYapildi },
-    { yol: '/etkinlikler/yeni', metin: 'Etkinlik oluştur', gorunur: organizatorMu },
-    { yol: '/kapi', metin: 'Kapı', gorunur: organizatorMu },
+    { yol: '/', metin: 'Keşfet', gorunur: true, aktif: kesfetSecili },
+    { yol: '/?ne_zaman=bugun', metin: 'Bugün', gorunur: true, aktif: bugunSecili },
+    { yol: '/yardim', metin: 'Yardım', gorunur: true, aktif: konum.pathname === '/yardim' },
+    {
+      yol: '/rezervasyonlarim',
+      metin: 'Rezervasyonlarım',
+      gorunur: girisYapildi,
+      aktif: konum.pathname === '/rezervasyonlarim',
+    },
+    {
+      yol: '/biletlerim',
+      metin: 'Biletlerim',
+      gorunur: girisYapildi,
+      aktif: konum.pathname === '/biletlerim',
+    },
+    {
+      yol: '/hesabim',
+      metin: 'Hesabım',
+      gorunur: girisYapildi,
+      aktif: konum.pathname === '/hesabim',
+    },
+    {
+      yol: '/etkinlikler/yeni',
+      metin: 'Etkinlik oluştur',
+      gorunur: organizatorMu,
+      aktif: konum.pathname === '/etkinlikler/yeni',
+    },
+    { yol: '/kapi', metin: 'Kapı', gorunur: organizatorMu, aktif: konum.pathname === '/kapi' },
     // Yonetim sayfalari tek baglantiya indi: Mekanlar ve Planlar artik
     // yonetim kabugunun kendi menusunde. Ust menu sekiz baglantiya
     // ciktiginda hangisinin ne oldugu ancak okunarak anlasiliyordu.
-    { yol: '/yonetim', metin: 'Yönetim', gorunur: adminMi },
+    {
+      yol: '/yonetim',
+      metin: 'Yönetim',
+      gorunur: adminMi,
+      aktif: konum.pathname.startsWith('/yonetim'),
+    },
   ].filter((baglanti) => baglanti.gorunur);
 
   return (
@@ -63,22 +107,20 @@ export function SiteBasligi() {
         {/* Genis ekranda yatay menu, dar ekranda acilir menu. Tasarimdaki
             arama kutusu HENUZ YOK: arama ucu Gun 8'de geliyor, calismayan
             bir kutu koymak kullaniciyi yaniltirdi. */}
-        <nav aria-label="Ana menü" className="hidden flex-1 items-center gap-stack-sm md:flex">
+        <nav aria-label="Ana menü" className="hidden flex-1 items-center gap-base md:flex">
           {baglantilar.map((baglanti) => (
-            <NavLink
+            <Link
               key={baglanti.yol}
               to={baglanti.yol}
-              end={baglanti.yol === '/'}
-              className={({ isActive }) =>
-                `rounded-full px-stack-sm py-1 font-body text-body-sm transition-colors ${
-                  isActive
-                    ? 'bg-primary-container/25 text-primary'
-                    : 'text-on-surface-variant hover:text-on-surface'
-                }`
-              }
+              aria-current={baglanti.aktif ? 'page' : undefined}
+              className={`whitespace-nowrap rounded-full px-stack-sm py-1 font-body text-body-sm transition-colors ${
+                baglanti.aktif
+                  ? 'bg-primary-container/25 text-primary'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
             >
               {baglanti.metin}
-            </NavLink>
+            </Link>
           ))}
         </nav>
 
@@ -147,22 +189,20 @@ export function SiteBasligi() {
           <ul className="flex flex-col">
             {baglantilar.map((baglanti) => (
               <li key={baglanti.yol}>
-                <NavLink
+                <Link
                   to={baglanti.yol}
-                  end={baglanti.yol === '/'}
                   onClick={() => setMenuAcik(false)}
+                  aria-current={baglanti.aktif ? 'page' : undefined}
                   // Dokunma hedefi metin yuksekligi kadar degil, parmakla
                   // secilebilecek kadar buyuk.
-                  className={({ isActive }) =>
-                    `block rounded-md px-stack-sm py-stack-sm font-body text-body-md transition-colors ${
-                      isActive
-                        ? 'bg-primary-container/25 font-semibold text-primary'
-                        : 'text-on-surface-variant'
-                    }`
-                  }
+                  className={`block rounded-md px-stack-sm py-stack-sm font-body text-body-md transition-colors ${
+                    baglanti.aktif
+                      ? 'bg-primary-container/25 font-semibold text-primary'
+                      : 'text-on-surface-variant'
+                  }`}
                 >
                   {baglanti.metin}
-                </NavLink>
+                </Link>
               </li>
             ))}
           </ul>

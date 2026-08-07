@@ -45,6 +45,16 @@ internal sealed class EventQueries(LocaDbContext context) : IEventQueries
         if (filter.CategoryId is { } kategori)
             sorgu = sorgu.Where(ev => ev.CategoryId == kategori);
 
+        // Tarih araligi EventDateUtc uzerinden: bu alan en erken oturumun
+        // baslangicina hizali tutuluyor (Event.AlignEventDateWithSessions),
+        // yani kullanicinin listede gordugu tarihle ayni. Oturum tablosuna
+        // gidilseydi ayni etkinlik birden fazla kez donerdi.
+        if (filter.FromUtc is { } baslangic)
+            sorgu = sorgu.Where(ev => ev.EventDateUtc >= baslangic);
+
+        if (filter.ToUtc is { } bitis)
+            sorgu = sorgu.Where(ev => ev.EventDateUtc < bitis);
+
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
             // ILIKE, ToLower degil: ToLower kolon uzerinde fonksiyon

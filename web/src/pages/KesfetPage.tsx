@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { hataMesaji } from '../api/client';
 import {
+  bugununSiniri,
   enYogunSehir,
   etkinlikleriGetir,
   mekanlaraGoreOzetle,
@@ -35,11 +37,29 @@ export function KesfetPage() {
   // Secili kategori. null = tumu.
   const [kategoriId, setKategoriId] = useState<string | null>(null);
 
+  /**
+   * "Bugün" suzgeci adres cubugunda tasiniyor (`?ne_zaman=bugun`).
+   *
+   * Bilesenin kendi durumunda tutulsaydi ust menudeki "Bugün" sekmesi
+   * ayni sayfaya gitmis olur ve hicbir sey degistiremezdi; ayrica
+   * kullanici o listeyi paylasamaz, geri tusuyla cikamazdi.
+   */
+  const [aramaParametreleri, setAramaParametreleri] = useSearchParams();
+  const yalnizBugun = aramaParametreleri.get('ne_zaman') === 'bugun';
+  const gunSiniri = yalnizBugun ? bugununSiniri() : null;
+
   const etkinlikSorgu = useQuery({
-    // Kategori onbellek anahtarinda: filtre degistiginde react-query yeni
-    // bir istek atiyor ve onceki sonucu geri geldiginde uzerine yazmiyor.
-    queryKey: ['discover-events', kategoriId],
-    queryFn: () => etkinlikleriGetir({ sayfaBoyutu: 24, kategoriId: kategoriId ?? undefined }),
+    // Kategori ve tarih onbellek anahtarinda: filtre degistiginde
+    // react-query yeni bir istek atiyor ve onceki sonucu geri geldiginde
+    // uzerine yazmiyor.
+    queryKey: ['discover-events', kategoriId, yalnizBugun],
+    queryFn: () =>
+      etkinlikleriGetir({
+        sayfaBoyutu: 24,
+        kategoriId: kategoriId ?? undefined,
+        baslangicUtc: gunSiniri?.baslangicUtc,
+        bitisUtc: gunSiniri?.bitisUtc,
+      }),
   });
 
   const yaklasanlar = yaklasanlariAyikla(etkinlikSorgu.data?.items ?? []);
@@ -67,7 +87,14 @@ export function KesfetPage() {
 
   return (
     <main className="flex flex-col">
-      <HeroBolumu onKaydir={oneCikanlaraKaydir} />
+      <HeroBolumu
+        onKaydir={oneCikanlaraKaydir}
+        yalnizBugun={yalnizBugun}
+        onBugun={() => {
+          setAramaParametreleri(yalnizBugun ? {} : { ne_zaman: 'bugun' });
+          oneCikanlaraKaydir();
+        }}
+      />
 
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-stack-lg px-container-margin-mobile py-stack-lg md:px-container-margin-desktop">
         <KategorilerBolumu
@@ -108,7 +135,15 @@ export function KesfetPage() {
   );
 }
 
-function HeroBolumu({ onKaydir }: { onKaydir: () => void }) {
+function HeroBolumu({
+  onKaydir,
+  onBugun,
+  yalnizBugun,
+}: {
+  onKaydir: () => void;
+  onBugun: () => void;
+  yalnizBugun: boolean;
+}) {
   return (
     <section className="relative overflow-hidden">
       {/* Gercek bir sahne fotografi yok; "canli etkinlik" hissi icin
@@ -142,10 +177,13 @@ function HeroBolumu({ onKaydir }: { onKaydir: () => void }) {
           <Button type="button" onClick={onKaydir}>
             HEMEN KEŞFET
           </Button>
-          {/* Sunucudaki GET /events tarih filtresi desteklemiyor; "bugunun
-              etkinlikleri" ayri bir sorgu degil, ayni listeye kaydiriyor. */}
-          <Button type="button" gorunum="cizgili" onClick={onKaydir}>
-            BUGÜNÜN ETKİNLİKLERİ
+          {/* Bu dugme ONCEDEN "Hemen keşfet" ile AYNI SEYI yapiyordu:
+              ikisi de listeye kaydiriyordu, cunku GET /events tarih
+              filtresi desteklemiyordu. Calisiyor gorunen ama hicbir sey
+              yapmayan bir dugmeydi. Sunucuya fromUtc/toUtc eklendi ve
+              artik gercekten suzuyor. */}
+          <Button type="button" gorunum="cizgili" onClick={onBugun}>
+            {yalnizBugun ? 'TÜM ETKİNLİKLER' : 'BUGÜNÜN ETKİNLİKLERİ'}
           </Button>
         </div>
       </div>
