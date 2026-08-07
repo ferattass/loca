@@ -1,3 +1,5 @@
+using Loca.Domain.Enums;
+
 namespace Loca.WebApi.Contracts.Events;
 
 /// <remarks>
@@ -66,3 +68,13 @@ public sealed record UpdateTicketTypeRequest(
     DateTime SalesEndsAtUtc);
 
 public sealed record AssignSectionRequest(Guid? SeatSectionId);
+
+/// <param name="UploadedFileId">
+/// Once <c>POST /files/belge</c> ile yuklenen dosyanin kimligi. Dosya
+/// icerigi burada TASINMIYOR: iki adim ayri, yukleme basarili olup baglanti
+/// basarisiz olursa etkinlik kaydi bozulmuyor.
+/// </param>
+public sealed record AddEventDocumentRequest(
+    Guid UploadedFileId,
+    EventDocumentKind Kind,
+    string? Note);

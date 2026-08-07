@@ -86,6 +86,30 @@ internal sealed class LocalFileStorageService(
         return Task.CompletedTask;
     }
 
+    public Task<Stream?> OpenReadAsync(
+        string relativePath, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+
+        var kok = KokKlasor();
+        var tamYol = Path.GetFullPath(Path.Combine(kok, relativePath));
+
+        // Yol veritabanindan geliyor ama yine de dogrulaniyor: kayit bozulmus
+        // ya da elle degistirilmisse "../" iceren bir deger depolama kokunun
+        // disindaki bir dosyayi (ornegin appsettings.json) OKUTABILIRDI.
+        // Silmede aynisi yapiliyor; okumada atlanmasi daha tehlikeli olurdu
+        // cunku sonucu dogrudan istemciye gidiyor.
+        KokunAltindaOlmali(kok, tamYol);
+
+        if (!File.Exists(tamYol))
+            return Task.FromResult<Stream?>(null);
+
+        Stream akis = new FileStream(
+            tamYol, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
+
+        return Task.FromResult<Stream?>(akis);
+    }
+
     private string KokKlasor()
     {
         var kok = Path.IsPathRooted(_options.Path)

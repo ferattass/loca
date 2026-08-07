@@ -1,3 +1,4 @@
+using Loca.Domain.Enums;
 using Loca.Application.Common.Models;
 using Loca.Application.Features.Events.Common;
 
@@ -80,4 +81,5 @@ public sealed record EventListFilter(
     Guid? CategoryId = null,
     string? Search = null,
     DateTime? FromUtc = null,
-    DateTime? ToUtc = null);
+    DateTime? ToUtc = null,
+    EventStatus? Status = null);

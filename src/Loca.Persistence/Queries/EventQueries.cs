@@ -42,6 +42,9 @@ internal sealed class EventQueries(LocaDbContext context) : IEventQueries
         if (filter.OnlyPublic)
             sorgu = sorgu.Where(ev => PublicStatuses.Contains(ev.Status));
 
+        if (filter.Status is { } durum)
+            sorgu = sorgu.Where(ev => ev.Status == durum);
+
         if (filter.CategoryId is { } kategori)
             sorgu = sorgu.Where(ev => ev.CategoryId == kategori);
 

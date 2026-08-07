@@ -14,7 +14,19 @@ public static class RoleNames
 {
     public const string Customer = "Customer";
     public const string Organizer = "Organizer";
+
+    /// <summary>
+    /// Basvuru ve etkinlik onaylayan ekip.
+    /// </summary>
+    /// <remarks>
+    /// <b>Admin'in kisitlanmis hâli.</b> Onay isi buyudukce tek bir admin
+    /// hesabiyla yurumuyor, ama onay verecek herkese admin yetkisi vermek
+    /// odeme ayarlarini, kullanici rollerini ve sirlari da acmak demek
+    /// olurdu. Moderator yalnizca onay kuyrugunu ve etkinlikleri goruyor.
+    /// </remarks>
+    public const string Moderator = "Moderator";
+
     public const string Admin = "Admin";
 
-    public static readonly IReadOnlyList<string> All = [Customer, Organizer, Admin];
+    public static readonly IReadOnlyList<string> All = [Customer, Organizer, Moderator, Admin];
 }

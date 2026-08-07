@@ -1,6 +1,7 @@
 using Loca.Application.Common.Interfaces;
 using Loca.Application.Common.Models;
 using Loca.Application.Features.Events.Common;
+using Loca.Application.Features.Events.Documents;
 using Loca.Domain.Repositories;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,7 @@ public sealed record SubmitEventForApprovalCommand(Guid EventId) : IRequest<Resu
 
 internal sealed class SubmitEventForApprovalCommandHandler(
     IEventRepository events,
+    IEventDocumentQueries documents,
     IUnitOfWork unitOfWork,
     ICurrentUserService currentUser,
     ILogger<SubmitEventForApprovalCommandHandler> logger)
@@ -51,9 +53,15 @@ internal sealed class SubmitEventForApprovalCommandHandler(
         if (EventOwnershipGuard.Check(currentUser, ev) is { } hata)
             return Result.Failure(hata);
 
-        // On kosullar (en az bir oturum, bir aktif bilet turu, afis) ve durum
-        // gecisi domain'de; ihlal DomainException → 409.
-        ev.SubmitForApproval();
+        // Sahne sozlesmesi kontrolu aggregate'in DISINDA soruluyor: belgeler
+        // ayri bir tabloda ve aggregate'e koleksiyon olarak eklenseydi onay
+        // disindaki her etkinlik yuklemesinde de okunurdu. Ayni bolunme
+        // Event.AddSession ile salon cakismasi kontrolunde de var.
+        var sahneBelgesiVar = await documents.HasVenueContractAsync(ev.Id, cancellationToken);
+
+        // On kosullar (en az bir oturum, bir aktif bilet turu, afis, sahne
+        // sozlesmesi) ve durum gecisi domain'de; ihlal DomainException → 409.
+        ev.SubmitForApproval(sahneBelgesiVar);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

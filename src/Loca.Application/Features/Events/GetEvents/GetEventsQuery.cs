@@ -2,6 +2,7 @@ using Loca.Application.Common.Interfaces;
 using Loca.Application.Common.Models;
 using Loca.Application.Features.Events.Common;
 using Loca.Domain.Constants;
+using Loca.Domain.Enums;
 using MediatR;
 
 namespace Loca.Application.Features.Events.GetEvents;
@@ -27,7 +28,8 @@ public sealed record GetEventsQuery(
     Guid? CategoryId = null,
     string? Search = null,
     DateTime? FromUtc = null,
-    DateTime? ToUtc = null)
+    DateTime? ToUtc = null,
+    EventStatus? Status = null)
     : IRequest<Result<PagedResult<EventListItem>>>;
 
 internal sealed class GetEventsQueryHandler(
@@ -43,20 +45,29 @@ internal sealed class GetEventsQueryHandler(
         if (request.Mine && currentUser.UserId is null)
             return Result.Failure<PagedResult<EventListItem>>(EventErrors.Unauthenticated);
 
-        var admin = currentUser.IsInRole(RoleNames.Admin);
+        // Moderator de tum durumlari goruyor: onay kuyrugu yalnizca
+        // PendingApproval kayitlardan olusuyor ve o kayitlar tanimi geregi
+        // herkese acik degil. Goremeseydi onaylayacagi seyi hic
+        // listeleyemezdi.
+        var onayEkibi = currentUser.IsInRole(RoleNames.Admin)
+            || currentUser.IsInRole(RoleNames.Moderator);
 
         // Gorunurluk kurali tek yerde: kendi listesini isteyen organizator
-        // tum durumlari gorur, admin her seyi gorur, geri kalan herkes
+        // tum durumlari gorur, onay ekibi her seyi gorur, geri kalan herkes
         // yalnizca herkese acik durumdakileri.
         var filter = new EventListFilter(
             OrganizerId: request.Mine ? currentUser.UserId : null,
-            OnlyPublic: !request.Mine && !admin,
+            OnlyPublic: !request.Mine && !onayEkibi,
             Pagination: request.Pagination,
             CategoryId: request.CategoryId,
             // Bos arama "bos metni ara" demek degil "arama yok" demek.
             Search: string.IsNullOrWhiteSpace(request.Search) ? null : request.Search,
             FromUtc: request.FromUtc,
-            ToUtc: request.ToUtc);
+            ToUtc: request.ToUtc,
+            // Durum suzgeci yalnizca gorme yetkisi olana bir sey katiyor:
+            // digerleri zaten OnlyPublic ile sinirli ve "Draft goster"
+            // dediklerinde bos liste aliyorlar.
+            Status: request.Status);
 
         var sonuc = await queries.GetPagedAsync(filter, cancellationToken);
 

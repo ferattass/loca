@@ -17,11 +17,18 @@ public sealed record UploadedFileResponse(
 
 /// <param name="Content">Dosya icerigi. Okunabilir ve basa sarilabilir olmali.</param>
 /// <param name="OriginalFileName">Kullanicinin verdigi ad. Yalnizca gosterim icin saklanir.</param>
+/// <param name="Belge">
+/// <c>true</c> ise belge kurallari (PDF dahil), aksi hâlde gorsel kurallari.
+/// Bayrak istekten geliyor ama <b>uc secimiyle</b>: gorsel ucu her zaman
+/// <c>false</c>, belge ucu her zaman <c>true</c> gonderiyor. Istemcinin
+/// serbestce secebilecegi bir alan olsaydi afis alanina PDF yuklenebilirdi.
+/// </param>
 public sealed record UploadFileCommand(
     Stream Content,
     string OriginalFileName,
     string ContentType,
-    long Length) : IRequest<Result<UploadedFileResponse>>;
+    long Length,
+    bool Belge = false) : IRequest<Result<UploadedFileResponse>>;
 
 internal static class FileErrors
 {
@@ -35,6 +42,11 @@ internal static class FileErrors
         Error.Validation(
             "File.ExtensionNotAllowed",
             "Yalnizca .jpg, .jpeg, .png ve .webp dosyalari yuklenebilir.");
+
+    internal static readonly Error DocumentExtensionNotAllowed =
+        Error.Validation(
+            "File.ExtensionNotAllowed",
+            "Belge olarak yalnizca .pdf, .jpg, .jpeg, .png ve .webp yuklenebilir.");
 
     /// <remarks>
     /// Uzanti izinli ama icerik baska bir sey: adi degistirilmis bir dosya.
@@ -80,8 +92,15 @@ internal sealed class UploadFileCommandHandler(
 
         var uzanti = Path.GetExtension(request.OriginalFileName);
 
-        if (!ImageSignature.UzantiIzinli(uzanti))
-            return Result.Failure<UploadedFileResponse>(FileErrors.ExtensionNotAllowed);
+        var izinliler = request.Belge
+            ? ImageSignature.AllowedDocumentExtensions
+            : ImageSignature.AllowedExtensions;
+
+        if (!ImageSignature.UzantiIzinli(uzanti, izinliler))
+        {
+            return Result.Failure<UploadedFileResponse>(
+                request.Belge ? FileErrors.DocumentExtensionNotAllowed : FileErrors.ExtensionNotAllowed);
+        }
 
         // Icerigin ilk baytlari okunup uzantiyla karsilastiriliyor. Uzantiya ve
         // istemcinin bildirdigi MIME basligina guvenilmez: ikisini de gonderen
@@ -113,7 +132,11 @@ internal sealed class UploadFileCommandHandler(
             request.ContentType,
             saklanan.SizeInBytes,
             saklanan.RelativePath,
-            currentUser.UserId);
+            currentUser.UserId,
+            // Belge kapali kaydediliyor: afisin vitrinde gorunmesi gerekiyor,
+            // sahne kira sozlesmesinin gorunmemesi. Ayrim dosyanin turune
+            // bakilarak tahmin edilemez, ikisi de PNG olabilir.
+            isPublic: !request.Belge);
 
         files.Add(kayit);
         await unitOfWork.SaveChangesAsync(cancellationToken);

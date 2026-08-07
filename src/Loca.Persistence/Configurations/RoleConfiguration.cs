@@ -16,6 +16,13 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
     private static readonly Guid OrganizerRoleId = new("22222222-2222-2222-2222-222222222222");
     private static readonly Guid AdminRoleId = new("33333333-3333-3333-3333-333333333333");
 
+    /// <remarks>
+    /// Sonradan eklendi; kimlik deseni digerleriyle ayni tutuldu ki
+    /// veritabanina bakan biri hangi satirin tohum oldugunu bir bakista
+    /// gorebilsin.
+    /// </remarks>
+    private static readonly Guid ModeratorRoleId = new("44444444-4444-4444-4444-444444444444");
+
     /// <summary>
     /// Tohum kayitlarinin olusturulma zamani. Interceptor migration sirasinda
     /// calismadigi icin acikca verilir; sabit olmasi gerekir, aksi hâlde her
@@ -53,6 +60,13 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
                 Id = OrganizerRoleId,
                 Name = RoleNames.Organizer,
                 Description = "Kendi etkinliklerini olusturan, yayinlayan ve raporlarini goren kullanici.",
+                CreatedAt = SeededAt
+            },
+            new
+            {
+                Id = ModeratorRoleId,
+                Name = RoleNames.Moderator,
+                Description = "Etkinlik ve organizator basvurularini inceleyip karara baglayan ekip.",
                 CreatedAt = SeededAt
             },
             new

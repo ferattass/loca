@@ -18,6 +18,19 @@ public static class EventErrors
     public static readonly Error CategoryNotFound =
         Error.NotFound("Event.CategoryNotFound", "Kategori bulunamadi veya aktif degil.");
 
+    public static readonly Error DocumentNotFound =
+        Error.NotFound("Event.DocumentNotFound", "Belge bulunamadi.");
+
+    /// <remarks>
+    /// Onay verildikten sonra belge degistirilemiyor: onay o belgelere
+    /// bakilarak verildi, sonradan degistirilebilseydi onayin dayanagi
+    /// ortadan kalkardi.
+    /// </remarks>
+    public static readonly Error DocumentsLocked =
+        Error.Conflict(
+            "Event.DocumentsLocked",
+            "Bu durumdaki etkinligin belgeleri degistirilemez.");
+
     /// <remarks>
     /// 403, 404 degil: organizator panelinde kendisine ait olmayan bir
     /// kaynaga istek attiginda "yetkin yok" yaniti "kayit yok" yanitindan

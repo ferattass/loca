@@ -264,12 +264,30 @@ public sealed class Event : BaseEntity, IAggregateRoot, ISoftDeletable, IOwnedRe
     }
 
     /// <summary>Onaya gonderir: Draft → PendingApproval.</summary>
-    public void SubmitForApproval()
+    /// <param name="sahneBelgesiVar">
+    /// Etkinlige en az bir sahne sozlesmesi belgesi eklenmis mi.
+    /// <b>Aggregate'in disindan geliyor</b> cunku belgeler ayri bir tabloda
+    /// ve bu koleksiyonu aggregate'e yuklemek, onay disindaki her
+    /// islemde de belgelerin okunmasi demek olurdu. Ayni bolunme
+    /// <c>AddSession</c> ile salon cakismasi kontrolunde de var.
+    /// </param>
+    public void SubmitForApproval(bool sahneBelgesiVar)
     {
         if (Status != EventStatus.Draft)
             throw new DomainException($"Yalnizca taslak etkinlik onaya gonderilebilir. Mevcut durum: {Status}.");
 
         EnsureReadyForPublish();
+
+        // Onay ekibinin bakacagi asil sey bu: salonun o tarih icin gercekten
+        // tutuldugunu gosteren belge. Belgesiz bir basvuru, onaylayan kisiye
+        // "guven bana" demekten baska bir sey sunmuyor ve reddedilmek uzere
+        // kuyruga giriyor — en bastan engellemek herkesin zamanini
+        // kurtariyor.
+        if (!sahneBelgesiVar)
+        {
+            throw new DomainException(
+                "Onaya gondermek icin sahne sozlesmesi belgesi eklenmeli.");
+        }
 
         Status = EventStatus.PendingApproval;
     }

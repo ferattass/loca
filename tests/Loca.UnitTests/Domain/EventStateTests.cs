@@ -74,7 +74,7 @@ public class EventStateTests
         etkinlik.AddTicketType("Tam", new Money(500, "TRY"), 100, Simdi, Simdi.AddDays(29));
         etkinlik.SetPoster(Guid.CreateVersion7());
 
-        var hata = Assert.Throws<DomainException>(etkinlik.SubmitForApproval);
+        var hata = Assert.Throws<DomainException>(() => etkinlik.SubmitForApproval(sahneBelgesiVar: true));
 
         Assert.Contains("oturum", hata.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -88,7 +88,7 @@ public class EventStateTests
             Simdi.AddDays(30), Simdi.AddDays(30).AddHours(2), Simdi, Simdi.AddDays(29));
         etkinlik.SetPoster(Guid.CreateVersion7());
 
-        var hata = Assert.Throws<DomainException>(etkinlik.SubmitForApproval);
+        var hata = Assert.Throws<DomainException>(() => etkinlik.SubmitForApproval(sahneBelgesiVar: true));
 
         Assert.Contains("bilet turu", hata.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -102,9 +102,29 @@ public class EventStateTests
             Simdi.AddDays(30), Simdi.AddDays(30).AddHours(2), Simdi, Simdi.AddDays(29));
         etkinlik.AddTicketType("Tam", new Money(500, "TRY"), 100, Simdi, Simdi.AddDays(29));
 
-        var hata = Assert.Throws<DomainException>(etkinlik.SubmitForApproval);
+        var hata = Assert.Throws<DomainException>(() => etkinlik.SubmitForApproval(sahneBelgesiVar: true));
 
         Assert.Contains("afis", hata.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Sahne sozlesmesi olmadan onaya gonderilemez.
+    /// </summary>
+    /// <remarks>
+    /// Onay ekibinin bakacagi asil sey salonun o tarih icin gercekten
+    /// tutuldugunu gosteren belge. Belgesiz basvuru, onaylayan kisiye
+    /// "guven bana" demekten baska bir sey sunmuyor.
+    /// </remarks>
+    [Fact]
+    public void SubmitForApprovalRequiresVenueContract()
+    {
+        var etkinlik = HazirEtkinlik();
+
+        var hata = Assert.Throws<DomainException>(
+            () => etkinlik.SubmitForApproval(sahneBelgesiVar: false));
+
+        Assert.Contains("sahne sozlesmesi", hata.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(EventStatus.Draft, etkinlik.Status);
     }
 
     [Fact]
@@ -112,7 +132,7 @@ public class EventStateTests
     {
         var etkinlik = HazirEtkinlik();
 
-        etkinlik.SubmitForApproval();
+        etkinlik.SubmitForApproval(sahneBelgesiVar: true);
         Assert.Equal(EventStatus.PendingApproval, etkinlik.Status);
 
         etkinlik.Publish(Simdi);
@@ -135,7 +155,7 @@ public class EventStateTests
 
         Assert.True(etkinlik.AllowsCriticalChanges);
 
-        etkinlik.SubmitForApproval();
+        etkinlik.SubmitForApproval(sahneBelgesiVar: true);
         etkinlik.Publish(Simdi);
 
         // Yayindan sonra salon veya tarih sessizce degisirse bilet almis
@@ -147,7 +167,7 @@ public class EventStateTests
     public void CompletedEventCannotBeCancelled()
     {
         var etkinlik = HazirEtkinlik();
-        etkinlik.SubmitForApproval();
+        etkinlik.SubmitForApproval(sahneBelgesiVar: true);
         etkinlik.Publish(Simdi);
         etkinlik.OpenSales();
         etkinlik.Complete();
@@ -180,7 +200,7 @@ public class EventStateTests
     public void SuspendedEventShouldResumeToPublished()
     {
         var etkinlik = HazirEtkinlik();
-        etkinlik.SubmitForApproval();
+        etkinlik.SubmitForApproval(sahneBelgesiVar: true);
         etkinlik.Publish(Simdi);
         etkinlik.OpenSales();
 

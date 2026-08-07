@@ -28,7 +28,8 @@ public sealed class UploadedFile : BaseEntity
         string contentType,
         long sizeInBytes,
         string relativePath,
-        Guid? uploadedByUserId)
+        Guid? uploadedByUserId,
+        bool isPublic = true)
     {
         if (string.IsNullOrWhiteSpace(fileName))
             throw new DomainException("Dosya adi bos olamaz.");
@@ -42,6 +43,7 @@ public sealed class UploadedFile : BaseEntity
         SizeInBytes = sizeInBytes;
         RelativePath = relativePath;
         UploadedByUserId = uploadedByUserId;
+        IsPublic = isPublic;
     }
 
     /// <summary>Diskteki guvenli ad: <c>Guid</c> + uzanti.</summary>
@@ -57,4 +59,22 @@ public sealed class UploadedFile : BaseEntity
     public string RelativePath { get; private set; }
 
     public Guid? UploadedByUserId { get; private set; }
+
+    /// <summary>
+    /// Dosya herkese acik mi.
+    /// </summary>
+    /// <remarks>
+    /// <b>Afis ile sozlesme ayni depoda ama ayni gorunurlukte degil.</b>
+    /// Afisin vitrinde gorunmesi gerekiyor; sahne kira sozlesmesinin
+    /// gorunmemesi. Ayrim dosyanin turune bakilarak tahmin edilemez —
+    /// ikisi de PNG olabilir — bu yuzden yukleme aninda isaretleniyor:
+    /// gorsel ucu acik, belge ucu kapali kaydediyor.
+    ///
+    /// <para>
+    /// Kapali dosyaya yalnizca yukleyeni ve onay ekibi erisebiliyor.
+    /// "Kimse kimligi tahmin edemez" (Guid) tek basina bir koruma degil:
+    /// adres bir kez paylasildiginda kalici olarak acik hâle gelirdi.
+    /// </para>
+    /// </remarks>
+    public bool IsPublic { get; private set; } = true;
 }

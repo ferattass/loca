@@ -41,6 +41,7 @@ public sealed class LocaDbContext(DbContextOptions<LocaDbContext> options)
     public DbSet<Event> Events => Set<Event>();
     public DbSet<EventSession> EventSessions => Set<EventSession>();
     public DbSet<TicketType> TicketTypes => Set<TicketType>();
+    public DbSet<EventDocument> EventDocuments => Set<EventDocument>();
     public DbSet<EventSeat> EventSeats => Set<EventSeat>();
 
     public DbSet<Reservation> Reservations => Set<Reservation>();

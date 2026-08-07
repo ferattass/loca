@@ -14,8 +14,20 @@ public static class Policies
     /// <summary>Etkinlik olusturma, bilet turu tanimlama, kendi raporlari.</summary>
     public const string OrganizerOnly = "OrganizerOnly";
 
-    /// <summary>Kullanici yonetimi, basvuru onaylama, kategori/mekan yonetimi.</summary>
+    /// <summary>Kullanici yonetimi, odeme ayarlari, kategori/mekan yonetimi.</summary>
     public const string AdminOnly = "AdminOnly";
+
+    /// <summary>
+    /// Onay kuyrugu: etkinlik ve organizator basvurularini inceleyip karara baglama.
+    /// </summary>
+    /// <remarks>
+    /// <c>AdminOnly</c>'den ayri bir policy, cunku onay isi buyudukce tek
+    /// admin hesabiyla yurumuyor ama onay verecek herkese admin yetkisi
+    /// vermek odeme ayarlarini ve rol atamayi da acmak olurdu. Admin bu
+    /// policy'ye de dahil: onay yetkisi admin'in zaten sahip oldugu
+    /// yetkilerin alt kumesi.
+    /// </remarks>
+    public const string ModeratorOnly = "ModeratorOnly";
 
     /// <summary>Ucuncu seviye: kaynagin sahibi mi (veya admin mi).</summary>
     public const string ResourceOwner = "ResourceOwner";

@@ -111,6 +111,11 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.AdminOnly, policy => policy.RequireRole(RoleNames.Admin))
     .AddPolicy(Policies.OrganizerOnly, policy =>
         policy.RequireRole(RoleNames.Organizer, RoleNames.Admin))
+    // Admin de dahil: onay yetkisi admin'in zaten sahip oldugu yetkilerin
+    // alt kumesi ve haric tutulsaydi tek admin hesabiyla kurulan bir
+    // sistemde onay kuyrugu hic acilamazdi.
+    .AddPolicy(Policies.ModeratorOnly, policy =>
+        policy.RequireRole(RoleNames.Moderator, RoleNames.Admin))
     .AddPolicy(Policies.ResourceOwner, policy =>
         policy.AddRequirements(new ResourceOwnerRequirement()));
 

@@ -19,4 +19,13 @@ public interface IFileStorageService
         Stream icerik, string uzanti, CancellationToken cancellationToken = default);
 
     Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default);
+
+    /// <summary>Dosyayi okumak icin acar; yoksa <c>null</c>.</summary>
+    /// <remarks>
+    /// Stream donuyor, bayt dizisi degil: bes megabaytlik bir afis her
+    /// istekte belege kopyalanmamali. Cagiran tarafin dispose etmesi
+    /// gerekiyor.
+    /// </remarks>
+    Task<Stream?> OpenReadAsync(
+        string relativePath, CancellationToken cancellationToken = default);
 }

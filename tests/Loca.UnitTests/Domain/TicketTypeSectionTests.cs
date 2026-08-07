@@ -217,7 +217,7 @@ public class TicketTypeSectionTests
         TurEkle(etkinlik, "Tam");
         etkinlik.SetPoster(Guid.CreateVersion7());
 
-        etkinlik.SubmitForApproval();
+        etkinlik.SubmitForApproval(sahneBelgesiVar: true);
         etkinlik.Publish(Simdi);
 
         var yeniYer = new EventPlace(
@@ -242,7 +242,7 @@ public class TicketTypeSectionTests
 
         tur.Deactivate();
 
-        var hata = Assert.Throws<DomainException>(etkinlik.SubmitForApproval);
+        var hata = Assert.Throws<DomainException>(() => etkinlik.SubmitForApproval(sahneBelgesiVar: true));
 
         Assert.Contains("aktif bilet turu", hata.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -263,7 +263,7 @@ public class TicketTypeSectionTests
 
         oturum.Cancel();
 
-        var hata = Assert.Throws<DomainException>(etkinlik.SubmitForApproval);
+        var hata = Assert.Throws<DomainException>(() => etkinlik.SubmitForApproval(sahneBelgesiVar: true));
 
         Assert.Contains("iptal edilmemis", hata.Message, StringComparison.OrdinalIgnoreCase);
     }

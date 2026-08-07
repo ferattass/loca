@@ -4,6 +4,7 @@ using Loca.Application.Features.Events.Common;
 using Loca.Application.Features.Events.CreateEvent;
 using Loca.Application.Features.Events.CreateEventSession;
 using Loca.Application.Features.Events.DeleteEvent;
+using Loca.Application.Features.Events.Documents;
 using Loca.Application.Features.Events.GetEventById;
 using Loca.Application.Features.Events.GetEvents;
 using Loca.Application.Features.Events.PublishEvent;
@@ -12,6 +13,7 @@ using Loca.Application.Features.Events.SubmitEventForApproval;
 using Loca.Application.Features.Events.UpdateEvent;
 using Loca.Application.Features.TicketTypes.CreateTicketType;
 using Loca.Application.Features.TicketTypes.GetTicketTypes;
+using Loca.Domain.Enums;
 using Loca.WebApi.Authorization;
 using Loca.WebApi.Contracts.Events;
 using MediatR;
@@ -59,6 +61,7 @@ public sealed class EventsController(ISender sender) : ApiControllerBase
         [FromQuery] string? search = null,
         [FromQuery] DateTime? fromUtc = null,
         [FromQuery] DateTime? toUtc = null,
+        [FromQuery] EventStatus? status = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -69,7 +72,8 @@ public sealed class EventsController(ISender sender) : ApiControllerBase
             categoryId,
             search,
             fromUtc,
-            toUtc);
+            toUtc,
+            status);
 
         return ToResponse(await sender.Send(query, cancellationToken));
     }
@@ -186,12 +190,69 @@ public sealed class EventsController(ISender sender) : ApiControllerBase
     /// moderasyon ancak bilet satildiktan sonra devreye girer. Organizatorun
     /// karsiligi <c>submit-for-approval</c> ucu.
     /// </remarks>
+    /// <remarks>
+    /// <b>AdminOnly'den ModeratorOnly'ye cekildi.</b> Onay isi buyudukce tek
+    /// admin hesabiyla yurumuyor; onay verecek herkese admin yetkisi vermek
+    /// ise odeme ayarlarini, rol atamayi ve sirlari da acmak olurdu. Admin
+    /// bu policy'ye dahil.
+    /// </remarks>
     [HttpPost("{id:guid}/publish")]
-    [Authorize(Policy = Policies.AdminOnly)]
+    [Authorize(Policy = Policies.ModeratorOnly)]
     [ProducesResponseType<PublishEventResult>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Publish(Guid id, CancellationToken cancellationToken) =>
         ToResponse(await sender.Send(new PublishEventCommand(id), cancellationToken));
+
+    /// <summary>Etkinlige belge ekler (sahne sozlesmesi, izin yazisi).</summary>
+    /// <remarks>
+    /// Dosya once <c>POST /files/belge</c> ile yuklenir, donen kimlik burada
+    /// etkinlige baglanir. Iki adim ayri: yukleme basarili olup baglanti
+    /// basarisiz olursa dosya ortada kalir ama etkinlik bozulmaz; tek istekte
+    /// yapilsaydi yarim kalan bir yuklemede etkinlik kaydi da etkilenirdi.
+    /// </remarks>
+    [HttpPost("{id:guid}/documents")]
+    [Authorize(Policy = Policies.OrganizerOnly)]
+    [ProducesResponseType<Guid>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddDocument(
+        Guid id,
+        [FromBody] AddEventDocumentRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return ToResponse(await sender.Send(
+            new AddEventDocumentCommand(id, request.UploadedFileId, request.Kind, request.Note),
+            cancellationToken));
+    }
+
+    /// <summary>Etkinligin belgelerini listeler.</summary>
+    /// <remarks>
+    /// Yalnizca etkinligin sahibi ve onay ekibi gorur: kira sozlesmesi imza
+    /// ve ticari kosul tasiyor, vitrinde gorunmesi icin sebep yok.
+    /// </remarks>
+    [HttpGet("{id:guid}/documents")]
+    [Authorize(Policy = Policies.OrganizerOnly)]
+    [ProducesResponseType<IReadOnlyList<EtkinlikBelgesi>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDocuments(Guid id, CancellationToken cancellationToken) =>
+        ToResponse(await sender.Send(new GetEventDocumentsQuery(id), cancellationToken));
+
+    /// <summary>Belgeyi kaldirir. Yayindaki etkinlikte calismaz.</summary>
+    [HttpDelete("{id:guid}/documents/{documentId:guid}")]
+    [Authorize(Policy = Policies.OrganizerOnly)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteDocument(
+        Guid id, Guid documentId, CancellationToken cancellationToken) =>
+        ToResponse(await sender.Send(
+            new DeleteEventDocumentCommand(id, documentId), cancellationToken));
 
     /// <summary>Etkinligi iptal eder; oturumlari da iptal edilir.</summary>
     [HttpPost("{id:guid}/cancel")]

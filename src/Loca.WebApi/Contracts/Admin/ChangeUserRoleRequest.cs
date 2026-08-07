@@ -8,3 +8,14 @@ namespace Loca.WebApi.Contracts.Admin;
 /// sessizce etkisiz kalirdi.
 /// </remarks>
 public sealed record ChangeUserRoleRequest(string RoleName, bool Grant);
+
+/// <param name="Roles">
+/// Verilecek roller. <c>Admin</c> kabul edilmiyor: hesap acma ve yetki
+/// yukseltme ayri isler, ikisi tek istekte yapilabilseydi panele erisen
+/// biri kendi kontrol ettigi bir adrese admin hesabi acabilirdi.
+/// </param>
+public sealed record CreateUserRequest(
+    string Email,
+    string FullName,
+    string? PhoneNumber,
+    IReadOnlyList<string> Roles);

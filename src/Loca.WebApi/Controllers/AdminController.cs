@@ -1,5 +1,6 @@
 using Loca.Application.Common.Models;
 using Loca.Application.Features.Admin.ChangeUserRole;
+using Loca.Application.Features.Admin.CreateUser;
 using Loca.Application.Features.Admin.Common;
 using Loca.Application.Features.Admin.GetOverview;
 using Loca.Application.Features.Admin.GetPayments;
@@ -99,6 +100,38 @@ public sealed class AdminController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UserDetail(Guid id, CancellationToken cancellationToken) =>
         ToResponse(await sender.Send(new GetUserDetailQuery(id), cancellationToken));
+
+    /// <summary>Organizator/sanatci icin hesap acar.</summary>
+    /// <remarks>
+    /// <b>Sifre panelde belirlenmiyor ve gosterilmiyor.</b> Yonetici bir
+    /// sifre yazsaydi onu kullaniciya bir kanaldan iletmesi gerekirdi ve o
+    /// kanalda kalici olarak dururdu; ustelik yonetici hesabin sifresini
+    /// bilmeye devam ederdi. Rastgele bir sifre uretiliyor ve kullaniciya
+    /// sifirlama baglantisi gonderiliyor — ilk sifreyi hesabin sahibi
+    /// koyuyor.
+    ///
+    /// <para>
+    /// Admin rolu bu uctan VERILEMEZ; hesap acilip sonra rol degistirme
+    /// ucundan atanir. Tek istekle verilebilseydi panele erisen biri kendi
+    /// kontrol ettigi bir adrese admin hesabi acip kalici erisim
+    /// birakabilirdi.
+    /// </para>
+    /// </remarks>
+    [HttpPost("users")]
+    [ProducesResponseType<OlusturulanHesap>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateUser(
+        [FromBody] CreateUserRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return ToResponse(await sender.Send(
+            new CreateUserCommand(
+                request.Email, request.FullName, request.PhoneNumber, request.Roles),
+            cancellationToken));
+    }
 
     /// <summary>Kullaniciya rol verir veya geri alir.</summary>
     /// <remarks>
