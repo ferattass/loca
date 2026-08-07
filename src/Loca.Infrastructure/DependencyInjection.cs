@@ -46,12 +46,29 @@ public static class DependencyInjection
         // hâle geliyor — yonetici SMTP sifresini her seferinde yeniden
         // girmek zorunda kalirdi. Uygulama cokmuyor (cozulemeyen sir
         // "tanimli degil" sayiliyor), bu yuzden hata sessiz olurdu.
+        // Yol VERILMISSE diske, verilmemisse VERITABANINA yaziliyor.
+        //
+        // Onceden yol verilmediginde varsayilan konum kullaniliyordu: imajin
+        // kendi dosya sistemi. Ucretsiz barindirma katmanlarinda o dosya
+        // sistemi gecici ve kalici disk secenegi de yok — servis her
+        // uyandiginda yeni anahtar uretilir ve panelden girilmis iyzico
+        // anahtarlariyla SMTP sifresi cozulemez hale gelirdi. Cozulemeyen
+        // sir "tanimli degil" sayildigi icin uygulama cokmez, hata SESSIZ
+        // olurdu: yonetici her seferinde anahtarlari yeniden girer ve
+        // sebebini bulamazdi.
+        //
+        // Veritabani her iki ortamda da kalici; diske yazma secenegi yerel
+        // konteyner yigini icin duruyor.
         var anahtarYolu = configuration["DataProtection:KeyPath"];
 
         if (!string.IsNullOrWhiteSpace(anahtarYolu))
         {
             dataProtection.PersistKeysToFileSystem(new DirectoryInfo(anahtarYolu));
         }
+        // Yol verilmediginde anahtarlar VERITABANINA yaziliyor ama o kayit
+        // Persistence katmaninda: DbContext'i burada tanimak, altyapinin
+        // veri katmanina bagimli olmasi demek olurdu ve mimari kurali bunu
+        // yasakliyor (LayerRuleTests).
 
         services.AddMemoryCache();
         services.AddScoped<ISecretProtector, DataProtectionSecretProtector>();

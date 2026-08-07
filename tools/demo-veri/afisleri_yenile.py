@@ -1,42 +1,29 @@
 # -*- coding: utf-8 -*-
-"""Etkinliklere afis uretir ve bagliar.
+"""Yayindaki her etkinlige okunabilir bir afis uretip baglar.
 
-Ilk demo verisinde afis olarak tek renk PNG kullanilmisti; kartlar
-vitrinde duz bir renk blogu gosteriyordu. Bu betik her etkinlige kendi
-renk paletinde dikey bir afis uretiyor: dikey degrade, capraz seritler ve
-alt kenarda koyulasan bir perde (ustune yazi gelirse okunur kalsin diye).
+`etkinlikleri_doldur.py` yeni etkinliklere zaten afis takiyor; bu betik
+MEVCUT etkinliklerin afislerini yeniliyor. Ucretsiz barindirma
+katmanlarinda dosya sistemi gecici oldugu icin dagitimdan sonra da
+kosulmasi gerekiyor: yuklenen dosyalar her dagitimda siliniyor.
 
-<b>Cizim saf standart kutuphaneyle</b>: Pillow gibi bir bagimlilik
-eklenmedi. Depoya giren tek dosyalik bir demo araci icin paket listesi
-buyutmenin karsiligi yok ve bu betik CI'da da kosabilmeli.
+Cizim `afis_uret.py`'de; Pillow kuruluysa afisin uzerine etkinligin adi,
+tarihi ve mekani yaziliyor, degilse yazisiz degrade uretiliyor.
 
 Kosum (API ayakta olmali):
     python tools/demo-veri/afisleri_yenile.py
 """
 
+import datetime as dt
 import json
-import struct
 import sys
 import urllib.error
 import urllib.request
 import uuid
-import zlib
+
+from afis_uret import afis_uret
 
 KOK = "http://localhost:5000/api/v1"
 ADMIN = ("admin@loca.dev", "Loca!Admin2026")
-
-GENISLIK = 600
-YUKSEKLIK = 800
-
-# Her etkinlige bir palet: (ust renk, alt renk, vurgu).
-PALETLER = [
-    ((88, 28, 135), (17, 24, 39), (236, 72, 153)),
-    ((12, 74, 110), (15, 23, 42), (56, 189, 248)),
-    ((124, 45, 18), (28, 25, 23), (251, 146, 60)),
-    ((6, 78, 59), (15, 23, 42), (52, 211, 153)),
-    ((131, 24, 67), (24, 24, 27), (244, 114, 182)),
-    ((30, 27, 75), (15, 23, 42), (129, 140, 248)),
-]
 
 
 def istek(yol, yontem="GET", govde=None, token=None):
@@ -58,6 +45,9 @@ def istek(yol, yontem="GET", govde=None, token=None):
             return hata.status, json.loads(icerik) if icerik else None
         except json.JSONDecodeError:
             return hata.status, icerik
+    except urllib.error.URLError as hata:
+        print(f"API'ye ulasilamadi: {hata}")
+        sys.exit(1)
 
 
 def dosya_yukle(ad, icerik, token):
@@ -86,68 +76,6 @@ def dosya_yukle(ad, icerik, token):
         return hata.status, hata.read().decode()
 
 
-def karistir(a, b, oran):
-    """Iki rengi oranla karistirir. oran=0 → a, oran=1 → b."""
-    return tuple(round(a[i] + (b[i] - a[i]) * oran) for i in range(3))
-
-
-def afis_uret(palet, tohum):
-    """Dikey degrade + capraz seritler + alt perde."""
-    ust, alt, vurgu = palet
-    satirlar = []
-
-    for y in range(YUKSEKLIK):
-        dikey = y / (YUKSEKLIK - 1)
-        temel = karistir(ust, alt, dikey)
-
-        piksel = bytearray()
-
-        for x in range(GENISLIK):
-            renk = temel
-
-            # Capraz seritler: x + y sabit olan cizgiler. Tohum her
-            # etkinlikte deseni kaydiriyor, sekiz afis birbirinin ayni
-            # gorunmesin.
-            konum = (x + y * 2 + tohum * 97) % 420
-
-            if konum < 6:
-                renk = karistir(temel, vurgu, 0.55)
-            elif konum < 12:
-                renk = karistir(temel, vurgu, 0.22)
-
-            # Ust kosede yumusak bir isik: duz degrade fotograf gibi
-            # durmuyordu.
-            uzaklik = ((x - GENISLIK * 0.25) ** 2 + (y - YUKSEKLIK * 0.18) ** 2) ** 0.5
-            if uzaklik < 320:
-                renk = karistir(renk, vurgu, 0.18 * (1 - uzaklik / 320))
-
-            # Alt perde: kart uzerinde yazi varsa okunur kalsin.
-            if dikey > 0.62:
-                renk = karistir(renk, (10, 10, 14), (dikey - 0.62) / 0.38 * 0.75)
-
-            piksel += bytes(renk)
-
-        # Her satir filtre baytiyla basliyor (0 = filtre yok).
-        satirlar.append(b"\x00" + bytes(piksel))
-
-    ham = b"".join(satirlar)
-
-    def parca(tur, veri):
-        return (
-            struct.pack(">I", len(veri))
-            + tur
-            + veri
-            + struct.pack(">I", zlib.crc32(tur + veri) & 0xFFFFFFFF)
-        )
-
-    return (
-        b"\x89PNG\r\n\x1a\n"
-        + parca(b"IHDR", struct.pack(">IIBBBBB", GENISLIK, YUKSEKLIK, 8, 2, 0, 0, 0))
-        + parca(b"IDAT", zlib.compress(ham, 9))
-        + parca(b"IEND", b"")
-    )
-
-
 def main():
     durum, cevap = istek("/auth/login", "POST",
                          {"email": ADMIN[0], "password": ADMIN[1]})
@@ -164,7 +92,17 @@ def main():
     yenilenen = 0
 
     for sira, etkinlik in enumerate(liste["items"]):
-        icerik = afis_uret(PALETLER[sira % len(PALETLER)], sira)
+        tarih = dt.datetime.fromisoformat(
+            etkinlik["eventDateUtc"].replace("Z", "+00:00"))
+
+        icerik = afis_uret(
+            palet_no=sira,
+            tohum=sira,
+            baslik=etkinlik["title"],
+            tarih_metni=tarih.strftime("%d.%m.%Y  %H:%M"),
+            mekan=f"{etkinlik['venueName']} · {etkinlik['cityName']}",
+            kategori=etkinlik["categoryName"],
+        )
 
         durum, dosya = dosya_yukle(f"afis-{sira}.png", icerik, token)
 

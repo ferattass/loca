@@ -20,43 +20,83 @@ Kosum (API ayakta olmali):
 
 import datetime as dt
 import json
-import struct
 import sys
 import urllib.error
 import urllib.request
 import uuid
-import zlib
+
+from afis_uret import afis_uret
 
 KOK = "http://localhost:5000/api/v1"
 ADMIN = ("admin@loca.dev", "Loca!Admin2026")
 ORGANIZATOR = ("organizator@loca.dev", "Loca!Demo2026")
 
 # Ad, kategori, aciklama, gun sonrasi, sure, bilet turleri (ad, fiyat).
+#
+# Gun sonrasi degerleri BILEREK dagitildi: 0 ve 1 olanlar "Bugün" ve
+# "Yarın" suzgeclerinin bos donmemesi icin. Suzgec calisir ama gosterecek
+# hicbir sey bulamazsa kullanici suzgecin bozuk oldugunu sanar.
 ETKINLIKLER = [
     ("Yaz Akşamı Caz Konseri", "Konser",
-     "Üçlü caz grubu; standartlar ve doğaçlama.", 3, 120,
+     "Üçlü caz grubu; standartlar ve doğaçlama.", 0, 120,
      [("Tam", 450), ("Öğrenci", 250)]),
+    ("Perşembe Akşamı Stand-up", "Stand-up",
+     "Haftanın en yorgun gününe kısa bir mola.", 0, 70,
+     [("Tam", 320), ("Öğrenci", 180)]),
+    ("Akustik Oda Konseri", "Konser",
+     "Elektriksiz düzenlemelerle bir saat.", 1, 90,
+     [("Tam", 380), ("Öğrenci", 210)]),
+    ("Çocuk Tiyatrosu: Kayıp Yıldız", "Çocuk",
+     "5-10 yaş için müzikli oyun.", 1, 60,
+     [("Tam", 180)]),
     ("Stand-up: Yeni Program", "Stand-up",
-     "Yeni yazılmış bir saatlik gösteri.", 5, 75,
+     "Yeni yazılmış bir saatlik gösteri.", 3, 75,
      [("Tam", 350), ("Öğrenci", 200)]),
     ("Bir Yaz Gecesi Rüyası", "Tiyatro",
-     "Klasik komedinin modern sahnelemesi.", 8, 140,
+     "Klasik komedinin modern sahnelemesi.", 4, 140,
      [("Tam", 400), ("Öğrenci", 220)]),
-    ("Teknoloji ve Tasarım Zirvesi", "Konferans",
-     "Ürün tasarımı ve yazılım üzerine tam günlük program.", 12, 300,
-     [("Tam", 750), ("Öğrenci", 350)]),
     ("Anadolu Rock Gecesi", "Konser",
-     "Yerli rock repertuvarından seçmeler.", 15, 150,
+     "Yerli rock repertuvarından seçmeler.", 5, 150,
      [("Tam", 600), ("Öğrenci", 320)]),
-    ("Çocuk Tiyatrosu: Kayıp Yıldız", "Çocuk",
-     "5-10 yaş için müzikli oyun.", 6, 60,
-     [("Tam", 180)]),
-    ("Klasik Müzik Dinletisi", "Konser",
-     "Oda müziği topluluğundan bir akşam.", 20, 110,
-     [("Tam", 520), ("Öğrenci", 280)]),
+    ("Teknoloji ve Tasarım Zirvesi", "Konferans",
+     "Ürün tasarımı ve yazılım üzerine tam günlük program.", 6, 300,
+     [("Tam", 750), ("Öğrenci", 350)]),
     ("Fotoğraf Atölyesi", "Konferans",
-     "Sokak fotoğrafçılığı üzerine uygulamalı çalışma.", 9, 180,
+     "Sokak fotoğrafçılığı üzerine uygulamalı çalışma.", 7, 180,
      [("Tam", 300)]),
+    ("Klasik Müzik Dinletisi", "Konser",
+     "Oda müziği topluluğundan bir akşam.", 8, 110,
+     [("Tam", 520), ("Öğrenci", 280)]),
+    ("Kısa Film Festivali", "Festival",
+     "On beş kısa film, iki oturum ve yönetmen söyleşisi.", 9, 240,
+     [("Tam", 280), ("Öğrenci", 150)]),
+    ("Doğaçlama Tiyatro Gecesi", "Tiyatro",
+     "Seyirciden gelen başlıklarla sahnede yazılan oyun.", 10, 100,
+     [("Tam", 300), ("Öğrenci", 170)]),
+    ("Caz Kvarteti: Gece Seansı", "Konser",
+     "Geç saat programı; ikinci set doğaçlama.", 11, 120,
+     [("Tam", 480), ("Öğrenci", 260)]),
+    ("Çocuk Bilim Şenliği", "Çocuk",
+     "Deney istasyonları ve gösteri; 7-12 yaş.", 12, 150,
+     [("Tam", 200)]),
+    ("Yazılım Mimarisi Semineri", "Konferans",
+     "Katmanlı mimari ve eşzamanlılık üzerine yarım gün.", 13, 200,
+     [("Tam", 650), ("Öğrenci", 300)]),
+    ("Halk Müziği Gecesi", "Konser",
+     "Yöresel repertuvar ve enstrüman tanıtımı.", 14, 130,
+     [("Tam", 420), ("Öğrenci", 230)]),
+    ("Tek Kişilik Oyun: Duvar", "Tiyatro",
+     "Altmış dakikalık monolog.", 16, 60,
+     [("Tam", 350), ("Öğrenci", 190)]),
+    ("Elektronik Müzik Gecesi", "Festival",
+     "Üç DJ, sabaha kadar program.", 18, 300,
+     [("Tam", 700), ("Öğrenci", 400)]),
+    ("Kukla Tiyatrosu: Denizin Sesi", "Çocuk",
+     "3-8 yaş için kukla gösterisi.", 20, 50,
+     [("Tam", 160)]),
+    ("Yılın Son Stand-up'ı", "Stand-up",
+     "Sezonu kapatan özel program.", 22, 90,
+     [("Tam", 450), ("Öğrenci", 250)]),
 ]
 
 
@@ -117,35 +157,6 @@ def dosya_yukle(yol, ad, icerik, tur, token):
             return cevap.status, json.loads(cevap.read().decode())
     except urllib.error.HTTPError as hata:
         return hata.status, hata.read().decode()
-
-
-def png_uret(genislik, yukseklik, renk):
-    """Tek renk PNG.
-
-    Depoya ikili dosya koymamak icin uretiliyor. Sunucu dosyanin ilk
-    baytlarina bakarak turunu dogruluyor, yani gecerli bir PNG imzasi
-    sart — sahte bir bayt dizisi reddedilirdi.
-    """
-    ham = b""
-    satir = bytes(renk) * genislik
-
-    for _ in range(yukseklik):
-        ham += b"\x00" + satir
-
-    def parca(tur, veri):
-        return (
-            struct.pack(">I", len(veri))
-            + tur
-            + veri
-            + struct.pack(">I", zlib.crc32(tur + veri) & 0xFFFFFFFF)
-        )
-
-    return (
-        b"\x89PNG\r\n\x1a\n"
-        + parca(b"IHDR", struct.pack(">IIBBBBB", genislik, yukseklik, 8, 2, 0, 0, 0))
-        + parca(b"IDAT", zlib.compress(ham))
-        + parca(b"IEND", b"")
-    )
 
 
 def pdf_uret(baslik):
@@ -242,8 +253,11 @@ def main():
         # saate denk gelirse cakisma kontrolu ikincisini reddeder.
         # Sira numarasi saate ekleniyor ki ayni salona dusen etkinlikler
         # farkli gunlerde olsun.
+        # Saat sira numarasina gore kayiyor: ayni gune ve ayni salona
+        # dusen iki etkinlik ayni saatte olsaydi cakisma kontrolu ikincisini
+        # reddederdi (araya bir saat temizlik payi da giriyor).
         baslangic = (simdi + dt.timedelta(days=gun)).replace(
-            hour=17, minute=0, second=0)
+            hour=17 + (sira % 3), minute=0, second=0)
         bitis = baslangic + dt.timedelta(minutes=sure)
 
         satis_bas = simdi - dt.timedelta(days=1)
@@ -304,11 +318,22 @@ def main():
             if not basarili(durum):
                 print(f"[hata] bilet turu: {ad}/{tur_adi} -> {durum} {cevap}")
 
-        # Afis
-        renk = [(120, 40, 160), (40, 120, 180), (200, 90, 40),
-                (60, 150, 110), (180, 60, 100)][sira % 5]
+        # Afis: uzerinde etkinligin adi, tarihi ve mekani yaziyor.
+        # Once tek renk, sonra yazisiz degrade uretiliyordu; ikisi de
+        # vitrinde bos bir renk blogu olarak gorunuyordu. Afis yayina
+        # almanin domain on kosulu oldugu icin kaldirilamaz — dolu hale
+        # getirildi.
+        afis = afis_uret(
+            palet_no=sira,
+            tohum=sira,
+            baslik=ad,
+            tarih_metni=baslangic.strftime("%d.%m.%Y  %H:%M"),
+            mekan=f"{mekan['name']} · {salon['name']}",
+            kategori=kategori,
+        )
+
         durum, dosya = dosya_yukle("/files", f"afis-{sira}.png",
-                                   png_uret(96, 72, renk), "image/png", organizator)
+                                   afis, "image/png", organizator)
 
         if basarili(durum):
             istek(f"/events/{etkinlik_id}/poster", "PATCH",

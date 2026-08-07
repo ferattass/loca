@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Loca.Domain.Common;
 using Loca.Domain.Entities;
 using Loca.Domain.Repositories;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
@@ -17,7 +18,7 @@ namespace Loca.Persistence;
 /// veritabani olmadan yazilabilir.
 /// </remarks>
 public sealed class LocaDbContext(DbContextOptions<LocaDbContext> options)
-    : DbContext(options), IUnitOfWork
+    : DbContext(options), IDataProtectionKeyContext, IUnitOfWork
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
@@ -32,6 +33,26 @@ public sealed class LocaDbContext(DbContextOptions<LocaDbContext> options)
     public DbSet<SeatSection> SeatSections => Set<SeatSection>();
     public DbSet<Seat> Seats => Set<Seat>();
     public DbSet<UploadedFile> UploadedFiles => Set<UploadedFile>();
+
+    /// <summary>
+    /// Data Protection anahtarlari.
+    /// </summary>
+    /// <remarks>
+    /// <b>Diskte degil veritabaninda.</b> Anahtarlar sifreli ayarlari
+    /// (SMTP sifresi, iyzico anahtarlari) cozuyor ve KALICI olmak zorunda:
+    /// her yeniden baslatmada yenisi uretilirse o ana kadar sifrelenmis her
+    /// sey cozulemez hâle geliyor ve yonetici anahtarlari her seferinde
+    /// yeniden girmek zorunda kaliyor. Uygulama cokmuyor — cozulemeyen sir
+    /// "tanimli degil" sayiliyor — yani hata SESSIZ.
+    ///
+    /// <para>
+    /// Ucretsiz barindirma katmanlarinda dosya sistemi gecici ve kalici
+    /// disk yok; tek kalici yer veritabani. Diske yazma secenegi
+    /// (<c>DataProtection:KeyPath</c>) hâlâ duruyor ve yerel konteyner
+    /// yigininda kullaniliyor.
+    /// </para>
+    /// </remarks>
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     public DbSet<OrganizerProfile> OrganizerProfiles => Set<OrganizerProfile>();
     public DbSet<OrganizerApplication> OrganizerApplications => Set<OrganizerApplication>();

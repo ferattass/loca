@@ -25,13 +25,14 @@ interface EtkinlikKartiProps {
 /**
  * Kesfet listesindeki etkinlik karti.
  *
- * Afis gorseli artik GERCEKTEN cizilebiliyor: `posterFileId` sunucudan
- * geliyordu ama onu servis eden bir uc yoktu, bu yuzden kart dekoratif bir
- * degrade gosteriyordu. Uc yazildi. Afisi olmayan etkinlikte ayni degrade
- * yer tutucu duruyor.
+ * <b>Afis alani YALNIZCA gercek bir afis varsa aciliyor.</b> Once burada
+ * dekoratif bir degrade duruyordu ve afisi olmayan etkinlikte kartin
+ * ucte ikisi bos bir renk blogu oluyordu. Bos bir gorsel alani, hic
+ * gorsel olmamasindan kotu: kullanici bir sey yuklenmedigini sanip
+ * bekliyor.
  *
- * Gorsel yuklenemezse (dosya silinmis, adres bozuk) sessizce yer tutucuya
- * dusuyor: kirik gorsel ikonu, bos bir degradeden daha kotu gorunur.
+ * Gorsel yuklenemezse (dosya silinmis, adres bozuk) alan tamamen
+ * kapaniyor — kirik gorsel ikonu gostermenin hicbir faydasi yok.
  *
  * Favori butonu Link'in DISINDA, ayri bir kardes eleman: <button>'i <a>
  * icine koymak gecersiz HTML olurdu (ic ice etkilesimli eleman). Kart
@@ -48,13 +49,8 @@ export function EtkinlikKarti({ etkinlik }: EtkinlikKartiProps) {
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-lg glass border border-transparent transition-colors hover:border-primary/50">
       <Link to={`/etkinlikler/${etkinlik.id}`} className="flex flex-1 flex-col">
-        <div className="relative aspect-[3/4] w-full overflow-hidden">
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-br from-primary-container/60 via-surface-container-high to-secondary-container/30 transition-transform duration-300 group-hover:scale-105"
-          />
-
-          {afis && (
+        {afis ? (
+          <div className="relative aspect-[3/4] w-full overflow-hidden">
             <img
               src={afis}
               // Afis DEKORATIF sayiliyor: etkinligin adi hemen altinda
@@ -65,16 +61,33 @@ export function EtkinlikKarti({ etkinlik }: EtkinlikKartiProps) {
               onError={() => setGorselBozuk(true)}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
-          )}
-        </div>
+          </div>
+        ) : (
+          // Afis yokken ince bir vurgu seridi: kartlari birbirinden ayiran
+          // ve izgaraya ritim veren tek oge. Bir gorsel taklidi degil,
+          // acikca dekoratif bir cizgi.
+          <div
+            aria-hidden="true"
+            className="h-1 w-full bg-gradient-to-r from-primary/70 to-secondary/50"
+          />
+        )}
 
         <div className="flex flex-1 flex-col gap-1 p-stack-sm">
           {/* Tarih SAAT ile birlikte: bir biletleme sitesinde "hangi gun"
               kadar "saat kacta" da karar veriyor ve kullanici bunu
               ogrenmek icin detaya girmek zorunda kalmamali. */}
-          <p className="font-body text-label-caps text-primary">
-            {tarihEtiketi} · {gunEtiketi} · {saatEtiketi}
-          </p>
+          <div className="flex flex-wrap items-baseline justify-between gap-base">
+            <p className="font-body text-label-caps text-primary">
+              {tarihEtiketi} · {gunEtiketi} · {saatEtiketi}
+            </p>
+
+            {/* Kategori, afis yokken kartin ne oldugunu soyleyen tek
+                isaret. Afisli kartta da duruyor; iki gorsel arasinda
+                gozle ayirt etmek zor. */}
+            <span className="shrink-0 rounded-full border border-outline-variant px-base py-[1px] font-body text-[11px] text-on-surface-variant">
+              {etkinlik.categoryName}
+            </span>
+          </div>
 
           <h3 className="font-headline text-title-lg text-on-surface line-clamp-2">
             {etkinlik.title}

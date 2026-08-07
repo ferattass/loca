@@ -7,6 +7,7 @@ using Loca.Persistence.Queries;
 using Loca.Persistence.Repositories;
 using Loca.Persistence.Seeding;
 using Loca.Persistence.Settings;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +29,22 @@ public static class DependencyInjection
         services
             .AddOptions<AdminSeedOptions>()
             .Bind(configuration.GetSection(AdminSeedOptions.SectionName));
+
+        // Data Protection anahtarlari: yol verilmemisse VERITABANINA.
+        //
+        // Kayit burada cunku DbContext burada; Infrastructure'da yapilsaydi
+        // altyapi veri katmanina bagimli olurdu. AddDataProtection ikinci
+        // kez cagrilmasi sorun degil, yapilandirma birikimli.
+        //
+        // Ucretsiz barindirma katmanlarinda dosya sistemi gecici ve kalici
+        // disk yok: her uyanista yeni anahtar uretilir ve panelden girilmis
+        // iyzico anahtarlariyla SMTP sifresi cozulemez hale gelirdi.
+        // Cozulemeyen sir "tanimli degil" sayildigi icin uygulama cokmez —
+        // hata sessizdir.
+        if (string.IsNullOrWhiteSpace(configuration["DataProtection:KeyPath"]))
+        {
+            services.AddDataProtection().PersistKeysToDbContext<LocaDbContext>();
+        }
 
         services.AddScoped<DatabaseSeeder>();
 
