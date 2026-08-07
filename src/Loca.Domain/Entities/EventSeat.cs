@@ -124,6 +124,28 @@ public sealed class EventSeat : BaseEntity
     }
 
     /// <summary>
+    /// Kilidi belirli bir ana kadar uzatir; kisaltmaz.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ExtendLock"/> mevcut bitise EKLIYOR, burasi bir HEDEF an
+    /// aliyor. Havale penceresinde fark onemli: rezervasyonun yeni bitisi
+    /// "simdi + yirmi dort saat" olarak hesaplaniyor ve koltugun ayni ana
+    /// gelmesi gerekiyor. Ekleme yapilsaydi koltugun bitisi rezervasyonunkiyle
+    /// tutmaz, kilit rezervasyondan once ya da sonra duserdi.
+    /// </remarks>
+    public void ExtendLockUntil(DateTime utcNow, DateTime untilUtc)
+    {
+        if (Status != EventSeatStatus.Locked)
+            throw new DomainException("Yalnizca kilitli koltugun suresi uzatilabilir.");
+
+        if (IsLockExpired(utcNow))
+            throw new DomainException("Suresi dolmus kilit uzatilamaz.");
+
+        if (untilUtc > (LockedUntilUtc ?? utcNow))
+            LockedUntilUtc = untilUtc;
+    }
+
+    /// <summary>
     /// Odeme basladi: Locked → Reserved.
     /// </summary>
     /// <remarks>

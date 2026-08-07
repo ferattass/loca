@@ -36,6 +36,7 @@ internal sealed class GetPaymentByIdQueryHandler(
             odeme.ReservationId,
             odeme.Status,
             odeme.Provider,
+            odeme.Method,
             odeme.ProviderReference,
             // Yonlendirme adresi yalnizca odeme baslatilirken uretiliyor ve
             // saklanmiyor: tek kullanimlik ve kisa omurlu bir adres, sonradan

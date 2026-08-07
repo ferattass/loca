@@ -60,4 +60,35 @@ public static class PaymentErrors
         Error.Conflict(
             "Payment.SeatsNoLongerHeld",
             "Rezervasyonun koltuklari artik tutulmuyor. Odeme tamamlanamaz.");
+
+    /// <remarks>
+    /// Havale panelden kapatilmis ya da banka bilgileri eksik. Eksik
+    /// bilgiyle acilan bir havale odemesi, kullaniciya "havale ile ode"
+    /// deyip nereye odeyecegini soylememek olurdu.
+    /// </remarks>
+    public static readonly Error BankTransferDisabled =
+        Error.Conflict(
+            "Payment.BankTransferDisabled",
+            "Havale ile odeme su anda kapali.");
+
+    /// <remarks>
+    /// Tamamlama ucu sonucu saglayiciya sorarak dogruluyor; havalenin
+    /// sorulacak bir saglayicisi yok, onayi yonetici veriyor. Bu kontrol
+    /// olmasaydi kullanici havale kaydi icin tamamlama cagirir ve o an
+    /// calisan saglayici "basarili" deyip parasi gelmemis bir rezervasyona
+    /// bilet uretirdi.
+    /// </remarks>
+    public static readonly Error BankTransferNotCompletable =
+        Error.Conflict(
+            "Payment.BankTransferNotCompletable",
+            "Havale odemesi buradan tamamlanamaz; odeme yonetim tarafindan onaylanir.");
+
+    /// <remarks>Yonetici onayi yalnizca havale kayitlari icin anlamli.</remarks>
+    public static readonly Error NotBankTransfer =
+        Error.Conflict(
+            "Payment.NotBankTransfer",
+            "Bu odeme havale ile yapilmamis; elle onaylanamaz.");
+
+    public static readonly Error NotPending =
+        Error.Conflict("Payment.NotPending", "Bu odeme zaten sonuclanmis.");
 }

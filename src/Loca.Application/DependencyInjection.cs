@@ -1,6 +1,7 @@
 using FluentValidation;
 using Loca.Application.Common.Behaviors;
 using Loca.Application.Features.Auth.Common;
+using Loca.Application.Features.Payments.Common;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Loca.Application;
@@ -38,6 +39,11 @@ public static class DependencyInjection
         // Ozellik ici yardimci servisler. Assembly taramasina girmedikleri icin
         // acikca kaydedilir.
         services.AddScoped<AuthTokenIssuer>();
+
+        // Odemenin kapanisi (bilet uretimi / koltuk birakma) iki ayri
+        // handler'dan tetikleniyor: saglayici cevabi ve yonetici havale
+        // onayi. Ortak sinif olmasaydi bilet uretimi iki yerde yasardi.
+        services.AddScoped<PaymentFinalizer>();
 
         return services;
     }

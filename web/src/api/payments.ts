@@ -8,11 +8,19 @@ export interface OdemeDenemesi {
   message: string;
 }
 
+export type OdemeYontemi = 'Card' | 'BankTransfer';
+
 export interface OdemeDetayi {
   id: string;
   reservationId: string;
   status: OdemeDurumu;
   provider: string;
+  method: OdemeYontemi;
+  /**
+   * Kartta saglayicinin islem kimligi; havalede kullanicinin havale
+   * aciklamasina yazacagi kod (LOCA-XXXXXXXX). Yonetici gelen ekstreyi
+   * bu kodla esliyor.
+   */
   providerReference: string | null;
   /**
    * Gercek saglayicida doludur; kullanici bu adrese yonlendirilir ve odeme
@@ -61,11 +69,64 @@ export interface OdemeTamamlamaSonucu {
 export async function odemeBaslat(
   reservationId: string,
   idempotencyKey: string,
+  method: OdemeYontemi = 'Card',
 ): Promise<OdemeDetayi> {
   const { data } = await api.post<OdemeDetayi>(
     '/payments',
-    { reservationId },
+    { reservationId, method },
     { headers: { 'Idempotency-Key': idempotencyKey } },
+  );
+
+  return data;
+}
+
+/** Havale acikken banka bilgileri; kapaliyken `null`. */
+export interface HavaleTalimati {
+  bankName: string;
+  accountName: string;
+  iban: string;
+  deadlineHours: number;
+}
+
+export interface OdemeYontemleri {
+  cardEnabled: boolean;
+  bankTransferEnabled: boolean;
+  instructions: HavaleTalimati | null;
+}
+
+/**
+ * Su an acik olan odeme yontemleri.
+ *
+ * Sunucuya SORULUYOR, istemcide sabit yazilmiyor: panelden havale
+ * kapatildiginda dugme kendiliginden kayboluyor. Sabit yazilsaydi dugme
+ * durmaya devam eder, basan kullanici 409 alirdi.
+ */
+export async function odemeYontemleriGetir(): Promise<OdemeYontemleri> {
+  const { data } = await api.get<OdemeYontemleri>('/payments/methods');
+  return data;
+}
+
+/** Yonetici havalenin hesaba gectigini onaylar; biletler uretilir. */
+export async function havaleOnayla(
+  odemeId: string,
+  referans?: string,
+): Promise<OdemeTamamlamaSonucu> {
+  const { data } = await api.post<OdemeTamamlamaSonucu>(
+    `/payments/${odemeId}/bank-transfer/confirm`,
+    { reference: referans?.trim() || null },
+  );
+
+  return data;
+}
+
+/** Yonetici havalenin gelmedigini bildirir; koltuklar hemen satisa doner. */
+export async function havaleReddet(
+  odemeId: string,
+  sebep: string,
+): Promise<OdemeTamamlamaSonucu> {
+  const { data } = await api.post<OdemeTamamlamaSonucu>(
+    `/payments/${odemeId}/bank-transfer/reject`,
+    { reason: sebep },
   );
 
   return data;

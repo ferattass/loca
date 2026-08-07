@@ -36,7 +36,8 @@ public sealed class Payment : BaseEntity, IAggregateRoot, IOwnedResource
         Money amount,
         string provider,
         string idempotencyKey,
-        DateTime utcNow)
+        DateTime utcNow,
+        PaymentMethod method = PaymentMethod.Card)
     {
         if (reservationId == Guid.Empty)
             throw new DomainException("Odeme bir rezervasyona bagli olmali.");
@@ -58,6 +59,7 @@ public sealed class Payment : BaseEntity, IAggregateRoot, IOwnedResource
         Amount = amount;
         Provider = provider.Trim();
         IdempotencyKey = idempotencyKey.Trim();
+        Method = method;
 
         _transactions.Add(new PaymentTransaction(
             Id, PaymentTransactionType.Create, utcNow, null, null));
@@ -76,6 +78,20 @@ public sealed class Payment : BaseEntity, IAggregateRoot, IOwnedResource
 
     /// <summary>Kullanilan saglayicinin adi ("Mock", "FailedMock").</summary>
     public string Provider { get; private set; }
+
+    /// <summary>
+    /// Paranin hangi yolla geldigi.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Provider"/>'dan ayri tutuluyor: saglayici "isi kim yapti",
+    /// bu alan "nasil odendi". Havale odemesi hicbir saglayiciya sorulamaz,
+    /// onayi insan verir; ayrim olmasaydi havale kaydi da "saglayiciya sor"
+    /// yolundan gecebilir ve taklit saglayici ona bedavaya onay verirdi.
+    /// </remarks>
+    public PaymentMethod Method { get; private set; } = PaymentMethod.Card;
+
+    /// <summary>Havale ile odenen bir kayit mi.</summary>
+    public bool IsBankTransfer => Method == PaymentMethod.BankTransfer;
 
     /// <summary>Saglayicinin islem kimligi. Mutabakat ve iade icin.</summary>
     public string? ProviderReference { get; private set; }

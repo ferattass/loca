@@ -70,3 +70,41 @@ export async function planlariGetir(salonId: string): Promise<OturmaPlaniOzeti[]
   const { data } = await api.get<OturmaPlaniOzeti[]>(`/halls/${salonId}/seat-layouts`);
   return data;
 }
+
+export interface DoluAralik {
+  eventSessionId: string;
+  eventTitle: string;
+  startsAtUtc: string;
+  endsAtUtc: string;
+}
+
+export interface SalonDoluluk {
+  isAvailable: boolean;
+  /** Iki oturum arasinda birakilmasi gereken pay (dakika). */
+  cleanupBufferMinutes: number;
+  conflicts: DoluAralik[];
+}
+
+/**
+ * Salon verilen aralikta musait mi.
+ *
+ * Kaydetmeden once soruluyor: cakisma kontrolu sunucuda zaten var ama
+ * ancak "Kaydet"e basildiktan sonra devreye giriyordu, organizator formu
+ * bastan sona doldurup 409 aliyordu.
+ */
+export async function salonDolulukGetir(
+  salonId: string,
+  baslangicUtc: string,
+  bitisUtc: string,
+  haricEtkinlikId?: string,
+): Promise<SalonDoluluk> {
+  const { data } = await api.get<SalonDoluluk>(`/halls/${salonId}/availability`, {
+    params: {
+      startsAtUtc: baslangicUtc,
+      endsAtUtc: bitisUtc,
+      excludeEventId: haricEtkinlikId,
+    },
+  });
+
+  return data;
+}

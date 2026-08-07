@@ -39,6 +39,18 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.Property(payment => payment.ProviderReference)
             .HasMaxLength(200);
 
+        // Yontem int olarak yaziliyor (varsayilan enum eslemesi). Metin
+        // olarak saklansaydi enum adi degistirilemez hâle gelirdi; sayi ise
+        // API'ye JsonStringEnumConverter uzerinden zaten metin olarak cikiyor.
+        builder.Property(payment => payment.Method)
+            .IsRequired();
+
+        // Yonetim panelindeki "onay bekleyen havaleler" listesinin sorgusu:
+        // yontem + durum. Tam tablo taramasi kucuk veride sorun degil ama bu
+        // liste panelin acilis ekraninda ve her yenilemede kosuyor.
+        builder.HasIndex(payment => new { payment.Method, payment.Status })
+            .HasDatabaseName("IX_Payments_Method_Status");
+
         builder.Property(payment => payment.IdempotencyKey)
             .HasMaxLength(100)
             .IsRequired();
@@ -95,6 +107,7 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 
         builder.Ignore(payment => payment.IsPending);
         builder.Ignore(payment => payment.IsSuccessful);
+        builder.Ignore(payment => payment.IsBankTransfer);
 
         // Reservation ZORUNLU bagli ve kendi filtresi var (EventSession
         // uzerinden Event/Hall/SeatLayout soft delete kontrolu). Eslesen

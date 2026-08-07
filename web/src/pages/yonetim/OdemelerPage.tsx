@@ -8,7 +8,7 @@ import {
   type AdminOdeme,
   type SayfaliSonuc,
 } from '../../api/admin';
-import type { OdemeDurumu } from '../../api/payments';
+import { havaleOnayla, havaleReddet, type OdemeDurumu } from '../../api/payments';
 import { SolOkIkonu, SagOkIkonu } from '../../components/ui/Ikon';
 
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
@@ -55,9 +55,45 @@ export function OdemelerPage() {
   const [sayfa, setSayfa] = useState(1);
   const [iadeEdilen, setIadeEdilen] = useState<AdminOdeme | null>(null);
 
+  /**
+   * "Onay bekleyen havaleler" tek dugmeye bagli.
+   *
+   * Yoneticinin gunluk isi bu liste: bankaya bakip gelen parayi
+   * isaretlemek. Her seferinde durum + yontem suzgeclerini elle kurmasi
+   * gerekseydi is her gun bir kac tiklama pahalilasirdi.
+   */
+  const [yalnizBekleyenHavale, setYalnizBekleyenHavale] = useState(false);
+
+  const etkinDurum = yalnizBekleyenHavale ? 'Pending' : durum;
+  const etkinYontem = yalnizBekleyenHavale ? ('BankTransfer' as const) : undefined;
+
   const { data, isPending, isError, error } = useQuery<SayfaliSonuc<AdminOdeme>>({
-    queryKey: ['admin-payments', durum, aktifArama, sayfa],
-    queryFn: () => adminOdemeleriGetir({ status: durum, search: aktifArama, pageNumber: sayfa }),
+    queryKey: ['admin-payments', etkinDurum, etkinYontem, aktifArama, sayfa],
+    queryFn: () =>
+      adminOdemeleriGetir({
+        status: etkinDurum,
+        method: etkinYontem,
+        search: aktifArama,
+        pageNumber: sayfa,
+      }),
+  });
+
+  const [havaleKarari, setHavaleKarari] = useState<{
+    odeme: AdminOdeme;
+    onay: boolean;
+  } | null>(null);
+
+  const havale = useMutation({
+    mutationFn: ({ id, onay, metin }: { id: string; onay: boolean; metin: string }) =>
+      onay ? havaleOnayla(id, metin) : havaleReddet(id, metin),
+    onSuccess: async () => {
+      setHavaleKarari(null);
+      // Ozet de guncelleniyor: onaylanan havale gunluk satisa giriyor.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-payments'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin-overview'] }),
+      ]);
+    },
   });
 
   const iade = useMutation({
@@ -73,6 +109,7 @@ export function OdemelerPage() {
   });
 
   const filtreDegistir = (yeni: OdemeDurumu | undefined) => {
+    setYalnizBekleyenHavale(false);
     setDurum(yeni);
     // Sayfa basa aliniyor: uc numarali sayfadayken filtre degistiginde
     // yeni sonuc kumesinde uc numarali sayfa olmayabilir ve ekran bos
@@ -96,19 +133,33 @@ export function OdemelerPage() {
       </header>
 
       <div className="mb-stack-sm flex flex-wrap items-center gap-base">
-        <FiltreDugmesi secili={durum === undefined} onClick={() => filtreDegistir(undefined)}>
+        <FiltreDugmesi
+          secili={durum === undefined && !yalnizBekleyenHavale}
+          onClick={() => filtreDegistir(undefined)}
+        >
           Hepsi
         </FiltreDugmesi>
 
         {DURUMLAR.map((secenek) => (
           <FiltreDugmesi
             key={secenek}
-            secili={durum === secenek}
+            secili={!yalnizBekleyenHavale && durum === secenek}
             onClick={() => filtreDegistir(secenek)}
           >
             {DURUM_METNI[secenek]}
           </FiltreDugmesi>
         ))}
+
+        <FiltreDugmesi
+          secili={yalnizBekleyenHavale}
+          onClick={() => {
+            setYalnizBekleyenHavale((acik) => !acik);
+            setDurum(undefined);
+            setSayfa(1);
+          }}
+        >
+          Onay bekleyen havaleler
+        </FiltreDugmesi>
 
         <form onSubmit={aramaGonder} className="ml-auto flex gap-base">
           <input
@@ -211,7 +262,9 @@ export function OdemelerPage() {
                   </Hucre>
 
                   <Hucre>
-                    <span className="block text-on-surface-variant">{odeme.provider}</span>
+                    <span className="block text-on-surface-variant">
+                      {odeme.method === 'BankTransfer' ? 'Havale / EFT' : odeme.provider}
+                    </span>
                     {/* Saglayici referansi mutabakat sirasinda saglayicinin
                         panelindeki kayitla eslestirmenin tek yolu. */}
                     {odeme.providerReference && (
@@ -230,6 +283,29 @@ export function OdemelerPage() {
                       >
                         İade et
                       </button>
+                    )}
+
+                    {/* Onay/ret YALNIZCA bekleyen havalede. Kart odemesinde
+                        gorunseydi panele erisen biri parasi hic cekilmemis
+                        bir karti "odendi" yapabilirdi; sunucu da bu yuzden
+                        ayrica reddediyor. */}
+                    {odeme.method === 'BankTransfer' && odeme.status === 'Pending' && (
+                      <div className="flex flex-wrap gap-base">
+                        <button
+                          type="button"
+                          onClick={() => setHavaleKarari({ odeme, onay: true })}
+                          className="whitespace-nowrap rounded-md bg-primary px-stack-sm py-base text-body-sm font-semibold text-on-primary"
+                        >
+                          Ödeme geldi
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHavaleKarari({ odeme, onay: false })}
+                          className="whitespace-nowrap rounded-md border border-outline px-stack-sm py-base text-body-sm text-on-surface transition-colors hover:bg-surface-container-high"
+                        >
+                          Gelmedi
+                        </button>
+                      </div>
                     )}
                   </Hucre>
                 </tr>
@@ -275,6 +351,141 @@ export function OdemelerPage() {
           onOnay={(sebep) => iade.mutate({ id: iadeEdilen.id, sebep })}
         />
       )}
+
+      {havaleKarari && (
+        <HavaleKarariOnayi
+          odeme={havaleKarari.odeme}
+          onay={havaleKarari.onay}
+          bekliyor={havale.isPending}
+          hata={
+            havale.isError
+              ? hataMesaji(havale.error, 'Havale kararı işlenemedi.')
+              : null
+          }
+          onIptal={() => {
+            havale.reset();
+            setHavaleKarari(null);
+          }}
+          onGonder={(metin) =>
+            havale.mutate({ id: havaleKarari.odeme.id, onay: havaleKarari.onay, metin })
+          }
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Havale onay/ret penceresi.
+ *
+ * <b>Iki karar tek bilesende</b> cunku ikisi de ayni kaydin ayni alanina
+ * bakip aciklama kodunu dogruluyor; ayri pencereler yazilsaydi o kod iki
+ * yerde gosterilir ve biri degistiginde digeri unutulurdu.
+ *
+ * <para>
+ * Onayda ekstre numarasi ISTEGE BAGLI, redde sebep ZORUNLU. Fark bilincli:
+ * onay parayi gordugunun beyani, ret ise koltuklari geri alan ve musteriye
+ * bildirim gonderen bir karar — gerekcesiz kayda gecmemeli.
+ * </para>
+ */
+function HavaleKarariOnayi({
+  odeme,
+  onay,
+  bekliyor,
+  hata,
+  onIptal,
+  onGonder,
+}: {
+  odeme: AdminOdeme;
+  onay: boolean;
+  bekliyor: boolean;
+  hata: string | null;
+  onIptal: () => void;
+  onGonder: (metin: string) => void;
+}) {
+  const [metin, setMetin] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 px-container-margin-mobile">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="havale-basligi"
+        className="w-full max-w-md rounded-lg border border-outline-variant/40 bg-surface-container p-stack-md"
+      >
+        <h2 id="havale-basligi" className="font-headline text-title-lg text-on-surface">
+          {onay ? 'Havale onayı' : 'Havale reddi'}
+        </h2>
+
+        <p className="mt-base font-body text-body-md text-on-surface">
+          {odeme.userFullName} · {paraFormatla(odeme.amount, odeme.currency)}
+        </p>
+        <p className="font-body text-body-sm text-on-surface-variant">{odeme.eventTitle}</p>
+
+        {/* Aciklama kodu one cikiyor: yonetici ekstredeki hareketi bununla
+            esliyor ve onaylamadan once gozuyle dogrulamasi gereken tek sey. */}
+        {odeme.providerReference && (
+          <p className="mt-stack-sm rounded-md border border-outline-variant bg-surface-container-low px-stack-sm py-base font-body text-body-sm text-on-surface-variant">
+            Ekstrede aranacak açıklama:{' '}
+            <code className="font-mono font-semibold text-primary">
+              {odeme.providerReference}
+            </code>
+          </p>
+        )}
+
+        <p
+          className={`mt-stack-sm rounded-md border px-stack-sm py-base font-body text-body-sm ${
+            onay
+              ? 'border-primary/40 bg-primary-container/15 text-primary'
+              : 'border-tertiary/40 bg-tertiary-container/10 text-tertiary'
+          }`}
+        >
+          {onay
+            ? 'Biletler üretilecek ve koltuklar satılmış sayılacak. Geri almanın yolu iade akışı.'
+            : 'Rezervasyon iptal edilecek ve koltuklar hemen satışa dönecek.'}
+        </p>
+
+        <label
+          htmlFor="havale-metin"
+          className="mt-stack-sm block font-body text-body-sm text-on-surface-variant"
+        >
+          {onay ? 'Ekstredeki işlem numarası (isteğe bağlı)' : 'Ret sebebi'}
+        </label>
+        <textarea
+          id="havale-metin"
+          value={metin}
+          onChange={(olay) => setMetin(olay.target.value)}
+          rows={onay ? 2 : 3}
+          className="mt-base w-full rounded-md border border-outline-variant bg-surface-container-low px-stack-sm py-base font-body text-body-sm text-on-surface"
+          placeholder={onay ? 'Örn. FT2026080712345' : 'Örn. süre doldu, ödeme ulaşmadı'}
+        />
+
+        {hata && (
+          <p role="alert" className="mt-base font-body text-body-sm text-error">
+            {hata}
+          </p>
+        )}
+
+        <div className="mt-stack-sm flex justify-end gap-base">
+          <button
+            type="button"
+            onClick={onIptal}
+            className="rounded-md border border-outline px-stack-sm py-base font-body text-body-sm text-on-surface"
+          >
+            Vazgeç
+          </button>
+          <button
+            type="button"
+            onClick={() => onGonder(metin.trim())}
+            disabled={bekliyor || (!onay && metin.trim().length === 0)}
+            className={`rounded-md px-stack-md py-base font-body text-body-sm font-semibold disabled:opacity-50 ${
+              onay ? 'bg-primary text-on-primary' : 'bg-error text-on-error'
+            }`}
+          >
+            {bekliyor ? 'İşleniyor' : onay ? 'Onayla' : 'Reddet'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -54,6 +54,7 @@ public sealed class AdminController(ISender sender) : ApiControllerBase
         [FromQuery] string? search,
         [FromQuery] DateTime? fromUtc,
         [FromQuery] DateTime? toUtc,
+        [FromQuery] PaymentMethod? method = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default) =>
@@ -64,7 +65,8 @@ public sealed class AdminController(ISender sender) : ApiControllerBase
                     search,
                     fromUtc,
                     toUtc,
-                    new PaginationRequest { PageNumber = pageNumber, PageSize = pageSize })),
+                    new PaginationRequest { PageNumber = pageNumber, PageSize = pageSize },
+                    method)),
             cancellationToken));
 
     /// <summary>Filtrelenebilir kullanici listesi.</summary>

@@ -1,6 +1,9 @@
+using Loca.Application.Features.Payments.BankTransfer;
 using Loca.Application.Features.Payments.Common;
 using Loca.Application.Features.Payments.CompletePayment;
 using Loca.Application.Features.Payments.GetPaymentById;
+using Loca.Application.Features.Payments.GetPaymentMethods;
+using Loca.Domain.Enums;
 using Loca.Application.Features.Payments.RefundPayment;
 using Loca.Application.Features.Payments.ResolveProviderCallback;
 using Loca.Application.Features.Payments.StartPayment;
@@ -46,9 +49,66 @@ public sealed class PaymentsController(ISender sender) : ApiControllerBase
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var command = new StartPaymentCommand(request.ReservationId, idempotencyKey ?? string.Empty);
+        var command = new StartPaymentCommand(
+            request.ReservationId,
+            idempotencyKey ?? string.Empty,
+            request.Method ?? PaymentMethod.Card);
 
         return ToResponse(await sender.Send(command, cancellationToken));
+    }
+
+    /// <summary>Su an acik olan odeme yontemleri ve havale bilgileri.</summary>
+    /// <remarks>
+    /// Arayuz "havale dugmesini gostereyim mi" sorusunu ancak sunucuya
+    /// sorarak cevaplayabilir; istemcide sabit yazilsaydi panelden havale
+    /// kapatildiginda dugme durmaya devam eder, basan kullanici hata alirdi.
+    ///
+    /// <para>
+    /// IBAN ve hesap adi donuyor — bunlar sir degil, zaten para gonderilmesi
+    /// icin paylasiliyor. Saglayici anahtarlari bu ucun yanina yaklasmiyor.
+    /// </para>
+    /// </remarks>
+    [HttpGet("methods")]
+    [ProducesResponseType<OdemeYontemleri>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Methods(CancellationToken cancellationToken) =>
+        ToResponse(await sender.Send(new GetPaymentMethodsQuery(), cancellationToken));
+
+    /// <summary>Havalenin hesaba gectigini onaylar; biletler uretilir.</summary>
+    /// <remarks>
+    /// <b>Yalnizca havale kayitlarinda calisir.</b> Kart odemesinin sonucu
+    /// saglayiciya sorularak dogrulaniyor; elle onaylanabilseydi panele
+    /// erisen biri parasi hic cekilmemis bir karti "odendi" yapabilirdi.
+    /// </remarks>
+    [HttpPost("{id:guid}/bank-transfer/confirm")]
+    [Authorize(Policy = Policies.AdminOnly)]
+    [ProducesResponseType<PaymentCompletionResult>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ConfirmBankTransfer(
+        Guid id,
+        [FromBody] ConfirmBankTransferRequest? request,
+        CancellationToken cancellationToken) =>
+        ToResponse(await sender.Send(
+            new ConfirmBankTransferCommand(id, request?.Reference), cancellationToken));
+
+    /// <summary>Havalenin gelmedigini bildirir; koltuklar hemen satisa doner.</summary>
+    [HttpPost("{id:guid}/bank-transfer/reject")]
+    [Authorize(Policy = Policies.AdminOnly)]
+    [ProducesResponseType<PaymentCompletionResult>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RejectBankTransfer(
+        Guid id,
+        [FromBody] RejectBankTransferRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return ToResponse(await sender.Send(
+            new RejectBankTransferCommand(id, request.Reason), cancellationToken));
     }
 
     /// <summary>

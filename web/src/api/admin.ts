@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { OdemeDurumu } from './payments';
+import type { OdemeDurumu, OdemeYontemi } from './payments';
 
 export interface GunlukSatis {
   succeededCount: number;
@@ -52,6 +52,7 @@ export interface AdminOdeme {
   reservationId: string;
   status: OdemeDurumu;
   provider: string;
+  method: OdemeYontemi;
   providerReference: string | null;
   amount: number;
   currency: string;
@@ -69,6 +70,7 @@ export interface OdemeFiltresi {
   status?: OdemeDurumu;
   search?: string;
   pageNumber?: number;
+  method?: OdemeYontemi;
 }
 
 export async function adminOdemeleriGetir(
@@ -82,6 +84,7 @@ export async function adminOdemeleriGetir(
       status: filtre.status,
       search: filtre.search?.trim() || undefined,
       pageNumber: filtre.pageNumber ?? 1,
+      method: filtre.method,
     },
   });
 

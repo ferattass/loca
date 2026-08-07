@@ -1,4 +1,5 @@
 using Loca.Application.Common.Interfaces;
+using Loca.Application.Features.Venues.GetHallAvailability;
 using Loca.Domain.Repositories;
 using Loca.Persistence.Interceptors;
 using Loca.Persistence.Queries;
@@ -60,6 +61,7 @@ public static class DependencyInjection
 
         // Okuma tarafi: arayuzu Application'da, projeksiyonu burada.
         services.AddScoped<IEventQueries, EventQueries>();
+        services.AddScoped<IHallAvailabilityQueries, HallAvailabilityQueries>();
         services.AddScoped<IReservationQueries, ReservationQueries>();
         services.AddScoped<ITicketQueries, TicketQueries>();
         services.AddScoped<IAdminQueries, AdminQueries>();

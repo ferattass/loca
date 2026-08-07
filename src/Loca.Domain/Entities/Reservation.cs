@@ -193,6 +193,47 @@ public sealed class Reservation : BaseEntity, IAggregateRoot, IOwnedResource
         return ExpiresAtUtc;
     }
 
+    /// <summary>
+    /// Havale ile odeme secildi; kilit banka saatlerine uygun bir pencereye cekilir.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Extend"/>'den ayri bir metot, kopya degil.</b> Uzatma
+    /// kullanicinin bir kerelik nezaket hakki (dakikalar); bu ise odeme
+    /// yonteminin gerektirdigi pencere (saatler). Ayni metot kullanilsaydi
+    /// havale secen kullanici uzatma hakkini da harcamis olurdu ve on
+    /// dakikalik kilide bes dakika eklemek havaleye hicbir sey kazandirmazdi:
+    /// banka saatlerine bagli bir odeme on bes dakikada tamamlanamaz.
+    ///
+    /// <para>
+    /// Pencere <b>kisaltmiyor</b>: mevcut bitis daha ileridiyse dokunulmuyor.
+    /// Bu sure boyunca koltuk odenmemis hâlde tutuluyor — isletme riski, bu
+    /// yuzden suresi koda gomulu degil panelden ayarlaniyor.
+    /// </para>
+    ///
+    /// <para>
+    /// Rezervasyon basina bir kez isliyor: ayni rezervasyon icin ikinci bir
+    /// bekleyen odeme acilamiyor, reddedilen havale rezervasyonu iptal
+    /// ediyor. Yani pencere tekrar tekrar uzatilarak koltuk suresiz
+    /// tutulamiyor.
+    /// </para>
+    /// </remarks>
+    public void ExtendForBankTransfer(DateTime utcNow, TimeSpan window)
+    {
+        if (Status != ReservationStatus.Pending)
+            throw new DomainException($"Bu durumdaki rezervasyon havaleye acilamaz: {Status}.");
+
+        if (IsExpired(utcNow))
+            throw new DomainException("Suresi dolmus rezervasyon havaleye acilamaz.");
+
+        if (window <= TimeSpan.Zero)
+            throw new DomainException("Havale suresi sifirdan buyuk olmali.");
+
+        var yeniBitis = utcNow.Add(window);
+
+        if (yeniBitis > ExpiresAtUtc)
+            ExpiresAtUtc = yeniBitis;
+    }
+
     /// <summary>Kullanici vazgecti veya odeme basarisiz oldu.</summary>
     public void Cancel(DateTime utcNow)
     {

@@ -3,8 +3,16 @@ using Loca.Domain.Enums;
 namespace Loca.Application.Features.Payments.Common;
 
 /// <param name="RedirectUrl">
-/// Saglayicinin odeme sayfasi. Taklit saglayicida <c>null</c>; gercek
-/// saglayicida kullanici buraya yonlendirilir.
+/// Saglayicinin odeme sayfasi. Taklit saglayicida ve havalede <c>null</c>;
+/// gercek saglayicida kullanici buraya yonlendirilir.
+/// </param>
+/// <param name="Method">
+/// Odemenin yolu. Arayuz ekrani buna gore kuruyor: kartta yonlendirme veya
+/// tamamlama dugmesi, havalede banka bilgileri ve "onay bekleniyor".
+/// </param>
+/// <param name="ProviderReference">
+/// Kart odemesinde saglayicinin islem kimligi; havalede kullanicinin havale
+/// aciklamasina yazacagi kod. Yonetici gelen ekstreyi bu kodla esliyor.
 /// </param>
 /// <remarks>
 /// <b>Kart bilgisi bu akista bizim sunucumuzdan GECMIYOR.</b> Kullanici
@@ -15,6 +23,7 @@ public sealed record PaymentDetail(
     Guid ReservationId,
     PaymentStatus Status,
     string Provider,
+    PaymentMethod Method,
     string? ProviderReference,
     string? RedirectUrl,
     decimal Amount,

@@ -75,6 +75,7 @@ public sealed record AdminOdemeSatiri(
     Guid ReservationId,
     PaymentStatus Status,
     string Provider,
+    PaymentMethod Method,
     string? ProviderReference,
     decimal Amount,
     string Currency,
@@ -97,7 +98,11 @@ public sealed record AdminOdemeFiltresi(
     string? Search,
     DateTime? FromUtc,
     DateTime? ToUtc,
-    PaginationRequest Pagination);
+    PaginationRequest Pagination,
+    /* Yontem suzgeci ayri bir alan, arama kutusuna gomulmedi: yoneticinin
+       gunluk isi "onay bekleyen havaleler" listesi ve o listeyi her seferinde
+       metin yazarak kurmasi gerekmemeli. */
+    PaymentMethod? Method = null);
 
 /// <summary>Yonetim listesindeki tek bir kullanici.</summary>
 public sealed record AdminKullanici(

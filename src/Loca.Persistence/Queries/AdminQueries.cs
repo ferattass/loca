@@ -93,6 +93,9 @@ internal sealed class AdminQueries(LocaDbContext context) : IAdminQueries
         if (filtre.Status is { } durum)
             sorgu = sorgu.Where(payment => payment.Status == durum);
 
+        if (filtre.Method is { } yontem)
+            sorgu = sorgu.Where(payment => payment.Method == yontem);
+
         if (filtre.FromUtc is { } baslangic)
             sorgu = sorgu.Where(payment => payment.CreatedAt >= baslangic);
 
@@ -140,6 +143,7 @@ internal sealed class AdminQueries(LocaDbContext context) : IAdminQueries
                 payment.ReservationId,
                 payment.Status,
                 payment.Provider,
+                payment.Method,
                 payment.ProviderReference,
                 payment.Amount.Amount,
                 payment.Amount.Currency,
