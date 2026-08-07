@@ -19,12 +19,30 @@ Kosum:
 """
 
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
 
-KOK = "http://localhost:5000/api/v1"
-ADMIN = ("admin@loca.dev", "Loca!Admin2026")
+# Hedef sunucu ve yonetici hesabi ortam degiskeninden okunuyor.
+#
+# Uc betikte de ayni satirlar elle degistiriliyordu; canliya cikarken uc
+# dosyada alti satir duzenlemek hem sikici hem de birini unutmaya acik —
+# unutulan betik yerel veritabanina yazar ve canliya bir sey gitmedigi
+# ancak sonradan fark edilirdi.
+#
+#   Windows PowerShell:
+#     $env:LOCA_API = "https://loca-xxxx.onrender.com/api/v1"
+#     $env:LOCA_ADMIN_SIFRE = "..."
+#
+#   Bash:
+#     export LOCA_API="https://loca-xxxx.onrender.com/api/v1"
+#     export LOCA_ADMIN_SIFRE="..."
+KOK = os.environ.get("LOCA_API", "http://localhost:5000/api/v1")
+ADMIN = (
+    os.environ.get("LOCA_ADMIN_EPOSTA", "admin@loca.dev"),
+    os.environ.get("LOCA_ADMIN_SIFRE", "Loca!Admin2026"),
+)
 
 # Her sehir icin mekanlar. Bolumler (ad, sira sayisi, sira basina koltuk).
 SEHIRLER = {
