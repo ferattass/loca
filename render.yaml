@@ -1,0 +1,103 @@
+# Render Blueprint — tek tiklamayla kurulum.
+#
+# Render'in ucretsiz katmani secildi cunku: gercek bir HTTPS adresi
+# veriyor (iyzico callback'i icin ngrok tuneline gerek kalmiyor), Docker
+# imajini dogrudan calistiriyor ve yonetilen Postgres sunuyor.
+#
+# UCRETSIZ KATMANIN BILINEN SINIRI: servis on bes dakika istek almazsa
+# uyuyor ve ilk istek otuz saniyeye kadar bekliyor. Demo icin kabul
+# edilebilir; gercek satista degil.
+#
+# Kurulum: Render panelinde New → Blueprint, depoyu sec. Asagidaki
+# degiskenlerden sync:false olanlar ELLE giriliyor (panel soruyor);
+# gerisi otomatik.
+
+databases:
+  - name: loca-postgres
+    databaseName: loca
+    user: loca_user
+    plan: free
+
+services:
+  - type: web
+    name: loca
+    runtime: docker
+    plan: free
+    # Depo kokundeki tek konteyner imaji: arayuz + API. Ayri servisler
+    # kurulsaydi CORS ve ikinci bir alan adi gerekirdi.
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+
+    # Yukleme klasoru ve Data Protection anahtarlari KALICI olmali.
+    # Anahtar her dagitimda degisirse veritabaninda sifreli duran SMTP ve
+    # iyzico sifreleri cozulemez hâle gelir ve yoneticinin her deploy'dan
+    # sonra yeniden girmesi gerekir.
+    disk:
+      name: loca-veri
+      mountPath: /app/veri
+      sizeGB: 1
+
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+
+      # Baglanti dizesi Render'dan URI biciminde geliyor; uygulama
+      # acilista Npgsql bicimine ceviriyor (BarindirmaAyarlari).
+      - key: DATABASE_URL
+        fromDatabase:
+          name: loca-postgres
+          property: connectionString
+
+      # JWT imza anahtari. generateValue: Render rastgele uretiyor ve
+      # kimse gormuyor — elle girilen bir anahtar panel gecmisinde ve
+      # panoda kalirdi.
+      - key: Jwt__Secret
+        generateValue: true
+
+      - key: Jwt__Issuer
+        value: loca-api
+      - key: Jwt__Audience
+        value: loca-web
+
+      # Ilk admin hesabi. Sifre ELLE giriliyor: uretilen bir degeri
+      # gormeden giris yapilamazdi.
+      - key: AdminSeed__Email
+        sync: false
+      - key: AdminSeed__Password
+        sync: false
+      - key: AdminSeed__FullName
+        value: Loca Yonetici
+
+      - key: Storage__Path
+        value: /app/veri/uploads
+      - key: DataProtection__KeyPath
+        value: /app/veri/keys
+
+      # Render'in yonlendiricisi X-Forwarded-For ekliyor. Liste bos
+      # kalirsa baslik HIC okunmuyor ve hiz sinirlamasi butun
+      # kullanicilari tek istemci sayiyor; kayitsizca okunsaydi istemci
+      # kendi IP'sini uydurup siniri tamamen atlatirdi. Render'in ic
+      # aginin adres araligi 10.0.0.0/8.
+      - key: App__TrustedProxies__0
+        value: 10.0.0.0
+
+      # REDIS YOK ve bu bilincli: ucretsiz katmanda ayri bir Redis
+      # ornegi acmak servis kotasini tuketiyor. Redis kapaliyken
+      # uygulama ayaga kalkiyor, dagitik kilit "degraded" donuyor ve
+      # koltuk cakismasi veritabani savunmasiyla (kismi tekil index +
+      # eszamanlilik damgasi) engelleniyor — Gun 6'daki katmanli
+      # savunma karari tam olarak bunun icindi.
+      #
+      # Redis eklenirse: REDIS_URL degiskenini tanimlamak yeterli.
+
+      # Odeme SANDBOX'ta kaliyor. Gercek kart icin iyzico uye isyeri
+      # basvurusu ve onayi gerekiyor; sartname de gercek odeme
+      # saglayicisini kapsam disi birakmis.
+      - key: Payment__Provider
+        value: Mock
+      - key: Iyzico__UseSandbox
+        value: "true"
+
+      # iyzico anahtarlari ve SMTP panelden giriliyor (Yonetim → Ödeme
+      # ayarlari / Posta ayarlari); sifreli saklaniyorlar ve ortam
+      # degiskeni olarak durmalari gerekmiyor.

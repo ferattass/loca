@@ -2,9 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import {
+  KesfetSuzgeci,
+  zamanAraligi,
+  type ZamanSecimi,
+} from '../components/KesfetSuzgeci';
+
 import { hataMesaji } from '../api/client';
 import {
-  bugununSiniri,
   enYogunSehir,
   etkinlikleriGetir,
   mekanlaraGoreOzetle,
@@ -38,35 +43,51 @@ export function KesfetPage() {
   const [kategoriId, setKategoriId] = useState<string | null>(null);
 
   /**
-   * "Bugün" suzgeci adres cubugunda tasiniyor (`?ne_zaman=bugun`).
+   * Suzgecler adres cubugunda tasiniyor (`?ne_zaman=bugun&ara=konser`).
    *
-   * Bilesenin kendi durumunda tutulsaydi ust menudeki "Bugün" sekmesi
-   * ayni sayfaya gitmis olur ve hicbir sey degistiremezdi; ayrica
-   * kullanici o listeyi paylasamaz, geri tusuyla cikamazdi.
+   * Bilesenin kendi durumunda tutulsalardi ust menudeki "Bugün" sekmesi
+   * ayni sayfaya gidip hicbir sey degistiremez, kullanici suzulmus
+   * listeyi paylasamaz ve geri tusu calismazdi.
    */
   const [aramaParametreleri, setAramaParametreleri] = useSearchParams();
-  const yalnizBugun = aramaParametreleri.get('ne_zaman') === 'bugun';
-  const gunSiniri = yalnizBugun ? bugununSiniri() : null;
+
+  const zaman = (aramaParametreleri.get('ne_zaman') ?? 'hepsi') as ZamanSecimi;
+  const arananMetin = aramaParametreleri.get('ara') ?? '';
+  const aralik = zamanAraligi(zaman);
+
+  const parametreYaz = (anahtar: string, deger: string | null) => {
+    const yeni = new URLSearchParams(aramaParametreleri);
+
+    if (deger === null || deger === '' || deger === 'hepsi') {
+      yeni.delete(anahtar);
+    } else {
+      yeni.set(anahtar, deger);
+    }
+
+    setAramaParametreleri(yeni, { replace: true });
+  };
 
   const etkinlikSorgu = useQuery({
-    // Kategori ve tarih onbellek anahtarinda: filtre degistiginde
-    // react-query yeni bir istek atiyor ve onceki sonucu geri geldiginde
-    // uzerine yazmiyor.
-    queryKey: ['discover-events', kategoriId, yalnizBugun],
+    // Butun suzgecler onbellek anahtarinda: biri degistiginde react-query
+    // yeni istek atiyor ve onceki sonucu geri geldiginde uzerine yazmiyor.
+    queryKey: ['discover-events', kategoriId, zaman, arananMetin],
     queryFn: () =>
       etkinlikleriGetir({
         sayfaBoyutu: 24,
         kategoriId: kategoriId ?? undefined,
-        baslangicUtc: gunSiniri?.baslangicUtc,
-        bitisUtc: gunSiniri?.bitisUtc,
+        arama: arananMetin || undefined,
+        baslangicUtc: aralik.bas,
+        bitisUtc: aralik.bit,
       }),
   });
 
   const yaklasanlar = yaklasanlariAyikla(etkinlikSorgu.data?.items ?? []);
 
-  // Kategori seciliyken uc taneyle sinirlamak yanlis olurdu: kullanici
-  // artik "one cikanlara" degil o kategorinin tamamina bakiyor.
-  const oneCikanlar = kategoriId ? yaklasanlar : yaklasanlar.slice(0, 3);
+  // Herhangi bir suzgec varken kirpma yapilmiyor: kullanici artik "one
+  // cikanlara" degil arattigi seyin tamamina bakiyor. Suzgecsiz ana
+  // sayfada da liste artik kirpilmiyor — uc kart, alti etkinligi olan
+  // bir katalogu bos gosteriyordu.
+  const oneCikanlar = yaklasanlar;
 
   const mekanOzet = mekanlaraGoreOzetle(yaklasanlar).slice(0, 5);
   const sehir = enYogunSehir(yaklasanlar);
@@ -81,44 +102,62 @@ export function KesfetPage() {
     ? hataMesaji(kategoriSorgu.error, 'Kategoriler yüklenemedi.')
     : null;
 
+  const baslikMetni = arananMetin
+    ? `"${arananMetin}" sonuçları`
+    : seciliKategori
+      ? seciliKategori.name
+      : zaman === 'bugun'
+        ? 'Bugün'
+        : zaman === 'yarin'
+          ? 'Yarın'
+          : zaman === 'hafta'
+            ? 'Bu hafta'
+            : 'Yaklaşan etkinlikler';
+
+  const altBaslikMetni = seciliKategori
+    ? `${seciliKategori.name} kategorisindeki yaklaşan etkinlikler`
+    : 'En yakın tarihten başlayarak';
+
   const oneCikanlaraKaydir = () => {
     document.getElementById(ONE_CIKANLAR_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
     <main className="flex flex-col">
-      <HeroBolumu
-        onKaydir={oneCikanlaraKaydir}
-        yalnizBugun={yalnizBugun}
-        onBugun={() => {
-          setAramaParametreleri(yalnizBugun ? {} : { ne_zaman: 'bugun' });
-          oneCikanlaraKaydir();
-        }}
-      />
+      <HeroBolumu onKaydir={oneCikanlaraKaydir} />
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-stack-lg px-container-margin-mobile py-stack-lg md:px-container-margin-desktop">
-        <KategorilerBolumu
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-stack-md px-container-margin-mobile pb-stack-lg md:px-container-margin-desktop">
+        <KesfetSuzgeci
           kategoriler={kategoriSorgu.data ?? []}
-          yukleniyor={kategoriSorgu.isPending}
-          hata={kategoriHata}
-          seciliId={kategoriId}
-          onSec={setKategoriId}
+          seciliKategori={kategoriId}
+          onKategori={setKategoriId}
+          zaman={zaman}
+          onZaman={(deger) => parametreYaz('ne_zaman', deger)}
+          arama={arananMetin}
+          onArama={(deger) => parametreYaz('ara', deger)}
+          sonucSayisi={etkinlikSorgu.data ? yaklasanlar.length : null}
         />
 
+        {kategoriHata && (
+          <p role="alert" className="font-body text-body-sm text-error">
+            {kategoriHata}
+          </p>
+        )}
+
         <OneCikanlarBolumu
-          baslik={seciliKategori ? seciliKategori.name : 'Öne Çıkanlar'}
-          altBaslik={
-            seciliKategori
-              ? `${seciliKategori.name} kategorisindeki yaklaşan etkinlikler`
-              : 'En yakın tarihli etkinlikler'
-          }
+          baslik={baslikMetni}
+          altBaslik={altBaslikMetni}
           etkinlikler={oneCikanlar}
           yukleniyor={etkinlikSorgu.isPending}
           hata={etkinlikHata}
           bosMetin={
-            seciliKategori
-              ? 'Bu kategoride yaklaşan etkinlik yok.'
-              : 'Şu anda yaklaşan etkinlik yok.'
+            arananMetin
+              ? `"${arananMetin}" için sonuç bulunamadı.`
+              : zaman !== 'hepsi'
+                ? 'Seçilen tarihte etkinlik yok.'
+                : seciliKategori
+                  ? 'Bu kategoride yaklaşan etkinlik yok.'
+                  : 'Şu anda yaklaşan etkinlik yok.'
           }
         />
 
@@ -135,15 +174,15 @@ export function KesfetPage() {
   );
 }
 
-function HeroBolumu({
-  onKaydir,
-  onBugun,
-  yalnizBugun,
-}: {
-  onKaydir: () => void;
-  onBugun: () => void;
-  yalnizBugun: boolean;
-}) {
+/**
+ * Kahraman bolumu.
+ *
+ * <b>Ekranin tamamini kaplamiyor artik.</b> Onceden dikeyde yirmi dort
+ * birim dolgu vardi ve ilk ekranda tek bir etkinlik gorunmuyordu — bir
+ * biletleme sitesinde ilk gorulmesi gereken sey bilettir. Yukseklik
+ * yariya indi, suzgec cubugu ve ilk kart sirasi ilk ekrana girdi.
+ */
+function HeroBolumu({ onKaydir }: { onKaydir: () => void }) {
   return (
     <section className="relative overflow-hidden">
       {/* Gercek bir sahne fotografi yok; "canli etkinlik" hissi icin
@@ -157,15 +196,13 @@ function HeroBolumu({
         className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent"
       />
 
-      <div className="relative mx-auto flex max-w-7xl flex-col gap-stack-sm px-container-margin-mobile py-stack-lg md:px-container-margin-desktop md:py-24">
+      <div className="relative mx-auto flex max-w-7xl flex-col gap-stack-sm px-container-margin-mobile py-stack-md md:px-container-margin-desktop md:py-stack-lg">
         <span className="w-fit rounded-full border border-primary/40 bg-primary-container/20 px-stack-sm py-1 font-body text-label-caps text-primary">
           CANLI ETKİNLİKLER YAYINDA
         </span>
 
-        <h1 className="font-display text-display-lg-mobile text-on-surface md:text-display-lg">
-          Loca ile
-          <br />
-          <span className="text-primary">Eğlenceyi Keşfet</span>
+        <h1 className="font-display text-display-lg-mobile text-on-surface">
+          Loca ile <span className="text-primary">Eğlenceyi Keşfet</span>
         </h1>
 
         <p className="max-w-xl font-body text-body-md text-on-surface-variant">
@@ -173,125 +210,12 @@ function HeroBolumu({
           Biletini hemen al, anını kaçırma.
         </p>
 
-        <div className="mt-stack-sm flex flex-wrap gap-stack-sm">
+        <div className="mt-base flex flex-wrap gap-stack-sm">
           <Button type="button" onClick={onKaydir}>
             HEMEN KEŞFET
           </Button>
-          {/* Bu dugme ONCEDEN "Hemen keşfet" ile AYNI SEYI yapiyordu:
-              ikisi de listeye kaydiriyordu, cunku GET /events tarih
-              filtresi desteklemiyordu. Calisiyor gorunen ama hicbir sey
-              yapmayan bir dugmeydi. Sunucuya fromUtc/toUtc eklendi ve
-              artik gercekten suzuyor. */}
-          <Button type="button" gorunum="cizgili" onClick={onBugun}>
-            {yalnizBugun ? 'TÜM ETKİNLİKLER' : 'BUGÜNÜN ETKİNLİKLERİ'}
-          </Button>
         </div>
       </div>
-    </section>
-  );
-}
-
-interface KategorilerBolumuProps {
-  kategoriler: EtkinlikKategorisi[];
-  yukleniyor: boolean;
-  hata: string | null;
-  seciliId: string | null;
-  onSec: (id: string | null) => void;
-}
-
-function KategorilerBolumu({
-  kategoriler,
-  yukleniyor,
-  hata,
-  seciliId,
-  onSec,
-}: KategorilerBolumuProps) {
-  return (
-    <section aria-labelledby="kategoriler-baslik" className="flex flex-col gap-stack-sm">
-      <div className="flex items-center justify-between gap-stack-sm">
-        <h2 id="kategoriler-baslik" className="font-headline text-headline-md text-on-surface">
-          Kategoriler
-        </h2>
-
-        {/* Filtre seciliyken cikiyor: hicbir filtre yokken "tumunu
-            goster" demek, zaten gorulen sey icin bir dugme koymak
-            olurdu. */}
-        {seciliId !== null && (
-          <button
-            type="button"
-            onClick={() => onSec(null)}
-            className="font-body text-label-caps text-primary transition-colors hover:text-on-surface"
-          >
-            TÜMÜNÜ GÖR
-          </button>
-        )}
-      </div>
-
-      {hata && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hata}
-        </p>
-      )}
-
-      {yukleniyor && (
-        <div className="flex flex-wrap gap-stack-md" aria-hidden="true">
-          {[0, 1, 2, 3].map((anahtar) => (
-            <div key={anahtar} className="flex flex-col items-center gap-base">
-              <div className="h-16 w-16 animate-pulse rounded-full bg-surface-variant/40" />
-              <div className="h-3 w-12 animate-pulse rounded bg-surface-variant/40" />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!yukleniyor && !hata && kategoriler.length === 0 && (
-        <p className="font-body text-body-sm text-on-surface-variant">
-          Henüz tanımlı kategori yok.
-        </p>
-      )}
-
-      {!yukleniyor && kategoriler.length > 0 && (
-        <div className="flex flex-wrap gap-stack-md">
-          {kategoriler.map((kategori) => {
-            const secili = kategori.id === seciliId;
-
-            return (
-              <button
-                key={kategori.id}
-                type="button"
-                // Ayni kategoriye tekrar basmak filtreyi KALDIRIYOR:
-                // secimi geri almanin yolu, secmenin yoluyla ayni yerde
-                // olmali; yoksa kullanici "tumunu gor" dugmesini
-                // aramak zorunda kaliyor.
-                onClick={() => onSec(secili ? null : kategori.id)}
-                aria-pressed={secili}
-                className="flex flex-col items-center gap-base"
-              >
-                <span
-                  aria-hidden="true"
-                  className={`grid h-16 w-16 place-items-center rounded-full transition-colors ${
-                    secili
-                      ? 'bg-primary text-on-primary'
-                      : 'bg-surface-container-high text-primary hover:bg-surface-container-highest'
-                  }`}
-                >
-                  {kategoriIkonu(kategori.slug)}
-                </span>
-                <span
-                  className={`font-body text-body-sm ${
-                    secili ? 'font-semibold text-primary' : 'text-on-surface'
-                  }`}
-                >
-                  {kategori.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
     </section>
   );
 }
@@ -341,7 +265,10 @@ function OneCikanlarBolumu({
       )}
 
       {yukleniyor && (
-        <div className="grid gap-stack-md md:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+        <div
+          className="grid grid-cols-2 gap-stack-sm sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+          aria-hidden="true"
+        >
           {[0, 1, 2].map((anahtar) => (
             <div key={anahtar} className="h-80 animate-pulse rounded-lg bg-surface-variant/40" />
           ))}
@@ -355,7 +282,7 @@ function OneCikanlarBolumu({
       )}
 
       {!yukleniyor && etkinlikler.length > 0 && (
-        <div className="grid gap-stack-md md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-stack-sm sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {etkinlikler.map((etkinlik) => (
             <EtkinlikKarti key={etkinlik.id} etkinlik={etkinlik} />
           ))}
@@ -487,70 +414,6 @@ function BultenBolumu() {
 }
 
 /** Kategori ikonlari slug'a gore eslenir; taninmayan slug genel bir bilet ikonu alir. */
-function kategoriIkonu(slug: string) {
-  const anahtar = slug.toLowerCase();
-
-  if (anahtar.includes('muzik') || anahtar.includes('konser')) return <MuzikIkonu />;
-  if (anahtar.includes('tiyatro') || anahtar.includes('sahne')) return <TiyatroIkonu />;
-  if (anahtar.includes('gece') || anahtar.includes('parti') || anahtar.includes('club'))
-    return <GeceHayatiIkonu />;
-  if (anahtar.includes('egitim') || anahtar.includes('seminer') || anahtar.includes('workshop'))
-    return <EgitimIkonu />;
-
-  return <GenelIkonu />;
-}
-
-function MuzikIkonu() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="6" cy="18" r="2.5" />
-      <circle cx="16" cy="16" r="2.5" />
-      <path d="M8.5 18V6.5L18.5 4v11.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function TiyatroIkonu() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="9" cy="10" r="5" />
-      <circle cx="15" cy="14" r="5" />
-      <path d="M6.5 9.5c1 1.2 3 1.2 4 0" strokeLinecap="round" />
-      <path d="M13 15.5c1-1.2 3-1.2 4 0" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function GeceHayatiIkonu() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M4 5h16l-8 9-8-9Z" strokeLinejoin="round" />
-      <path d="M12 14v6M8.5 20h7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function EgitimIkonu() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M12 5 2 9.5 12 14l10-4.5L12 5Z" strokeLinejoin="round" />
-      <path d="M6 11.5V17c0 1.1 2.7 2.5 6 2.5s6-1.4 6-2.5v-5.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M22 9.5V15" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function GenelIkonu() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path
-        d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function MekanIkonu() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5">

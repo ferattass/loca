@@ -9,6 +9,14 @@ import type { EtkinlikOzeti } from '../api/eventCatalog';
 // tarayici locale bilmeden uppercase yaparsa Turkce "i" harfi "I"ya doner
 // (nokta kaybolur). toLocaleUpperCase('tr-TR') bunu doğru yapiyor.
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long' });
+const gunBicimi = new Intl.DateTimeFormat('tr-TR', { weekday: 'short' });
+const saatBicimi = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+const paraBicimi = new Intl.NumberFormat('tr-TR', {
+  style: 'currency',
+  currency: 'TRY',
+  maximumFractionDigits: 0,
+});
 
 interface EtkinlikKartiProps {
   etkinlik: EtkinlikOzeti;
@@ -30,14 +38,17 @@ interface EtkinlikKartiProps {
  * govdesi tek buyuk Link, kalp onun uzerine mutlak konumla biniyor.
  */
 export function EtkinlikKarti({ etkinlik }: EtkinlikKartiProps) {
-  const tarihEtiketi = tarihBicimi.format(new Date(etkinlik.eventDateUtc)).toLocaleUpperCase('tr-TR');
+  const tarih = new Date(etkinlik.eventDateUtc);
+  const tarihEtiketi = tarihBicimi.format(tarih).toLocaleUpperCase('tr-TR');
+  const gunEtiketi = gunBicimi.format(tarih).toLocaleUpperCase('tr-TR');
+  const saatEtiketi = saatBicimi.format(tarih);
   const [gorselBozuk, setGorselBozuk] = useState(false);
   const afis = gorselBozuk ? null : dosyaAdresi(etkinlik.posterFileId);
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-lg glass border border-transparent transition-colors hover:border-primary/50">
       <Link to={`/etkinlikler/${etkinlik.id}`} className="flex flex-1 flex-col">
-        <div className="relative aspect-[4/3] w-full overflow-hidden">
+        <div className="relative aspect-[3/4] w-full overflow-hidden">
           <div
             aria-hidden="true"
             className="absolute inset-0 bg-gradient-to-br from-primary-container/60 via-surface-container-high to-secondary-container/30 transition-transform duration-300 group-hover:scale-105"
@@ -58,7 +69,12 @@ export function EtkinlikKarti({ etkinlik }: EtkinlikKartiProps) {
         </div>
 
         <div className="flex flex-1 flex-col gap-1 p-stack-sm">
-          <p className="font-body text-label-caps text-primary">{tarihEtiketi}</p>
+          {/* Tarih SAAT ile birlikte: bir biletleme sitesinde "hangi gun"
+              kadar "saat kacta" da karar veriyor ve kullanici bunu
+              ogrenmek icin detaya girmek zorunda kalmamali. */}
+          <p className="font-body text-label-caps text-primary">
+            {tarihEtiketi} · {gunEtiketi} · {saatEtiketi}
+          </p>
 
           <h3 className="font-headline text-title-lg text-on-surface line-clamp-2">
             {etkinlik.title}
@@ -71,9 +87,27 @@ export function EtkinlikKarti({ etkinlik }: EtkinlikKartiProps) {
             </span>
           </p>
 
-          <span className="mt-auto inline-flex items-center justify-center rounded-md bg-surface-container-high py-stack-sm font-body text-body-sm font-semibold text-on-surface transition-colors group-hover:bg-primary group-hover:text-on-primary">
-            BİLET AL
-          </span>
+          {/* Fiyat sunucudan geliyor (aktif bilet turlerinin en dususu).
+              Kartta gosterilmesi, kullanicinin sekiz karti tek tek acip
+              fiyata bakmasini onluyor. */}
+          <div className="mt-auto flex items-center justify-between gap-base pt-base">
+            <span className="font-body text-body-sm text-on-surface-variant">
+              {etkinlik.minPrice !== null ? (
+                <>
+                  <span className="text-on-surface-variant/70">başlangıç </span>
+                  <strong className="font-semibold text-on-surface">
+                    {paraBicimi.format(etkinlik.minPrice)}
+                  </strong>
+                </>
+              ) : (
+                'Bilet bilgisi yok'
+              )}
+            </span>
+
+            <span className="shrink-0 rounded-md bg-surface-container-high px-stack-sm py-1 font-body text-body-sm font-semibold text-on-surface transition-colors group-hover:bg-primary group-hover:text-on-primary">
+              BİLET AL
+            </span>
+          </div>
         </div>
       </Link>
 

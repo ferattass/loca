@@ -14,6 +14,7 @@ using Hangfire.PostgreSql;
 using Loca.Persistence;
 using Loca.Persistence.Seeding;
 using Loca.WebApi.Authorization;
+using Loca.WebApi.Configuration;
 using Loca.WebApi.BackgroundJobs;
 using Loca.WebApi.HealthChecks;
 using Loca.WebApi.Middleware;
@@ -28,6 +29,11 @@ using Serilog;
 using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Barindirma saglayicisinin (Render, Railway) verdigi DATABASE_URL /
+// REDIS_URL / PORT degiskenleri uygulamanin bekledigi bicime cevriliyor.
+// EN BASTA cagriliyor: sonraki her kayit bu degerleri okuyor.
+BarindirmaAyarlari.Uygula(builder);
 
 // --- Loglama ------------------------------------------------------------
 //
@@ -424,6 +430,48 @@ ZamanlanmisIsKaydi.TekrarlayanIsleriKaydet(
     app.Services.GetRequiredService<IRecurringJobManager>(), sureDolumuSaniye);
 
 app.MapControllers();
+
+// --- Tek servis dagitimi ----------------------------------------------------
+//
+// Arayuz derlemesi wwwroot'a kopyalanmissa API onu da servis ediyor.
+// Ucretsiz barindirma katmanlarinda servis sayisi sinirli ve iki ayri
+// servis calistirmak hem ikinci bir uyanma suresi hem de CORS ve
+// iyzico callback'i icin ikinci bir alan adi demek. Tek kokten servis
+// edildiginde arayuz ile API ayni origin'de oluyor: CORS devre disi
+// kaliyor ve callback adresi tahmin edilebilir hâle geliyor.
+//
+// Klasor yoksa (yerel gelistirme, konteyner yigini) bu blok hic
+// calismiyor ve arayuz eskisi gibi Vite'tan geliyor.
+var arayuzKlasoru = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+
+if (Directory.Exists(arayuzKlasoru) &&
+    File.Exists(Path.Combine(arayuzKlasoru, "index.html")))
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+
+    // SPA derin yollari (/biletlerim, /yonetim/odemeler) sunucuda karsiligi
+    // olmayan adresler; index.html donmezse dogrudan acilan her baglanti
+    // 404 alirdi. API ve saglik yollari HARIC tutuluyor, aksi hâlde
+    // tanimsiz bir API ucu JSON hatasi yerine HTML donerdi ve istemci
+    // "beklenmeyen token <" diye anlasilmaz bir hata gorurdu.
+    app.MapFallback(async context =>
+    {
+        var yol = context.Request.Path.Value ?? string.Empty;
+
+        if (yol.StartsWith("/api", StringComparison.OrdinalIgnoreCase) ||
+            yol.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
+            yol.StartsWith("/hangfire", StringComparison.OrdinalIgnoreCase) ||
+            yol.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        context.Response.ContentType = "text/html; charset=utf-8";
+        await context.Response.SendFileAsync(Path.Combine(arayuzKlasoru, "index.html"));
+    });
+}
 
 app.Run();
 
