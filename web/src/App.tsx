@@ -2,7 +2,6 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SiteKabugu } from './components/SiteKabugu';
-import { SeatStatePreview } from './components/SeatStatePreview';
 import { useOturumBaslat } from './hooks/useOturumBaslat';
 import { EtkinlikOlusturPage } from './pages/EtkinlikOlusturPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -166,21 +165,6 @@ export default function App() {
             <RoleRoute roller={['Admin']}>
               <SeatLayoutPage />
             </RoleRoute>
-          }
-        />
-
-        {/* Gun 2'de yazilan tasarim sistemi dogrulama sayfasi. Teslimde
-            kaldirilacak; simdilik token'larin dogru bagli oldugunu
-            gostermek icin duruyor. */}
-        <Route
-          path="/tasarim"
-          element={
-            <div className="min-h-screen px-container-margin-mobile md:px-container-margin-desktop py-stack-lg">
-              <h1 className="font-headline text-headline-md text-on-surface mb-stack-sm">
-                Koltuk durumlari
-              </h1>
-              <SeatStatePreview />
-            </div>
           }
         />
 
