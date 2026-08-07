@@ -270,6 +270,10 @@ export interface OdemeAyarlari {
   source: AyarKaynagi;
   iyzicoConfigured: boolean;
   bankTransfer: HavaleAyarlari;
+  /** Bilet fiyatinin ustune eklenen yuzde. Komisyon DEGIL. */
+  serviceFeePercent: number;
+  /** Bilet basina en az alinacak tutar. */
+  serviceFeeMinPerTicket: number;
 }
 
 export async function odemeAyarlariGetir(): Promise<OdemeAyarlari> {
@@ -290,6 +294,8 @@ export interface OdemeAyarKayit {
   iban: string;
   deadlineHours: number;
   clearIyzicoKeys: boolean;
+  serviceFeePercent: number;
+  serviceFeeMinPerTicket: number;
 }
 
 export async function odemeAyarlariKaydet(ayarlar: OdemeAyarKayit): Promise<void> {

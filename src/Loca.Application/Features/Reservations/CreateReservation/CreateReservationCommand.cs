@@ -54,6 +54,7 @@ internal sealed class CreateReservationCommandHandler(
     IUnitOfWork unitOfWork,
     IDistributedLockService locks,
     IReservationPolicy policy,
+    IServiceFeeProvider serviceFee,
     ICurrentUserService currentUser,
     IDateTimeProvider clock,
     ILogger<CreateReservationCommandHandler> logger)
@@ -170,6 +171,8 @@ internal sealed class CreateReservationCommandHandler(
                 .Select(koltuk => new ReservationLine(koltuk.Id, koltuk.TicketTypeId, koltuk.Price))
                 .ToList();
 
+            var hizmetBedeli = await serviceFee.GetAsync(cancellationToken);
+
             var rezervasyon = new Reservation(
                 userId,
                 request.EventSessionId,
@@ -177,7 +180,13 @@ internal sealed class CreateReservationCommandHandler(
                 satirlar,
                 utcNow,
                 policy.LockDuration,
-                policy.MaxSeatsPerUserPerSession);
+                policy.MaxSeatsPerUserPerSession,
+                // Politika rezervasyon ANINDA okunuyor ve tutar kaydedilirken
+                // donduruluyor: yuzde sonradan degistiginde bu rezervasyonun
+                // bedeli olduğu gibi kaliyor. Her okumada yeniden
+                // hesaplansaydi kullanicinin gordugu tutar ile odedigi tutar
+                // farkli olabilirdi.
+                hizmetBedeli);
 
             foreach (var koltuk in koltuklar)
                 koltuk.Lock(userId, rezervasyon.Id, utcNow, policy.LockDuration);

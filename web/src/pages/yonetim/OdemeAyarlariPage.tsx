@@ -24,6 +24,8 @@ interface Form {
   hesapSahibi: string;
   iban: string;
   odemeSuresi: string;
+  hizmetYuzde: string;
+  hizmetAltSinir: string;
 }
 
 const BOS_FORM: Form = {
@@ -38,6 +40,8 @@ const BOS_FORM: Form = {
   hesapSahibi: '',
   iban: '',
   odemeSuresi: '24',
+  hizmetYuzde: '0',
+  hizmetAltSinir: '0',
 };
 
 const KAYNAK_METNI: Record<AyarKaynagi, string> = {
@@ -102,6 +106,8 @@ export function OdemeAyarlariPage() {
       hesapSahibi: data.bankTransfer.accountName,
       iban: ibaniGrupla(data.bankTransfer.iban),
       odemeSuresi: String(data.bankTransfer.deadlineHours),
+      hizmetYuzde: String(data.serviceFeePercent),
+      hizmetAltSinir: String(data.serviceFeeMinPerTicket),
     });
   }, [data]);
 
@@ -122,6 +128,10 @@ export function OdemeAyarlariPage() {
         // sunucu donuyor.
         deadlineHours: Number.parseInt(form.odemeSuresi, 10) || 0,
         clearIyzicoKeys: form.anahtarlariKaldir,
+        // Bos alan NaN olarak gitmesin diye 0'a dusuruluyor;
+        // dogrulama araligi sunucuda ve alan bazli hata oradan geliyor.
+        serviceFeePercent: Number.parseFloat(form.hizmetYuzde) || 0,
+        serviceFeeMinPerTicket: Number.parseFloat(form.hizmetAltSinir) || 0,
       }),
     onSuccess: async () => {
       setKaydedildi(true);
@@ -327,6 +337,49 @@ export function OdemeAyarlariPage() {
             </section>
 
             <section className="space-y-stack-md border-t border-outline-variant/40 pt-stack-md">
+              <h2 className="font-headline text-title-lg text-on-surface">Hizmet bedeli</h2>
+
+              {/* Bu bolum odeme ayarlarinin yaninda cunku ikisi de ayni
+                  soruyu cevapliyor: "bu islemden ne kadar para geciyor".
+                  Ayri bir fiyatlandirma ekrani, tek bir hesap icin bir menu
+                  maddesi daha demek olurdu. */}
+              <p className="font-body text-body-sm text-on-surface-variant">
+                Bilet fiyatının <strong>üstüne</strong> eklenir ve müşteriye sepette ayrı
+                satır olarak gösterilir. Organizatörün aldığı tutar değişmez — bu bir
+                komisyon kesintisi değil.
+              </p>
+
+              <div className="grid gap-stack-md sm:grid-cols-2">
+                <TextField
+                  etiket="Yüzde (%)"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.5"
+                  value={form.hizmetYuzde}
+                  onChange={alan('hizmetYuzde')}
+                  hata={alanHatalari.ServiceFeePercent?.[0]}
+                  ipucu="0 yazılırsa yüzde alınmaz."
+                />
+
+                <TextField
+                  etiket="Bilet başına alt sınır (TL)"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.5"
+                  value={form.hizmetAltSinir}
+                  onChange={alan('hizmetAltSinir')}
+                  hata={alanHatalari.ServiceFeeMinPerTicket?.[0]}
+                  ipucu="Yüzde ile alt sınırdan büyük olan alınır."
+                />
+              </div>
+
+              <HizmetBedeliOrnegi
+                yuzde={Number.parseFloat(form.hizmetYuzde) || 0}
+                altSinir={Number.parseFloat(form.hizmetAltSinir) || 0}
+              />
+            </section>
+
+            <section className="space-y-stack-md border-t border-outline-variant/40 pt-stack-md">
               <h2 className="font-headline text-title-lg text-on-surface">Havale / EFT</h2>
 
               <label className="flex items-start gap-stack-sm rounded-md border border-outline-variant bg-surface-container-low px-stack-sm py-stack-sm">
@@ -420,6 +473,46 @@ export function OdemeAyarlariPage() {
           </form>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Girilen degerlerin ne anlama geldigini gosteren canli ornek.
+ *
+ * <b>Yuzde ile alt sinirin birlikte nasil calistigi rakamsiz
+ * anlatilamiyor.</b> "Buyugu alinir" cumlesi dogru ama yonetici bes
+ * liralik bir ogrenci biletinde ne olacagini ancak deneyerek gorurdu — ve
+ * deneme yeri canli sistem olurdu.
+ */
+function HizmetBedeliOrnegi({ yuzde, altSinir }: { yuzde: number; altSinir: number }) {
+  const bicim = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' });
+
+  const hesapla = (fiyat: number) => Math.max((fiyat * yuzde) / 100, altSinir);
+
+  if (yuzde === 0 && altSinir === 0) {
+    return (
+      <p className="font-body text-body-sm text-on-surface-variant/70">
+        Şu an hizmet bedeli alınmıyor; müşteri koltuk fiyatını ödüyor.
+      </p>
+    );
+  }
+
+  return (
+    <div className="rounded-md border border-outline-variant bg-surface-container-low px-stack-sm py-base">
+      <p className="font-body text-body-sm text-on-surface-variant">Tek biletlik örnek:</p>
+
+      <ul className="mt-base space-y-[2px] font-body text-body-sm text-on-surface">
+        {[5, 100, 1000].map((fiyat) => (
+          <li key={fiyat} className="flex justify-between tabular-nums">
+            <span>{bicim.format(fiyat)} koltuk</span>
+            <span>
+              + {bicim.format(hesapla(fiyat))} ={' '}
+              <strong className="font-semibold">{bicim.format(fiyat + hesapla(fiyat))}</strong>
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

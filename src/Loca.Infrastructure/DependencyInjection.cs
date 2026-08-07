@@ -5,6 +5,7 @@ using Loca.Infrastructure.Authentication;
 using Loca.Infrastructure.Concurrency;
 using Loca.Infrastructure.Messaging;
 using Loca.Infrastructure.Payments;
+using Loca.Infrastructure.Pricing;
 using Loca.Infrastructure.Services;
 using Loca.Infrastructure.Storage;
 using Microsoft.AspNetCore.DataProtection;
@@ -155,6 +156,8 @@ public static class DependencyInjection
                         ayarlar, serviceProvider.GetRequiredService<ILogger<MockPaymentProvider>>());
             });
         }
+
+        services.AddScoped<IServiceFeeProvider, ServiceFeeProvider>();
 
         return services;
     }

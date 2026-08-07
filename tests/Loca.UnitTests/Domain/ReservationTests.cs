@@ -33,7 +33,8 @@ public class ReservationTests
             satirlar.Length == 0 ? [Satir()] : satirlar,
             Simdi,
             KilitSuresi,
-            Limit);
+            Limit,
+            ServiceFeePolicy.None);
 
     [Fact]
     public void NewReservationShouldBePendingUntilDeadline()
@@ -85,12 +86,12 @@ public class ReservationTests
     [Fact]
     public void EmptySelectionShouldThrow() =>
         Assert.Throws<DomainException>(() =>
-            new Reservation(Kullanici, Oturum, "anahtar", [], Simdi, KilitSuresi, Limit));
+            new Reservation(Kullanici, Oturum, "anahtar", [], Simdi, KilitSuresi, Limit, ServiceFeePolicy.None));
 
     [Fact]
     public void IdempotencyKeyIsRequired() =>
         Assert.Throws<DomainException>(() =>
-            new Reservation(Kullanici, Oturum, "   ", [Satir()], Simdi, KilitSuresi, Limit));
+            new Reservation(Kullanici, Oturum, "   ", [Satir()], Simdi, KilitSuresi, Limit, ServiceFeePolicy.None));
 
     /// <remarks>
     /// Money farkli para birimlerinin toplanmasina izin vermiyor; karisik

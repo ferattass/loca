@@ -65,6 +65,26 @@ internal sealed class IyzicoSettingsProvider(
                 ? saat
                 : 24);
 
+        // Hizmet bedeli AYNI kaynaktan okunuyor ama hesaplamada
+        // ServiceFeeProvider kullaniliyor; burasi yalnizca panelde
+        // gostermek icin. Iki yerde okunmasinin sebebi donus tipleri:
+        // burada ham sayilar, orada dogrulanmis bir politika nesnesi.
+        var yuzde = decimal.TryParse(
+            Ayar(PaymentSettingKeys.ServiceFeePercent),
+            NumberStyles.Number,
+            CultureInfo.InvariantCulture,
+            out var okunanYuzde)
+            ? okunanYuzde
+            : 0m;
+
+        var altSinir = decimal.TryParse(
+            Ayar(PaymentSettingKeys.ServiceFeeMinPerTicket),
+            NumberStyles.Number,
+            CultureInfo.InvariantCulture,
+            out var okunanAltSinir)
+            ? okunanAltSinir
+            : 0m;
+
         return new OdemeAyarlari(
             // Calisan saglayici acilista secildi; panelden degistirilemiyor.
             // Panelde anahtar girip "neden calismiyor" diye sormamak icin
@@ -78,7 +98,9 @@ internal sealed class IyzicoSettingsProvider(
             ReturnUrl: secenekler.ReturnUrl,
             Source: kaynak,
             IyzicoConfigured: secenekler.Yapilandirilmis,
-            BankTransfer: havale);
+            BankTransfer: havale,
+            ServiceFeePercent: yuzde,
+            ServiceFeeMinPerTicket: altSinir);
     }
 
     /// <returns>Birlesik ayarlar ve degerlerin agirlikli olarak nereden geldigi.</returns>

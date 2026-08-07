@@ -33,6 +33,8 @@ export interface Rezervasyon {
   remainingSeconds: number;
   extensionUsed: boolean;
   totalAmount: number;
+  /** Platformun payi; koltuk fiyatlarinin USTUNE eklenmis tutar. */
+  serviceFee: number;
   currency: string;
   createdAt: string;
   seats: RezervasyonKoltugu[];

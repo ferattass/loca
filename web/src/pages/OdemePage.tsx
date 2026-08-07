@@ -354,7 +354,31 @@ export function OdemePage() {
           ))}
         </ul>
 
-        <p className="mt-stack-sm border-t border-outline-variant/30 pt-stack-sm font-body text-body-md text-on-surface">
+        {/* Hizmet bedeli AYRI SATIR. Toplama sessizce eklenseydi kullanici
+            koltuk fiyatlarini toplayip farkli bir rakam gorur ve neyi
+            odedigini anlamazdi. Sifirken satir hic cikmiyor: "Hizmet
+            bedeli: 0,00 TL" bilgi degil gurultu. */}
+        {rezervasyon.serviceFee > 0 && (
+          <div className="mt-stack-sm flex items-baseline justify-between border-t border-outline-variant/30 pt-stack-sm font-body text-body-sm text-on-surface-variant">
+            <span>Koltuklar</span>
+            <span>{paraBicimi.format(rezervasyon.totalAmount - rezervasyon.serviceFee)}</span>
+          </div>
+        )}
+
+        {rezervasyon.serviceFee > 0 && (
+          <div className="flex items-baseline justify-between font-body text-body-sm text-on-surface-variant">
+            <span>Hizmet bedeli</span>
+            <span>{paraBicimi.format(rezervasyon.serviceFee)}</span>
+          </div>
+        )}
+
+        <p
+          className={`font-body text-body-md text-on-surface ${
+            rezervasyon.serviceFee > 0
+              ? 'mt-base'
+              : 'mt-stack-sm border-t border-outline-variant/30 pt-stack-sm'
+          }`}
+        >
           Toplam:{' '}
           <strong className="font-semibold">{paraBicimi.format(rezervasyon.totalAmount)}</strong>
         </p>

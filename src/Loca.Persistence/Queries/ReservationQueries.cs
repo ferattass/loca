@@ -30,6 +30,7 @@ internal sealed class ReservationQueries(LocaDbContext context) : IReservationQu
                 0,
                 reservation.ExtensionUsed,
                 reservation.TotalAmount.Amount,
+                reservation.ServiceFee.Amount,
                 reservation.TotalAmount.Currency,
                 reservation.CreatedAt,
                 reservation.Items

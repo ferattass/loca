@@ -42,6 +42,8 @@ public sealed record ReservationDetail(
     int RemainingSeconds,
     bool ExtensionUsed,
     decimal TotalAmount,
+    /// <summary>Platformun payi; koltuk fiyatlarinin USTUNE eklenmis tutar.</summary>
+    decimal ServiceFee,
     string Currency,
     DateTime CreatedAt,
     IReadOnlyList<ReservationSeatItem> Seats);

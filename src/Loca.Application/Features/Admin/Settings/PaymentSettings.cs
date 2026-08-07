@@ -34,6 +34,15 @@ public static class PaymentSettingKeys
     public const string BankTransferIban = "BankTransfer:Iban";
     public const string BankTransferDeadlineHours = "BankTransfer:DeadlineHours";
 
+    /// <remarks>
+    /// Odeme ayarlarinin yaninda duruyor cunku ikisi de ayni soruyu
+    /// cevapliyor: "bu islemden ne kadar para geciyor". Ayri bir
+    /// "fiyatlandirma" ekrani acmak, tek alan icin bir menu maddesi
+    /// daha demek olurdu.
+    /// </remarks>
+    public const string ServiceFeePercent = "Pricing:ServiceFeePercent";
+    public const string ServiceFeeMinPerTicket = "Pricing:ServiceFeeMinPerTicket";
+
     /// <summary>
     /// Sifreli saklanacak ve okuma uclarindan hic donmeyecek anahtarlar.
     /// </summary>
@@ -57,6 +66,16 @@ public static class PaymentSettingKeys
 /// <param name="HasApiKey">
 /// Anahtarin KENDISI hicbir zaman donmez, yalnizca tanimli olup olmadigi.
 /// </param>
+/// <param name="ServiceFeePercent">
+/// Bilet fiyatinin ustune eklenen yuzde. Komisyon DEGIL: organizatorun
+/// aldigi tutar degismiyor, bedel musteriden aliniyor ve sepette ayri
+/// satir olarak gorunuyor.
+/// </param>
+/// <param name="ServiceFeeMinPerTicket">
+/// Bilet basina en az alinacak tutar. Yalnizca yuzde olsaydi bes liralik
+/// bir ogrenci biletinden kirk kurus alinirdi; saglayicinin islem ucreti
+/// bile bunun ustunde.
+/// </param>
 public sealed record OdemeAyarlari(
     string ActiveProvider,
     bool HasApiKey,
@@ -66,7 +85,9 @@ public sealed record OdemeAyarlari(
     string ReturnUrl,
     string Source,
     bool IyzicoConfigured,
-    HavaleAyarlari BankTransfer);
+    HavaleAyarlari BankTransfer,
+    decimal ServiceFeePercent,
+    decimal ServiceFeeMinPerTicket);
 
 /// <param name="DeadlineHours">
 /// Havale ile odenen rezervasyonun kac saat ayakta kalacagi.
@@ -103,7 +124,9 @@ public sealed record UpdatePaymentSettingsCommand(
     string AccountName,
     string Iban,
     int DeadlineHours,
-    bool ClearIyzicoKeys = false) : IRequest<Result>;
+    bool ClearIyzicoKeys = false,
+    decimal ServiceFeePercent = 0,
+    decimal ServiceFeeMinPerTicket = 0) : IRequest<Result>;
 
 internal sealed class UpdatePaymentSettingsCommandValidator
     : AbstractValidator<UpdatePaymentSettingsCommand>
@@ -163,6 +186,17 @@ internal sealed class UpdatePaymentSettingsCommandValidator
         RuleFor(komut => komut.DeadlineHours)
             .InclusiveBetween(1, 168)
             .WithMessage("Odeme suresi 1 ile 168 saat arasinda olmali.");
+
+        // Ust sinir 50: yuzde yuz izin verilseydi bir yazim hatasi (8 yerine
+        // 80) bileti neredeyse ikiye katlar ve bunu ancak musteri odeme
+        // ekraninda fark ederdi.
+        RuleFor(komut => komut.ServiceFeePercent)
+            .InclusiveBetween(0, 50)
+            .WithMessage("Hizmet bedeli yuzdesi 0 ile 50 arasinda olmali.");
+
+        RuleFor(komut => komut.ServiceFeeMinPerTicket)
+            .InclusiveBetween(0, 1000)
+            .WithMessage("Bilet basina alt sinir 0 ile 1000 arasinda olmali.");
 
         RuleFor(komut => komut.ClearIyzicoKeys)
             .Equal(false)
@@ -246,6 +280,14 @@ internal sealed class UpdatePaymentSettingsCommandHandler(
                 request.Iban.Replace(" ", string.Empty, StringComparison.Ordinal).ToUpperInvariant(),
             [PaymentSettingKeys.BankTransferDeadlineHours] =
                 request.DeadlineHours.ToString(System.Globalization.CultureInfo.InvariantCulture),
+
+            // InvariantCulture ZORUNLU: makinenin dili Turkce oldugunda
+            // ondalik ayraci virgul olur, okuyan taraf nokta bekler ve 8,5
+            // degeri 85'e donerdi.
+            [PaymentSettingKeys.ServiceFeePercent] =
+                request.ServiceFeePercent.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            [PaymentSettingKeys.ServiceFeeMinPerTicket] =
+                request.ServiceFeeMinPerTicket.ToString(System.Globalization.CultureInfo.InvariantCulture),
         };
 
         var silinecekler = request.ClearIyzicoKeys

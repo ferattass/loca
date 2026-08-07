@@ -31,6 +31,29 @@ internal sealed class ReservationConfiguration : IEntityTypeConfiguration<Reserv
                     .IsRequired();
             });
 
+        // Hizmet bedeli AYRI kolonda saklaniyor, toplamdan turetilmiyor:
+        // yuzde sonradan degistiginde eski rezervasyonlarin o gunku bedeli
+        // oldugu gibi kalmali. Gecmise donuk bir rapor bugunku yuzdeyle
+        // hesaplasaydi yanlis rakamlar cikardi.
+        builder.ComplexProperty(
+            reservation => reservation.ServiceFee,
+            fee =>
+            {
+                fee.Property(money => money.Amount)
+                    .HasColumnName("ServiceFee_Amount")
+                    .HasPrecision(18, 2)
+                    .IsRequired();
+
+                fee.Property(money => money.Currency)
+                    .HasColumnName("ServiceFee_Currency")
+                    .HasMaxLength(3)
+                    .IsRequired();
+            });
+
+        // Kalemler toplami HESAPLANIYOR (Total - ServiceFee), saklanmiyor:
+        // uc tutar da saklansaydi birbirini tutmama ihtimali dogardi.
+        builder.Ignore(reservation => reservation.ItemsTotal);
+
         builder.Property(reservation => reservation.IdempotencyKey)
             .HasMaxLength(100)
             .IsRequired();

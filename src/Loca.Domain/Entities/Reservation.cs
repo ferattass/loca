@@ -49,7 +49,8 @@ public sealed class Reservation : BaseEntity, IAggregateRoot, IOwnedResource
         IReadOnlyList<ReservationLine> lines,
         DateTime utcNow,
         TimeSpan lockDuration,
-        int maxSeatsPerSession)
+        int maxSeatsPerSession,
+        ServiceFeePolicy serviceFee)
     {
         ArgumentNullException.ThrowIfNull(lines);
 
@@ -99,7 +100,11 @@ public sealed class Reservation : BaseEntity, IAggregateRoot, IOwnedResource
             toplam += line.Price;
         }
 
-        TotalAmount = toplam;
+        // Hizmet bedeli kalemler toplandiktan SONRA hesaplaniyor: yuzde
+        // toplamin uzerinden isliyor ve kalem kalem hesaplanip toplansaydi
+        // her kalemde ayri bir yuvarlama olur, toplam birkac kurus kayardi.
+        ServiceFee = serviceFee.Calculate(toplam, lines.Count);
+        TotalAmount = toplam + ServiceFee;
     }
 
     public Guid UserId { get; private set; }
@@ -116,8 +121,32 @@ public sealed class Reservation : BaseEntity, IAggregateRoot, IOwnedResource
     /// <summary>Uzatma hakki kullanildi mi. Sartname: en fazla bir kez.</summary>
     public bool ExtensionUsed { get; private set; }
 
-    /// <summary>Kalemlerin toplami. Sunucuda hesaplanir, istekten alinmaz.</summary>
+    /// <summary>
+    /// Tahsil edilecek toplam: koltuk fiyatlari + hizmet bedeli.
+    /// </summary>
+    /// <remarks>
+    /// Sunucuda hesaplanir, istekten alinmaz. <b>Odeme bu tutari
+    /// kopyaliyor</b>, kalemleri degil.
+    /// </remarks>
     public Money TotalAmount { get; private set; }
+
+    /// <summary>
+    /// Platformun payi. Bilet fiyatinin USTUNE eklenir.
+    /// </summary>
+    /// <remarks>
+    /// Ayri alan olarak saklaniyor, toplamdan cikarilarak turetilmiyor:
+    /// politika sonradan degistiginde eski rezervasyonlarin o gunku bedeli
+    /// olduğu gibi kalmali. Turetilseydi gecmise donuk bir raporda
+    /// bugunku yuzdeyle hesaplanmis yanlis rakamlar cikardi.
+    /// </remarks>
+    public Money ServiceFee { get; private set; }
+
+    /// <summary>Hizmet bedeli haric, koltuklarin toplami.</summary>
+    /// <remarks>
+    /// Saklanmiyor, hesaplaniyor: iki tutar da saklanip ucuncusu
+    /// turetilseydi uc degerin birbirini tutmama ihtimali dogardi.
+    /// </remarks>
+    public Money ItemsTotal => TotalAmount - ServiceFee;
 
     /// <summary>
     /// Istegi tekilleyen anahtar.
