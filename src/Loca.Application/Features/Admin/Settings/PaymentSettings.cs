@@ -110,15 +110,34 @@ internal sealed class UpdatePaymentSettingsCommandValidator
 {
     public UpdatePaymentSettingsCommandValidator()
     {
+        // Adresler YALNIZCA bu istekte iyzico anahtari giriliyorsa zorunlu.
+        //
+        // Kosulsuz zorunlu olduklarinda ekran hicbir seyi kaydedemiyordu:
+        // callback adresi bostayken (yerelde normal, cunku iyzico
+        // localhost'a erisemiyor ve tunel adresi her acilista degisiyor)
+        // yalnizca havaleyi acmak isteyen yonetici de 400 aliyordu — iyzico
+        // hic kullanilmayacak olsa bile. Iyzico'nun eksik ayarla
+        // calismayacagi garantisi burada degil kullanim aninda:
+        // IyzicoOptions.Yapilandirilmis callback'i sart kosuyor ve eksikse
+        // odeme hic baslatilmiyor.
         RuleFor(komut => komut.CallbackUrl)
-            .NotEmpty().WithMessage("Geri donus adresi zorunlu.")
-            .Must(GecerliAdres).WithMessage("Geri donus adresi gecerli bir URL olmali.")
-            .MaximumLength(500);
+            .NotEmpty().WithMessage("Anahtar girilirken geri donus adresi de zorunlu.")
+            .When(IyzicoKuruluyor);
 
         RuleFor(komut => komut.ReturnUrl)
-            .NotEmpty().WithMessage("Arayuz adresi zorunlu.")
+            .NotEmpty().WithMessage("Anahtar girilirken arayuz adresi de zorunlu.")
+            .When(IyzicoKuruluyor);
+
+        // Bicim kontrolu her zaman: bos birakmak serbest, YANLIS yazmak degil.
+        RuleFor(komut => komut.CallbackUrl)
+            .Must(GecerliAdres).WithMessage("Geri donus adresi gecerli bir URL olmali.")
+            .MaximumLength(500)
+            .When(komut => !string.IsNullOrWhiteSpace(komut.CallbackUrl));
+
+        RuleFor(komut => komut.ReturnUrl)
             .Must(GecerliAdres).WithMessage("Arayuz adresi gecerli bir URL olmali.")
-            .MaximumLength(500);
+            .MaximumLength(500)
+            .When(komut => !string.IsNullOrWhiteSpace(komut.ReturnUrl));
 
         RuleFor(komut => komut.ApiKey).MaximumLength(200);
         RuleFor(komut => komut.SecretKey).MaximumLength(200);
@@ -150,6 +169,10 @@ internal sealed class UpdatePaymentSettingsCommandValidator
             .When(komut => !string.IsNullOrEmpty(komut.ApiKey) || !string.IsNullOrEmpty(komut.SecretKey))
             .WithMessage("Anahtar alani doluyken anahtarlari kaldirma secilemez.");
     }
+
+    /// <summary>Bu istekte iyzico anahtari giriliyor mu.</summary>
+    private static bool IyzicoKuruluyor(UpdatePaymentSettingsCommand komut) =>
+        !string.IsNullOrWhiteSpace(komut.ApiKey) || !string.IsNullOrWhiteSpace(komut.SecretKey);
 
     private static bool GecerliAdres(string? deger) =>
         Uri.TryCreate(deger, UriKind.Absolute, out var adres)

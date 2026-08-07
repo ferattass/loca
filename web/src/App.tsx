@@ -27,6 +27,7 @@ import { RoleRoute } from './components/RoleRoute';
 import { YonetimKabugu } from './components/YonetimKabugu';
 import { AyarlarPage } from './pages/yonetim/AyarlarPage';
 import { KullanicilarPage } from './pages/yonetim/KullanicilarPage';
+import { OdemeAyarlariPage } from './pages/yonetim/OdemeAyarlariPage';
 import { OdemelerPage } from './pages/yonetim/OdemelerPage';
 import { OzetPage } from './pages/yonetim/OzetPage';
 import { SistemPage } from './pages/yonetim/SistemPage';
@@ -203,6 +204,7 @@ export default function App() {
           <Route path="kullanicilar" element={<KullanicilarPage />} />
           <Route path="sistem" element={<SistemPage />} />
           <Route path="ayarlar" element={<AyarlarPage />} />
+          <Route path="odeme-ayarlari" element={<OdemeAyarlariPage />} />
           <Route path="mekanlar" element={<MekanYonetimPage />} />
           <Route path="oturma-planlari" element={<OturmaPlaniYonetimPage />} />
         </Route>

@@ -208,3 +208,63 @@ export async function smtpBaglantisiDene(): Promise<SmtpTestSonucu> {
   const { data } = await api.post<SmtpTestSonucu>('/admin/settings/smtp/test');
   return data;
 }
+
+export type AyarKaynagi = SmtpAyarlari['source'];
+
+export interface HavaleAyarlari {
+  enabled: boolean;
+  bankName: string;
+  accountName: string;
+  iban: string;
+  /**
+   * Havale ile odenen rezervasyonun kac saat ayakta kalacagi.
+   *
+   * Kart odemesinden AYRI olmak zorunda: koltuk kilidi on dakika ve havale
+   * banka saatlerine bagli — on dakikalik pencerede havale yapilamaz.
+   */
+  deadlineHours: number;
+}
+
+/**
+ * Odeme ayarlari.
+ *
+ * Anahtarlarin KENDISI hicbir zaman gelmiyor, yalnizca tanimli olup
+ * olmadiklari. `activeProvider` panelden degistirilemiyor: saglayici secimi
+ * acilista bir kez yapiliyor. Ekranda gorunmesinin sebebi, anahtar girip
+ * "neden calismiyor" diye sorulmasini onlemek.
+ */
+export interface OdemeAyarlari {
+  activeProvider: string;
+  hasApiKey: boolean;
+  hasSecretKey: boolean;
+  useSandbox: boolean;
+  callbackUrl: string;
+  returnUrl: string;
+  source: AyarKaynagi;
+  iyzicoConfigured: boolean;
+  bankTransfer: HavaleAyarlari;
+}
+
+export async function odemeAyarlariGetir(): Promise<OdemeAyarlari> {
+  const { data } = await api.get<OdemeAyarlari>('/admin/settings/payment');
+  return data;
+}
+
+export interface OdemeAyarKayit {
+  /** Bos birakilirsa mevcut anahtar KORUNUR. Silmek icin `clearIyzicoKeys`. */
+  apiKey: string | null;
+  secretKey: string | null;
+  useSandbox: boolean;
+  callbackUrl: string;
+  returnUrl: string;
+  bankTransferEnabled: boolean;
+  bankName: string;
+  accountName: string;
+  iban: string;
+  deadlineHours: number;
+  clearIyzicoKeys: boolean;
+}
+
+export async function odemeAyarlariKaydet(ayarlar: OdemeAyarKayit): Promise<void> {
+  await api.put('/admin/settings/payment', ayarlar);
+}

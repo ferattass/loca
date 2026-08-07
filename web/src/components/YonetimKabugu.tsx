@@ -39,6 +39,7 @@ const MENU: MenuGrubu[] = [
     baglantilar: [
       { yol: '/yonetim/sistem', metin: 'Sistem ve kuyruk' },
       { yol: '/yonetim/ayarlar', metin: 'Posta ayarları' },
+      { yol: '/yonetim/odeme-ayarlari', metin: 'Ödeme ayarları' },
     ],
   },
 ];
