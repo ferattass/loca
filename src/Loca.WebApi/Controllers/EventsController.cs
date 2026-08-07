@@ -62,6 +62,7 @@ public sealed class EventsController(ISender sender) : ApiControllerBase
         [FromQuery] DateTime? fromUtc = null,
         [FromQuery] DateTime? toUtc = null,
         [FromQuery] EventStatus? status = null,
+        [FromQuery] Guid? cityId = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -73,7 +74,8 @@ public sealed class EventsController(ISender sender) : ApiControllerBase
             search,
             fromUtc,
             toUtc,
-            status);
+            status,
+            cityId);
 
         return ToResponse(await sender.Send(query, cancellationToken));
     }

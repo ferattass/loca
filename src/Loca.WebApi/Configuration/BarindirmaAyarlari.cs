@@ -58,10 +58,19 @@ internal static class BarindirmaAyarlari
     /// <c>postgres://kullanici:sifre@sunucu:5432/db</c> → Npgsql anahtar-deger.
     /// </summary>
     /// <remarks>
-    /// SSL zorunlu tutuluyor: yonetilen veritabanlari uygulamayla ayni
-    /// makinede degil ve baglanti internetten geciyor.
+    /// <c>SSL Mode=Prefer</c>, <c>Require</c> DEGIL. Yonetilen
+    /// veritabanlari SSL istiyor ve baglanti internetten gectigi icin
+    /// sifreli olmasi sart; ama ayni imaj SSL'i hic acmamis bir Postgres'e
+    /// (yerel dogrulama, konteyner yigini) baglandiginda <c>Require</c>
+    /// "No SSL enabled connection from this host is configured" ile
+    /// patliyor ve uygulama hic ayaga kalkmiyor. <c>Prefer</c> sunucu
+    /// destekliyorsa SSL kuruyor, desteklemiyorsa duz devam ediyor —
+    /// yani uretimde sifreli, yerelde calisir.
+    ///
+    /// <para>
     /// <c>Trust Server Certificate</c> gerekiyor cunku bu saglayicilarin
     /// sertifikalari kendinden imzali.
+    /// </para>
     /// </remarks>
     private static string PostgresBaglantisi(string url)
     {
@@ -81,7 +90,7 @@ internal static class BarindirmaAyarlari
 
         return sunucu
             + $"Username={kullanici};Password={sifre};"
-            + "SSL Mode=Require;Trust Server Certificate=true";
+            + "SSL Mode=Prefer;Trust Server Certificate=true";
     }
 
     /// <summary>

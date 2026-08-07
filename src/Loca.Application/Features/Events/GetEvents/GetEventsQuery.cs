@@ -29,7 +29,8 @@ public sealed record GetEventsQuery(
     string? Search = null,
     DateTime? FromUtc = null,
     DateTime? ToUtc = null,
-    EventStatus? Status = null)
+    EventStatus? Status = null,
+    Guid? CityId = null)
     : IRequest<Result<PagedResult<EventListItem>>>;
 
 internal sealed class GetEventsQueryHandler(
@@ -67,7 +68,8 @@ internal sealed class GetEventsQueryHandler(
             // Durum suzgeci yalnizca gorme yetkisi olana bir sey katiyor:
             // digerleri zaten OnlyPublic ile sinirli ve "Draft goster"
             // dediklerinde bos liste aliyorlar.
-            Status: request.Status);
+            Status: request.Status,
+            CityId: request.CityId);
 
         var sonuc = await queries.GetPagedAsync(filter, cancellationToken);
 

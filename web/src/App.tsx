@@ -24,6 +24,7 @@ import { SeatLayoutPage } from './pages/SeatLayoutPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { IletisimPage } from './pages/bilgi/IletisimPage';
 import { KullanimKosullariPage } from './pages/bilgi/KullanimKosullariPage';
+import { MekanlarPage } from './pages/MekanlarPage';
 import { YardimPage } from './pages/bilgi/YardimPage';
 import { RoleRoute } from './components/RoleRoute';
 import { YonetimKabugu } from './components/YonetimKabugu';
@@ -78,6 +79,7 @@ export default function App() {
 
         {/* Bilgi sayfalari: alt bilgideki uc baglantinin karsiligi. Onceden
             duz metin olarak duruyorlardi cunku sayfalari yoktu. */}
+        <Route path="/mekanlar" element={<MekanlarPage />} />
         <Route path="/yardim" element={<YardimPage />} />
         <Route path="/iletisim" element={<IletisimPage />} />
         <Route path="/kullanim-kosullari" element={<KullanimKosullariPage />} />

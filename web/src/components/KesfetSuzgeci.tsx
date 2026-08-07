@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import type { Sehir } from '../api/catalog';
 import type { EtkinlikKategorisi } from '../api/events';
 
 /** Hizli tarih secenekleri. Adres cubugunda `ne_zaman` degeri olarak duruyor. */
@@ -21,6 +22,9 @@ interface KesfetSuzgeciProps {
   arama: string;
   onArama: (deger: string) => void;
   sonucSayisi: number | null;
+  sehirler: Sehir[];
+  seciliSehir: string | null;
+  onSehir: (id: string | null) => void;
 }
 
 /**
@@ -47,6 +51,9 @@ export function KesfetSuzgeci({
   arama,
   onArama,
   sonucSayisi,
+  sehirler,
+  seciliSehir,
+  onSehir,
 }: KesfetSuzgeciProps) {
   // Yazilan metin bilesende, sorgu disarida: her tus vurusunda sunucuya
   // gitmemek icin arada bir gecikme var. Dogrudan baglansaydi "konser"
@@ -78,6 +85,22 @@ export function KesfetSuzgeci({
               className="w-full rounded-full border border-outline-variant bg-surface-container-low py-stack-sm pl-11 pr-stack-sm font-body text-body-md text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
             />
           </div>
+
+          {/* Sehir acilir liste: bes sehir dugme olarak konsaydi satir
+              tarih secenekleriyle birlikte on bir dugmeye cikardi. */}
+          <select
+            value={seciliSehir ?? ''}
+            onChange={(olay) => onSehir(olay.target.value || null)}
+            aria-label="Şehir"
+            className="shrink-0 rounded-full border border-outline-variant bg-surface-container-low px-stack-sm py-stack-sm font-body text-body-sm text-on-surface"
+          >
+            <option value="">Tüm şehirler</option>
+            {sehirler.map((sehir) => (
+              <option key={sehir.id} value={sehir.id}>
+                {sehir.name}
+              </option>
+            ))}
+          </select>
 
           <div className="flex flex-wrap gap-base">
             {ZAMANLAR.map((secenek) => (

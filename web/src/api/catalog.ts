@@ -51,10 +51,14 @@ export async function sehirleriGetir(): Promise<Sehir[]> {
   return data;
 }
 
-export async function mekanlariGetir(sehirId: string): Promise<MekanOzeti[]> {
+/**
+ * Mekanlar. `sehirId` verilmezse HEPSI doner.
+ *
+ * Wizard'da sayfalama yok: bir sehirdeki mekan sayisi acilir listeye
+ * sigacak kadar az. Sinir yine de veriliyor, sinirsiz istek atilmasin.
+ */
+export async function mekanlariGetir(sehirId?: string): Promise<MekanOzeti[]> {
   const { data } = await api.get<SayfaliSonuc<MekanOzeti>>('/venues', {
-    // Wizard'da sayfalama yok: bir sehirdeki mekan sayisi acilir listeye
-    // sigacak kadar az. Sinir yine de veriliyor, sinirsiz istek atilmasin.
     params: { cityId: sehirId, pageSize: 100 },
   });
 

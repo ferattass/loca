@@ -16,6 +16,7 @@ import {
   yaklasanlariAyikla,
 } from '../api/eventCatalog';
 import type { EtkinlikOzeti, MekanOzetSatiri } from '../api/eventCatalog';
+import { sehirleriGetir, type Sehir } from '../api/catalog';
 import { kategorileriGetir } from '../api/events';
 import type { EtkinlikKategorisi } from '../api/events';
 import { EtkinlikKarti } from '../components/EtkinlikKarti';
@@ -39,8 +40,7 @@ export function KesfetPage() {
     queryFn: kategorileriGetir,
   });
 
-  // Secili kategori. null = tumu.
-  const [kategoriId, setKategoriId] = useState<string | null>(null);
+
 
   /**
    * Suzgecler adres cubugunda tasiniyor (`?ne_zaman=bugun&ara=konser`).
@@ -54,6 +54,13 @@ export function KesfetPage() {
   const zaman = (aramaParametreleri.get('ne_zaman') ?? 'hepsi') as ZamanSecimi;
   const arananMetin = aramaParametreleri.get('ara') ?? '';
   const aralik = zamanAraligi(zaman);
+
+  // Kategori ve sehir de adres cubugunda: ust menudeki acilir listeler
+  // buraya baglaniyor ve secim paylasilabilir bir adres uretiyor.
+  // Bilesenin durumunda tutulsaydi menuden gelen secim hicbir sey
+  // degistiremezdi.
+  const kategoriId = aramaParametreleri.get('kategori');
+  const sehirId = aramaParametreleri.get('sehir');
 
   const parametreYaz = (anahtar: string, deger: string | null) => {
     const yeni = new URLSearchParams(aramaParametreleri);
@@ -70,16 +77,24 @@ export function KesfetPage() {
   const etkinlikSorgu = useQuery({
     // Butun suzgecler onbellek anahtarinda: biri degistiginde react-query
     // yeni istek atiyor ve onceki sonucu geri geldiginde uzerine yazmiyor.
-    queryKey: ['discover-events', kategoriId, zaman, arananMetin],
+    queryKey: ['discover-events', kategoriId, sehirId, zaman, arananMetin],
     queryFn: () =>
       etkinlikleriGetir({
         sayfaBoyutu: 24,
         kategoriId: kategoriId ?? undefined,
+        sehirId: sehirId ?? undefined,
         arama: arananMetin || undefined,
         baslangicUtc: aralik.bas,
         bitisUtc: aralik.bit,
       }),
   });
+
+  const sehirSorgu = useQuery<Sehir[]>({
+    queryKey: ['cities'],
+    queryFn: sehirleriGetir,
+  });
+
+  const seciliSehir = sehirSorgu.data?.find((sehir) => sehir.id === sehirId) ?? null;
 
   const yaklasanlar = yaklasanlariAyikla(etkinlikSorgu.data?.items ?? []);
 
@@ -114,9 +129,11 @@ export function KesfetPage() {
             ? 'Bu hafta'
             : 'Yaklaşan etkinlikler';
 
-  const altBaslikMetni = seciliKategori
-    ? `${seciliKategori.name} kategorisindeki yaklaşan etkinlikler`
-    : 'En yakın tarihten başlayarak';
+  const altBaslikMetni = seciliSehir
+    ? `${seciliSehir.name} — en yakın tarihten başlayarak`
+    : seciliKategori
+      ? `${seciliKategori.name} kategorisindeki yaklaşan etkinlikler`
+      : 'En yakın tarihten başlayarak';
 
   const oneCikanlaraKaydir = () => {
     document.getElementById(ONE_CIKANLAR_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -130,7 +147,10 @@ export function KesfetPage() {
         <KesfetSuzgeci
           kategoriler={kategoriSorgu.data ?? []}
           seciliKategori={kategoriId}
-          onKategori={setKategoriId}
+          onKategori={(id) => parametreYaz('kategori', id)}
+          sehirler={sehirSorgu.data ?? []}
+          seciliSehir={sehirId}
+          onSehir={(id) => parametreYaz('sehir', id)}
           zaman={zaman}
           onZaman={(deger) => parametreYaz('ne_zaman', deger)}
           arama={arananMetin}

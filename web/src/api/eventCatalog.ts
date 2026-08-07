@@ -118,6 +118,7 @@ export interface EtkinlikListesiParametreleri {
   sayfaNo?: number;
   sayfaBoyutu?: number;
   kategoriId?: string;
+  sehirId?: string;
   arama?: string;
   /** ISO. Bu andan itibaren baslayanlar. */
   baslangicUtc?: string;
@@ -145,7 +146,7 @@ export function bugununSiniri(): { baslangicUtc: string; bitisUtc: string } {
 export async function etkinlikleriGetir(
   parametreler: EtkinlikListesiParametreleri = {},
 ): Promise<SayfaliSonuc<EtkinlikOzeti>> {
-  const { sayfaNo = 1, sayfaBoyutu = 24, kategoriId, arama, baslangicUtc, bitisUtc } =
+  const { sayfaNo = 1, sayfaBoyutu = 24, kategoriId, sehirId, arama, baslangicUtc, bitisUtc } =
     parametreler;
 
   const { data } = await api.get<SayfaliSonuc<EtkinlikOzeti>>('/events', {
@@ -156,6 +157,7 @@ export async function etkinlikleriGetir(
       pageNumber: sayfaNo,
       pageSize: sayfaBoyutu,
       categoryId: kategoriId,
+      cityId: sehirId,
       search: arama?.trim() || undefined,
       fromUtc: baslangicUtc,
       toUtc: bitisUtc,

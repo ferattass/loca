@@ -48,6 +48,12 @@ internal sealed class EventQueries(LocaDbContext context) : IEventQueries
         if (filter.CategoryId is { } kategori)
             sorgu = sorgu.Where(ev => ev.CategoryId == kategori);
 
+        // Sehir Event uzerinde ayri bir kolon (EventPlace deger nesnesi duz
+        // kolonlara aciliyor); mekan uzerinden JOIN gerekmiyor ve
+        // (CityId, CategoryId, EventDateUtc) bilesik index'i kullaniliyor.
+        if (filter.CityId is { } sehir)
+            sorgu = sorgu.Where(ev => ev.CityId == sehir);
+
         // Tarih araligi EventDateUtc uzerinden: bu alan en erken oturumun
         // baslangicina hizali tutuluyor (Event.AlignEventDateWithSessions),
         // yani kullanicinin listede gordugu tarihle ayni. Oturum tablosuna

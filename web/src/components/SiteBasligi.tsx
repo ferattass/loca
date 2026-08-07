@@ -1,5 +1,11 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+
+import { sehirleriGetir, type Sehir } from '../api/catalog';
+import { kategorileriGetir } from '../api/events';
+import type { EtkinlikKategorisi } from '../api/events';
+import { MenuAcilir } from './MenuAcilir';
 
 import { Logo } from './ui/Logo';
 import { CarpiIkonu, MenuIkonu } from './ui/Ikon';
@@ -22,6 +28,21 @@ export function SiteBasligi() {
   const { kullanici, refreshToken, oturumKapat } = useAuthStore();
   const [menuAcik, setMenuAcik] = useState(false);
 
+  // Kategori ve sehir listeleri menude gerekiyor. Uzun sure onbellekte
+  // kaliyorlar: ikisi de neredeyse hic degismeyen kucuk kataloglar ve her
+  // sayfa gecisinde yeniden istenmelerinin bir karsiligi yok.
+  const kategoriler = useQuery<EtkinlikKategorisi[]>({
+    queryKey: ['event-categories'],
+    queryFn: kategorileriGetir,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const sehirler = useQuery<Sehir[]>({
+    queryKey: ['cities'],
+    queryFn: sehirleriGetir,
+    staleTime: 10 * 60 * 1000,
+  });
+
   const girisYapildi = kullanici !== null;
   const adminMi = kullanici?.roles.includes('Admin') ?? false;
   const organizatorMu = adminMi || (kullanici?.roles.includes('Organizer') ?? false);
@@ -42,20 +63,31 @@ export function SiteBasligi() {
   // kalan her baglanti oturuma bagliydi. Vitrine ilk gelen kisi menuye
   // bakip sitenin tek sayfadan ibaret oldugunu sanabilirdi. Herkese acik
   // olan ne varsa artik menude.
-  // Giris yapmamis kullanici ONCEDEN tek sekme goruyordu ("Keşfet"): geri
-  // kalan her baglanti oturuma bagliydi. Vitrine ilk gelen kisi menuye
-  // bakip sitenin tek sayfadan ibaret oldugunu sanabilirdi. Herkese acik
-  // olan ne varsa artik menude.
   //
   // "Bugün" ayni rotaya sorgu dizesiyle gidiyor; secili gorunmesi bu
   // yuzden NavLink'e birakilamiyor (NavLink sorgu dizesine bakmaz, ikisi
   // de secili gorunurdu). Aktiflik acikca hesaplaniyor.
-  const bugunSecili = konum.pathname === '/' && aramaParametreleri.get('ne_zaman') === 'bugun';
-  const kesfetSecili = konum.pathname === '/' && !bugunSecili;
+  const zamanSecimi = aramaParametreleri.get('ne_zaman');
+  const anaSayfada = konum.pathname === '/';
+
+  const bugunSecili = anaSayfada && zamanSecimi === 'bugun';
+  const haftaSecili = anaSayfada && zamanSecimi === 'hafta';
+  const kategoriSecili = anaSayfada && aramaParametreleri.has('kategori');
+  const sehirSecili = anaSayfada && aramaParametreleri.has('sehir');
+
+  const kesfetSecili =
+    anaSayfada && !bugunSecili && !haftaSecili && !kategoriSecili && !sehirSecili;
 
   const baglantilar = [
     { yol: '/', metin: 'Keşfet', gorunur: true, aktif: kesfetSecili },
     { yol: '/?ne_zaman=bugun', metin: 'Bugün', gorunur: true, aktif: bugunSecili },
+    { yol: '/?ne_zaman=hafta', metin: 'Bu hafta', gorunur: true, aktif: haftaSecili },
+    {
+      yol: '/mekanlar',
+      metin: 'Mekânlar',
+      gorunur: true,
+      aktif: konum.pathname === '/mekanlar',
+    },
     { yol: '/yardim', metin: 'Yardım', gorunur: true, aktif: konum.pathname === '/yardim' },
     {
       yol: '/rezervasyonlarim',
@@ -104,10 +136,32 @@ export function SiteBasligi() {
           <Logo bicim="yatay" className="hidden h-7 w-auto sm:block md:h-8" />
         </Link>
 
-        {/* Genis ekranda yatay menu, dar ekranda acilir menu. Tasarimdaki
-            arama kutusu HENUZ YOK: arama ucu Gun 8'de geliyor, calismayan
-            bir kutu koymak kullaniciyi yaniltirdi. */}
-        <nav aria-label="Ana menü" className="hidden flex-1 items-center gap-base md:flex">
+        {/* Genis ekranda yatay menu, dar ekranda acilir menu. Arama kutusu
+            baslikta DEGIL kesfet ekraninin suzgec cubugunda: baslik her
+            sayfada duruyor ve arama yalnizca katalogda anlamli. */}
+        <nav aria-label="Ana menü" className="hidden flex-1 items-center gap-base lg:flex">
+          {/* Kategori ve sehir ACILIR LISTE: alti kategori ve bes sehir duz
+              baglanti olsaydi cubuk on dort maddeye cikar ve tasardi. */}
+          <MenuAcilir
+            baslik="Kategoriler"
+            aktif={kategoriSecili}
+            secenekler={(kategoriler.data ?? []).map((kategori) => ({
+              id: kategori.id,
+              metin: kategori.name,
+              yol: `/?kategori=${kategori.id}`,
+            }))}
+          />
+
+          <MenuAcilir
+            baslik="Şehirler"
+            aktif={sehirSecili}
+            secenekler={(sehirler.data ?? []).map((sehir) => ({
+              id: sehir.id,
+              metin: sehir.name,
+              yol: `/?sehir=${sehir.id}`,
+            }))}
+          />
+
           {baglantilar.map((baglanti) => (
             <Link
               key={baglanti.yol}
@@ -167,7 +221,7 @@ export function SiteBasligi() {
             aria-controls="mobil-menu"
             aria-label={menuAcik ? 'Menüyü kapat' : 'Menüyü aç'}
             onClick={() => setMenuAcik((acik) => !acik)}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-outline text-on-surface transition-colors hover:bg-surface-container-high md:hidden"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-outline text-on-surface transition-colors hover:bg-surface-container-high lg:hidden"
           >
             {menuAcik ? <CarpiIkonu className="h-5 w-5" /> : <MenuIkonu className="h-5 w-5" />}
           </button>
@@ -178,7 +232,7 @@ export function SiteBasligi() {
         <nav
           id="mobil-menu"
           aria-label="Ana menü"
-          className="border-t border-outline-variant/40 px-container-margin-mobile py-stack-sm md:hidden"
+          className="border-t border-outline-variant/40 px-container-margin-mobile py-stack-sm lg:hidden"
         >
           {girisYapildi && (
             <p className="mb-base px-stack-sm font-body text-body-sm text-on-surface-variant">
@@ -209,6 +263,44 @@ export function SiteBasligi() {
 
           {/* Oturum eylemleri menunun ICINDE: baslikta yer yok ve cikisin
               bir yerde bulunabilir olmasi gerekiyor. */}
+          {/* Dar ekranda acilir liste yerine duz baglanti: kucuk bir
+              ekranda ic ice acilan menu parmakla kullanilamiyor. */}
+          <div className="mt-stack-sm border-t border-outline-variant/40 pt-stack-sm">
+            <p className="mb-base px-stack-sm font-body text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+              Kategoriler
+            </p>
+
+            <div className="flex flex-wrap gap-base px-stack-sm">
+              {(kategoriler.data ?? []).map((kategori) => (
+                <Link
+                  key={kategori.id}
+                  to={`/?kategori=${kategori.id}`}
+                  onClick={() => setMenuAcik(false)}
+                  className="rounded-full border border-outline-variant px-stack-sm py-1 font-body text-body-sm text-on-surface-variant"
+                >
+                  {kategori.name}
+                </Link>
+              ))}
+            </div>
+
+            <p className="mb-base mt-stack-sm px-stack-sm font-body text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+              Şehirler
+            </p>
+
+            <div className="flex flex-wrap gap-base px-stack-sm">
+              {(sehirler.data ?? []).map((sehir) => (
+                <Link
+                  key={sehir.id}
+                  to={`/?sehir=${sehir.id}`}
+                  onClick={() => setMenuAcik(false)}
+                  className="rounded-full border border-outline-variant px-stack-sm py-1 font-body text-body-sm text-on-surface-variant"
+                >
+                  {sehir.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+
           <div className="mt-stack-sm border-t border-outline-variant/40 pt-stack-sm">
             {girisYapildi ? (
               <button

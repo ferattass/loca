@@ -82,4 +82,5 @@ public sealed record EventListFilter(
     string? Search = null,
     DateTime? FromUtc = null,
     DateTime? ToUtc = null,
-    EventStatus? Status = null);
+    EventStatus? Status = null,
+    Guid? CityId = null);
