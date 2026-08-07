@@ -1,8 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
-import { dogrulamaHatalari, hataMesaji } from '../api/client';
+import { dogrulamaHatalari, dosyaAdresi, hataMesaji } from '../api/client';
 import {
   mekanlariGetir,
   planlariGetir,
@@ -20,6 +20,14 @@ import {
   onayaGonder,
   oturumEkle,
 } from '../api/events';
+import {
+  BELGE_TURU_METNI,
+  belgeBagla,
+  belgeSil,
+  belgeYukle,
+  etkinlikBelgeleriniGetir,
+  type BelgeTuru,
+} from '../api/onay';
 import { planGetir } from '../api/seatLayouts';
 import { Button } from '../components/ui/Button';
 import { CarpiIkonu, OnayIkonu } from '../components/ui/Ikon';
@@ -46,6 +54,7 @@ export function EtkinlikOlusturPage() {
   const [biletTurleri, setBiletTurleri] = useState<Array<{ id: string; ad: string; fiyat: number }>>([]);
   const [planId, setPlanId] = useState('');
   const [afisId, setAfisId] = useState<string | null>(null);
+  const [belgeSayisi, setBelgeSayisi] = useState(0);
   const [hata, setHata] = useState<string | null>(null);
   const [hatalar, setHatalar] = useState<string[]>([]);
 
@@ -65,7 +74,7 @@ export function EtkinlikOlusturPage() {
     setHatalar(dogrulamaHatalari(gelen));
   }, []);
 
-  const adimlar = ['Etkinlik', 'Oturumlar', 'Bilet türleri', 'Afiş', 'Onay'];
+  const adimlar = ['Etkinlik', 'Oturumlar', 'Bilet türleri', 'Afiş', 'Belgeler', 'Onay'];
 
   return (
     <main className="min-h-screen px-container-margin-mobile md:px-container-margin-desktop py-stack-lg">
@@ -185,12 +194,25 @@ export function EtkinlikOlusturPage() {
           />
         )}
 
-        {adim === 5 && etkinlikId && !gonderildi && (
+        {adim === 5 && etkinlikId && (
+          <BelgeAdimi
+            etkinlikId={etkinlikId}
+            onHata={bildirHata}
+            onDegisti={setBelgeSayisi}
+            onDevam={() => {
+              bildirHata(null);
+              setAdim(6);
+            }}
+          />
+        )}
+
+        {adim === 6 && etkinlikId && !gonderildi && (
           <OnayAdimi
             etkinlikId={etkinlikId}
             oturumSayisi={oturumlar.length}
             turSayisi={biletTurleri.length}
             afisVar={afisId !== null}
+            belgeSayisi={belgeSayisi}
             onHata={bildirHata}
             onGonderildi={() => {
               bildirHata(null);
@@ -970,13 +992,177 @@ function AfisAdimi({
   );
 }
 
-// --- 5 · Onay -------------------------------------------------------------
+// --- 5 · Belgeler ---------------------------------------------------------
+
+/**
+ * Sahne sozlesmesi ve diger belgeler.
+ *
+ * <b>Onaya gondermenin on kosulu.</b> Onay ekibinin bakacagi asil sey
+ * salonun o tarih icin gercekten tutuldugunu gosteren belge; belgesiz bir
+ * basvuru onaylayan kisiye "guven bana" demekten baska bir sey sunmuyor.
+ *
+ * <para>
+ * Iki adimli yukleme: once dosya (<c>POST /files/belge</c>), sonra
+ * etkinlige baglama. Tek istekte yapilsaydi yarim kalan bir yuklemede
+ * etkinlik kaydi da etkilenirdi.
+ * </para>
+ */
+function BelgeAdimi({
+  etkinlikId,
+  onDegisti,
+  onDevam,
+  onHata,
+}: {
+  etkinlikId: string;
+  onDegisti: (sozlesmeSayisi: number) => void;
+  onDevam: () => void;
+  onHata: HataBildir;
+}) {
+  const [tur, setTur] = useState<BelgeTuru>('VenueContract');
+  const [not, setNot] = useState('');
+  const [dosya, setDosya] = useState<File | null>(null);
+
+  const belgeler = useQuery({
+    queryKey: ['etkinlik-belgeleri', etkinlikId],
+    queryFn: () => etkinlikBelgeleriniGetir(etkinlikId),
+  });
+
+  // Sunucu ozellikle SAHNE SOZLESMESI ariyor; "belge var" yetmiyor.
+  const sozlesmeSayisi =
+    belgeler.data?.filter((belge) => belge.kind === 'VenueContract').length ?? 0;
+
+  useEffect(() => {
+    onDegisti(sozlesmeSayisi);
+  }, [sozlesmeSayisi, onDegisti]);
+
+  const yukle = useMutation({
+    mutationFn: async () => {
+      if (!dosya) throw new Error('Önce bir dosya seç.');
+
+      const dosyaId = await belgeYukle(dosya);
+      await belgeBagla(etkinlikId, dosyaId, tur, not.trim() || null);
+    },
+    onSuccess: async () => {
+      setDosya(null);
+      setNot('');
+      onHata(null);
+      await belgeler.refetch();
+    },
+    onError: (h) => onHata(h, 'Belge eklenemedi.'),
+  });
+
+  const sil = useMutation({
+    mutationFn: (belgeId: string) => belgeSil(etkinlikId, belgeId),
+    onSuccess: async () => {
+      onHata(null);
+      await belgeler.refetch();
+    },
+    onError: (h) => onHata(h, 'Belge kaldırılamadı.'),
+  });
+
+  return (
+    <div className="space-y-stack-sm">
+      <p className="font-body text-body-sm text-on-surface-variant">
+        Salonu o tarih için tuttuğunu gösteren sözleşmeyi ekle. Onay ekibi bu belgeye
+        bakarak etkinliği yayına alıyor; sözleşme olmadan onaya gönderilemiyor. PDF veya
+        görsel, en fazla 5 MB.
+      </p>
+
+      {belgeler.data && belgeler.data.length > 0 && (
+        <ul className="space-y-base rounded-md border border-outline-variant/40 bg-surface-variant/20 p-stack-sm">
+          {belgeler.data.map((belge) => (
+            <li key={belge.id} className="flex flex-wrap items-baseline gap-base">
+              <span className="rounded-full border border-outline-variant px-base py-[2px] font-body text-[11px] text-on-surface-variant">
+                {BELGE_TURU_METNI[belge.kind]}
+              </span>
+
+              <a
+                href={dosyaAdresi(belge.uploadedFileId) ?? '#'}
+                target="_blank"
+                rel="noreferrer"
+                className="font-body text-body-sm text-primary underline underline-offset-2"
+              >
+                {belge.originalFileName}
+              </a>
+
+              {belge.note && (
+                <span className="font-body text-body-sm text-on-surface-variant">
+                  — {belge.note}
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={() => sil.mutate(belge.id)}
+                disabled={sil.isPending}
+                className="ml-auto font-body text-body-sm text-error underline underline-offset-2 disabled:opacity-50"
+              >
+                Kaldır
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="grid gap-stack-sm sm:grid-cols-2">
+        <Secim
+          etiket="Belge türü"
+          deger={tur}
+          onDegis={(deger) => setTur(deger as BelgeTuru)}
+          secenekler={(Object.keys(BELGE_TURU_METNI) as BelgeTuru[]).map((anahtar) => ({
+            id: anahtar,
+            ad: BELGE_TURU_METNI[anahtar],
+          }))}
+        />
+
+        <TextField
+          etiket="Not (isteğe bağlı)"
+          value={not}
+          onChange={(o) => setNot(o.target.value)}
+          placeholder="Örn. 3. salon, 12 Ağustos"
+        />
+      </div>
+
+      <label className="flex flex-col gap-base">
+        <span className="font-body text-body-sm text-on-surface-variant">Dosya</span>
+        <input
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg,.webp"
+          onChange={(o) => setDosya(o.target.files?.[0] ?? null)}
+          className="font-body text-body-sm text-on-surface file:mr-stack-sm file:rounded-md file:border-0 file:bg-surface-container-high file:px-stack-sm file:py-base file:font-body file:text-body-sm file:text-on-surface"
+        />
+      </label>
+
+      <div className="flex flex-wrap gap-stack-sm">
+        <Button
+          type="button"
+          gorunum="cizgili"
+          yukleniyor={yukle.isPending}
+          disabled={dosya === null}
+          onClick={() => yukle.mutate()}
+        >
+          Belgeyi ekle
+        </Button>
+
+        {/* Devam, sozlesme olmadan KAPALI: sunucu zaten reddediyor ama
+            kullanici bir adim daha ilerleyip orada duvara carpmak yerine
+            eksigi burada gormeli. */}
+        <Button type="button" onClick={onDevam} disabled={sozlesmeSayisi === 0}>
+          Devam et
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// --- 6 · Onay -------------------------------------------------------------
 
 function OnayAdimi({
   etkinlikId,
   oturumSayisi,
   turSayisi,
   afisVar,
+  belgeSayisi,
   onGonderildi,
   onHata,
 }: {
@@ -984,6 +1170,7 @@ function OnayAdimi({
   oturumSayisi: number;
   turSayisi: number;
   afisVar: boolean;
+  belgeSayisi: number;
   onGonderildi: () => void;
   onHata: HataBildir;
 }) {
@@ -997,6 +1184,10 @@ function OnayAdimi({
     { metin: `${oturumSayisi} oturum`, saglandi: oturumSayisi > 0 },
     { metin: `${turSayisi} aktif bilet türü`, saglandi: turSayisi > 0 },
     { metin: 'Afiş', saglandi: afisVar },
+    // Sunucu ozellikle SAHNE SOZLESMESI ariyor; buradaki sayac tur ayirmiyor
+    // ama Belgeler adimi sozlesme disindaki turleri sozlesme yerine
+    // saymiyor — sayac oradan geliyor.
+    { metin: 'Sahne sözleşmesi', saglandi: belgeSayisi > 0 },
   ];
 
   return (

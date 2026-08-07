@@ -36,10 +36,20 @@ public sealed class FilesController(ISender sender) : ApiControllerBase
         if (sonuc.IsFailure)
             return ToResponse(sonuc);
 
-        // Tarayici afisi her istekte yeniden indirmesin. Dosya adi Guid ve
-        // icerik hicbir zaman degismiyor (yeni yukleme yeni kimlik uretir),
-        // bu yuzden uzun sureli ve immutable onbellek guvenli.
-        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        // Onbellek basligi dosyanin GORUNURLUGUNE gore.
+        //
+        // Afiste "public": icerik hicbir zaman degismiyor (yeni yukleme yeni
+        // kimlik uretir), tarayici ve CDN uzun sure saklayabilir.
+        //
+        // Belgede "private, no-store": tek bir public basligi, araya giren
+        // bir vekilin veya CDN'in sahne kira sozlesmesini saklayip yetkisi
+        // olmayan bir istege servis etmesi demek olurdu — yetki kontrolu
+        // sunucuda dogru calissa bile. Tarayicinin diskine yazilmasi da
+        // istenmiyor: ortak kullanilan bir bilgisayarda oturum kapandiktan
+        // sonra belge onbellekten geri gelebilirdi.
+        Response.Headers.CacheControl = sonuc.Value.IsPublic
+            ? "public, max-age=31536000, immutable"
+            : "private, no-store";
 
         return File(sonuc.Value.Content, sonuc.Value.ContentType);
     }

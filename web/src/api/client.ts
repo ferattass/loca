@@ -164,3 +164,15 @@ export function hataMesaji(hata: unknown, varsayilan = 'Beklenmeyen bir hata olu
 
   return govde?.detail ?? varsayilan;
 }
+
+/**
+ * Yuklenen dosyanin adresi.
+ *
+ * Adres API tabanindan turetiliyor, sabit yazilmiyor: konteynerde ve
+ * canlida API baska bir kokten servis ediliyor ve sabit bir "/uploads"
+ * yolu orada bos donerdi.
+ */
+export function dosyaAdresi(dosyaId: string | null | undefined): string | null {
+  if (!dosyaId) return null;
+  return `${BASE_URL}/files/${dosyaId}`;
+}

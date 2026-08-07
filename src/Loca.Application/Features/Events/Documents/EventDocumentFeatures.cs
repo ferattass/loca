@@ -11,16 +11,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Loca.Application.Features.Events.Documents;
 
-/// <param name="FileUrl">
-/// Belgeye erisim adresi. <b>Yalnizca sahibine ve onay ekibine donuyor:</b>
-/// kira sozlesmesi imza ve ticari kosul tasiyor, vitrinde gorunmesi icin
-/// hicbir sebep yok.
+/// <param name="UploadedFileId">
+/// Dosyanin kimligi; icerik <c>GET /files/{id}</c> ucundan okunuyor.
+/// <b>Adres burada uretilmiyor:</b> uretilseydi API'nin kendi kokunu
+/// bilmesi gerekirdi ve konteynerde/canlida o kok degisince adres bos
+/// donerdi. Sunucu kimligi soyluyor, adresi cagiran kuruyor.
+///
+/// <para>
+/// Belge herkese acik degil: dosya kaydi kapali isaretli ve yalnizca
+/// yukleyeni ile onay ekibi okuyabiliyor.
+/// </para>
 /// </param>
 public sealed record EtkinlikBelgesi(
     Guid Id,
     EventDocumentKind Kind,
     string OriginalFileName,
-    string FileUrl,
+    Guid UploadedFileId,
     long SizeInBytes,
     string? Note,
     DateTime UploadedAt);

@@ -11,10 +11,17 @@ namespace Loca.Application.Features.Files.GetFile;
 /// donuyor cunku bes megabaytlik bir afis her istekte bellege
 /// kopyalanmamali.
 /// </param>
+/// <param name="IsPublic">
+/// Onbelleklenebilirligi belirliyor. <b>Ozel belge paylasimli onbellege
+/// YAZILAMAZ:</b> tek bir "public, max-age" basligi, araya giren bir vekil
+/// veya CDN'in sahne kira sozlesmesini saklayip baska bir istege servis
+/// etmesi demek olurdu.
+/// </param>
 public sealed record DosyaIcerigi(
     Stream Content,
     string ContentType,
-    string FileName);
+    string FileName,
+    bool IsPublic);
 
 /// <summary>
 /// Yuklenen dosyayi servis eder.
@@ -81,7 +88,8 @@ internal sealed class GetFileQueryHandler(
             // uretiliyor. Istemcinin bildirdigi basligi geri yansitmak,
             // yuklerken reddettigimiz bilgiye servis ederken guvenmek olurdu.
             TurdenBaslik(Path.GetExtension(kayit.FileName)),
-            kayit.OriginalFileName));
+            kayit.OriginalFileName,
+            kayit.IsPublic));
     }
 
     private bool Gorebilir(Guid? yukleyen) =>

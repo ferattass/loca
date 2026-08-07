@@ -17,9 +17,7 @@ internal sealed class EventDocumentQueries(LocaDbContext context) : IEventDocume
                 document.Id,
                 document.Kind,
                 document.UploadedFile!.OriginalFileName,
-                // Adres depolanan goreli yoldan uretiliyor; dosya adi
-                // Guid oldugu icin tahmin edilebilir degil.
-                "/uploads/" + document.UploadedFile!.RelativePath,
+                document.UploadedFileId,
                 document.UploadedFile!.SizeInBytes,
                 document.Note,
                 document.CreatedAt))

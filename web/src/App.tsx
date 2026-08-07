@@ -31,6 +31,7 @@ import { YonetimKabugu } from './components/YonetimKabugu';
 import { AyarlarPage } from './pages/yonetim/AyarlarPage';
 import { KullanicilarPage } from './pages/yonetim/KullanicilarPage';
 import { OdemeAyarlariPage } from './pages/yonetim/OdemeAyarlariPage';
+import { OnayKuyruguPage } from './pages/yonetim/OnayKuyruguPage';
 import { OdemelerPage } from './pages/yonetim/OdemelerPage';
 import { OzetPage } from './pages/yonetim/OzetPage';
 import { SistemPage } from './pages/yonetim/SistemPage';
@@ -203,7 +204,11 @@ export default function App() {
         <Route
           path="/yonetim"
           element={
-            <RoleRoute roller={['Admin']}>
+            /* Moderator de yonetim kabuguna giriyor ama YALNIZCA onay
+               kuyrugunu goruyor: menu rolune gore kuruluyor ve asil
+               kisit sunucudaki policy'lerde. Ayri bir kabuk yazilsaydi
+               ayni duzen iki yerde yasardi. */
+            <RoleRoute roller={['Admin', 'Moderator']}>
               <YonetimKabugu />
             </RoleRoute>
           }
@@ -214,6 +219,7 @@ export default function App() {
           <Route path="sistem" element={<SistemPage />} />
           <Route path="ayarlar" element={<AyarlarPage />} />
           <Route path="odeme-ayarlari" element={<OdemeAyarlariPage />} />
+          <Route path="onay-kuyrugu" element={<OnayKuyruguPage />} />
           <Route path="mekanlar" element={<MekanYonetimPage />} />
           <Route path="oturma-planlari" element={<OturmaPlaniYonetimPage />} />
         </Route>

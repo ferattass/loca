@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { dosyaAdresi } from '../api/client';
 import type { EtkinlikOzeti } from '../api/eventCatalog';
 
 // Ay adi Intl'den Turkce geliyor ama kucuk harfle ("eylul" degil "Eylul").
@@ -16,11 +17,13 @@ interface EtkinlikKartiProps {
 /**
  * Kesfet listesindeki etkinlik karti.
  *
- * Afis gorseli YOK: `posterFileId` sunucudan geliyor ama onu servis eden
- * bir uc yok. Hayali bir gorsel adresi uretmek yerine dekoratif bir
- * degrade yer tutucu kullanilir; bu yuzden burada <img> da yok — yer
- * tutucu ekran okuyucudan gizlenir (aria-hidden), gercek bilgi zaten
- * yanindaki metinlerde var.
+ * Afis gorseli artik GERCEKTEN cizilebiliyor: `posterFileId` sunucudan
+ * geliyordu ama onu servis eden bir uc yoktu, bu yuzden kart dekoratif bir
+ * degrade gosteriyordu. Uc yazildi. Afisi olmayan etkinlikte ayni degrade
+ * yer tutucu duruyor.
+ *
+ * Gorsel yuklenemezse (dosya silinmis, adres bozuk) sessizce yer tutucuya
+ * dusuyor: kirik gorsel ikonu, bos bir degradeden daha kotu gorunur.
  *
  * Favori butonu Link'in DISINDA, ayri bir kardes eleman: <button>'i <a>
  * icine koymak gecersiz HTML olurdu (ic ice etkilesimli eleman). Kart
@@ -28,6 +31,8 @@ interface EtkinlikKartiProps {
  */
 export function EtkinlikKarti({ etkinlik }: EtkinlikKartiProps) {
   const tarihEtiketi = tarihBicimi.format(new Date(etkinlik.eventDateUtc)).toLocaleUpperCase('tr-TR');
+  const [gorselBozuk, setGorselBozuk] = useState(false);
+  const afis = gorselBozuk ? null : dosyaAdresi(etkinlik.posterFileId);
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-lg glass border border-transparent transition-colors hover:border-primary/50">
@@ -37,6 +42,19 @@ export function EtkinlikKarti({ etkinlik }: EtkinlikKartiProps) {
             aria-hidden="true"
             className="absolute inset-0 bg-gradient-to-br from-primary-container/60 via-surface-container-high to-secondary-container/30 transition-transform duration-300 group-hover:scale-105"
           />
+
+          {afis && (
+            <img
+              src={afis}
+              // Afis DEKORATIF sayiliyor: etkinligin adi hemen altinda
+              // yaziyor ve gorseli ayrica tarif etmek ekran okuyucuda ayni
+              // bilgiyi iki kez okuturdu.
+              alt=""
+              loading="lazy"
+              onError={() => setGorselBozuk(true)}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          )}
         </div>
 
         <div className="flex flex-1 flex-col gap-1 p-stack-sm">

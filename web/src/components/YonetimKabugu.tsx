@@ -12,37 +12,53 @@ interface MenuGrubu {
 }
 
 /**
- * Yonetim menusu.
+ * Yonetim menusu, role gore kurulur.
  *
  * Gruplanmis: duz bir liste sekiz baglantiya ciktiginda hangisinin ne ise
  * yaradigi ancak okunarak anlasiliyordu. Basliklar "ne yonetiyorum"
- * sorusuna gore ayrildi — para, katalog, sistem.
+ * sorusuna gore ayrildi — para, onay, katalog, sistem.
+ *
+ * <b>Moderator yonetim kabuguna giriyor ama yalnizca onay kuyrugunu
+ * goruyor.</b> Tam menu gosterilseydi tikladigi her baglanti 403 donerdi;
+ * calisan bir sey gibi duran ama calismayan bes baglanti, hic olmamasindan
+ * kotu. Bu bir GUVENLIK SINIRI DEGIL — asil kisit sunucudaki policy'lerde,
+ * burasi yalnizca gezinmeyi duzenliyor.
  */
-const MENU: MenuGrubu[] = [
-  {
-    baslik: 'İşletme',
-    baglantilar: [
-      { yol: '/yonetim', metin: 'Özet' },
-      { yol: '/yonetim/odemeler', metin: 'Ödemeler' },
-      { yol: '/yonetim/kullanicilar', metin: 'Kullanıcılar' },
-    ],
-  },
-  {
-    baslik: 'Katalog',
-    baglantilar: [
-      { yol: '/yonetim/mekanlar', metin: 'Mekânlar' },
-      { yol: '/yonetim/oturma-planlari', metin: 'Oturma planları' },
-    ],
-  },
-  {
-    baslik: 'Sistem',
-    baglantilar: [
-      { yol: '/yonetim/sistem', metin: 'Sistem ve kuyruk' },
-      { yol: '/yonetim/ayarlar', metin: 'Posta ayarları' },
-      { yol: '/yonetim/odeme-ayarlari', metin: 'Ödeme ayarları' },
-    ],
-  },
-];
+function menuyuKur(adminMi: boolean): MenuGrubu[] {
+  const onay: MenuGrubu = {
+    baslik: 'Onay',
+    baglantilar: [{ yol: '/yonetim/onay-kuyrugu', metin: 'Onay kuyruğu' }],
+  };
+
+  if (!adminMi) return [onay];
+
+  return [
+    {
+      baslik: 'İşletme',
+      baglantilar: [
+        { yol: '/yonetim', metin: 'Özet' },
+        { yol: '/yonetim/odemeler', metin: 'Ödemeler' },
+        { yol: '/yonetim/kullanicilar', metin: 'Kullanıcılar' },
+      ],
+    },
+    onay,
+    {
+      baslik: 'Katalog',
+      baglantilar: [
+        { yol: '/yonetim/mekanlar', metin: 'Mekânlar' },
+        { yol: '/yonetim/oturma-planlari', metin: 'Oturma planları' },
+      ],
+    },
+    {
+      baslik: 'Sistem',
+      baglantilar: [
+        { yol: '/yonetim/sistem', metin: 'Sistem ve kuyruk' },
+        { yol: '/yonetim/ayarlar', metin: 'Posta ayarları' },
+        { yol: '/yonetim/odeme-ayarlari', metin: 'Ödeme ayarları' },
+      ],
+    },
+  ];
+}
 
 /**
  * Yonetim panelinin kabugu.
@@ -62,6 +78,9 @@ const MENU: MenuGrubu[] = [
 export function YonetimKabugu() {
   const { kullanici } = useAuthStore();
   const [menuAcik, setMenuAcik] = useState(false);
+
+  const adminMi = kullanici?.roles.includes('Admin') ?? false;
+  const menu = menuyuKur(adminMi);
 
   return (
     <div className="min-h-screen bg-surface-container-lowest">
@@ -111,7 +130,7 @@ export function YonetimKabugu() {
             menuAcik ? 'block' : 'hidden'
           } w-full shrink-0 border-b border-outline-variant/40 px-container-margin-mobile py-stack-sm md:sticky md:top-[57px] md:block md:h-[calc(100vh-57px)] md:w-56 md:border-b-0 md:border-r md:px-stack-sm md:py-stack-md`}
         >
-          {MENU.map((grup) => (
+          {menu.map((grup) => (
             <div key={grup.baslik} className="mb-stack-md">
               <p className="mb-base px-base font-body text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
                 {grup.baslik}

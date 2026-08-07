@@ -101,7 +101,7 @@ export async function odemeIadeEt(odemeId: string, sebep: string): Promise<void>
   await api.post(`/payments/${odemeId}/refund`, { reason: sebep });
 }
 
-export type RolAdi = 'Customer' | 'Organizer' | 'Admin';
+export type RolAdi = 'Customer' | 'Organizer' | 'Moderator' | 'Admin';
 
 export interface AdminKullanici {
   id: string;
@@ -127,6 +127,30 @@ export async function adminKullanicilariGetir(filtre: {
     },
   });
 
+  return data;
+}
+
+export interface AcilanHesap {
+  userId: string;
+  email: string;
+  /** Posta sunucusu tanimli degilse false; hesap yine de acilmis olur. */
+  resetLinkSent: boolean;
+}
+
+/**
+ * Organizator/sanatci icin hesap acar.
+ *
+ * Sifre YOK: sunucu rastgele bir sifre uretip kullaniciya sifirlama
+ * baglantisi gonderiyor. Yonetici bir sifre belirleseydi onu kullaniciya
+ * bir kanaldan iletmesi gerekirdi ve o kanalda kalici olarak dururdu.
+ */
+export async function hesapAc(istek: {
+  email: string;
+  fullName: string;
+  phoneNumber: string | null;
+  roles: RolAdi[];
+}): Promise<AcilanHesap> {
+  const { data } = await api.post<AcilanHesap>('/admin/users', istek);
   return data;
 }
 
