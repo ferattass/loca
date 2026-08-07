@@ -35,15 +35,27 @@
 #    HTTP tabanli bir posta saglayicisi (Resend, SendGrid API) bu sinirin
 #    disinda kalir.
 #
+# 5. CALISMA ALANI BASINA TEK UCRETSIZ POSTGRES. Blueprint'in kendi
+#    veritabanini olusturmasi bu yuzden KALDIRILDI: workspace'te zaten
+#    baska bir ucretsiz veritabani varsa kurulum "cannot have more than
+#    one active free tier database" ile dusuyor ve web servisi de iptal
+#    oluyor.
+#
+#    DATABASE_URL artik ELLE giriliyor. Var olan veritabani paylasilabilir:
+#    Loca'nin tablolari EF ile olusuyor ve kendi gec kaydini
+#    (__EFMigrationsHistory) tutuyor, baska bir aracin (ornegin Prisma)
+#    tablolariyla cakismiyor. Ayri bir veritabani isteniyorsa eski olan
+#    silinip asagidaki blok geri acilabilir:
+#
+#      databases:
+#        - name: loca-postgres
+#          databaseName: loca
+#          user: loca_user
+#          plan: free
+#
 # Kurulum: Render panelinde New → Blueprint, depoyu sec. Asagidaki
 # degiskenlerden sync:false olanlar ELLE giriliyor (panel soruyor);
 # gerisi otomatik.
-
-databases:
-  - name: loca-postgres
-    databaseName: loca
-    user: loca_user
-    plan: free
 
 services:
   - type: web
@@ -60,13 +72,16 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
 
-      # Baglanti dizesi Render'dan URI biciminde geliyor; uygulama
-      # acilista Npgsql bicimine ceviriyor (BarindirmaAyarlari).
-      # Uretimde SSL Mode=Require kullaniliyor.
+      # Veritabani baglanti dizesi. ELLE giriliyor (yukaridaki 5. madde):
+      # Render panelinde veritabanini ac → "Internal Database URL" degerini
+      # kopyala. Ic adres kullanilmali; dis adres internetten geciyor ve
+      # ucretsiz katmanda yavas.
+      #
+      # Bicim postgres://kullanici:sifre@sunucu/veritabani; uygulama
+      # acilista Npgsql bicimine ceviriyor (BarindirmaAyarlari) ve
+      # uretimde SSL Mode=Require kullaniyor.
       - key: DATABASE_URL
-        fromDatabase:
-          name: loca-postgres
-          property: connectionString
+        sync: false
 
       # JWT imza anahtari. generateValue: Render rastgele uretiyor ve
       # kimse gormuyor — elle girilen bir anahtar panel gecmisinde ve
