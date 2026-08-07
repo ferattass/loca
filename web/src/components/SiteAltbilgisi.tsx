@@ -8,13 +8,20 @@ import { Logo } from './ui/Logo';
  * Tasarimdaki dort sutunun ucu (Explore / Support / Settings) karsiligi
  * olmayan sayfalara isaret ediyordu; olmayan sayfaya baglanti vermek
  * kullaniciyi bos ekrana goturecegi icin o baglantilar bir sure duz metin
- * olarak durdu. Uc bilgi sayfasi (yardim, iletisim, kullanim kosullari)
- * yazildi ve baglandi — alt bilgide artik tiklanmayan oge yok.
+ * olarak durdu. Bes bilgi sayfasi (hakkimizda, yardim, iletisim, kullanim
+ * kosullari, gizlilik) ve Mekanlar yazildi — alt bilgide artik tiklanmayan
+ * oge yok.
+ *
+ * <para>
+ * "Kurumsal" ve "Bilgi" AYRI sutunlar: ilki sirketle ilgili ("kimsiniz,
+ * nerelerdesiniz"), ikincisi kurallarla. Tek sutunda toplansaydi bes madde
+ * alt alta sıralanır ve hangisinin ne oldugu ancak okunarak anlasilirdi.
+ * </para>
  */
 export function SiteAltbilgisi() {
   return (
     <footer className="mt-stack-lg border-t border-outline-variant/40 bg-surface-container-lowest">
-      <div className="mx-auto grid max-w-7xl gap-stack-md px-container-margin-mobile py-stack-lg md:grid-cols-4 md:px-container-margin-desktop">
+      <div className="mx-auto grid max-w-7xl gap-stack-md px-container-margin-mobile py-stack-lg sm:grid-cols-2 md:grid-cols-5 md:px-container-margin-desktop">
         <div>
           <div className="mb-stack-sm">
             <Logo bicim="yatay" className="h-8 w-auto" />
@@ -37,10 +44,16 @@ export function SiteAltbilgisi() {
           <FooterBaglantisi yol="/sifremi-unuttum">Şifremi unuttum</FooterBaglantisi>
         </FooterSutunu>
 
+        <FooterSutunu baslik="Kurumsal">
+          <FooterBaglantisi yol="/hakkimizda">Hakkımızda</FooterBaglantisi>
+          <FooterBaglantisi yol="/iletisim">İletişim</FooterBaglantisi>
+          <FooterBaglantisi yol="/mekanlar">Mekânlar</FooterBaglantisi>
+        </FooterSutunu>
+
         <FooterSutunu baslik="Bilgi">
           <FooterBaglantisi yol="/yardim">Yardım merkezi</FooterBaglantisi>
-          <FooterBaglantisi yol="/iletisim">İletişim</FooterBaglantisi>
           <FooterBaglantisi yol="/kullanim-kosullari">Kullanım koşulları</FooterBaglantisi>
+          <FooterBaglantisi yol="/gizlilik">Gizlilik</FooterBaglantisi>
         </FooterSutunu>
       </div>
 

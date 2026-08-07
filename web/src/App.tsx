@@ -22,6 +22,8 @@ import { RezervasyonPage } from './pages/RezervasyonPage';
 import { RezervasyonlarimPage } from './pages/RezervasyonlarimPage';
 import { SeatLayoutPage } from './pages/SeatLayoutPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
+import { GizlilikPage } from './pages/bilgi/GizlilikPage';
+import { HakkimizdaPage } from './pages/bilgi/HakkimizdaPage';
 import { IletisimPage } from './pages/bilgi/IletisimPage';
 import { KullanimKosullariPage } from './pages/bilgi/KullanimKosullariPage';
 import { MekanlarPage } from './pages/MekanlarPage';
@@ -83,6 +85,8 @@ export default function App() {
         <Route path="/yardim" element={<YardimPage />} />
         <Route path="/iletisim" element={<IletisimPage />} />
         <Route path="/kullanim-kosullari" element={<KullanimKosullariPage />} />
+        <Route path="/hakkimizda" element={<HakkimizdaPage />} />
+        <Route path="/gizlilik" element={<GizlilikPage />} />
 
         <Route
           path="/hesabim"

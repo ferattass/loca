@@ -34,9 +34,11 @@ export function BilgiSayfasi({ baslik, ozet, children }: BilgiSayfasiProps) {
         aria-label="Diğer bilgi sayfaları"
         className="mt-stack-lg flex flex-wrap gap-stack-sm border-t border-outline-variant/40 pt-stack-md"
       >
+        <BilgiBaglantisi yol="/hakkimizda">Hakkımızda</BilgiBaglantisi>
         <BilgiBaglantisi yol="/yardim">Yardım merkezi</BilgiBaglantisi>
         <BilgiBaglantisi yol="/iletisim">İletişim</BilgiBaglantisi>
         <BilgiBaglantisi yol="/kullanim-kosullari">Kullanım koşulları</BilgiBaglantisi>
+        <BilgiBaglantisi yol="/gizlilik">Gizlilik</BilgiBaglantisi>
       </nav>
     </div>
   );

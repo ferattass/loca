@@ -21,6 +21,15 @@ import { useAuthStore } from '../stores/authStore';
  * kaybediyordu. Kabuk tek yerde durdugu icin yeni bir sayfa eklendiginde
  * gezinme kendiliginden geliyor.
  */
+/** Ust menudeki "Kurumsal" maddesinin kapsadigi yollar. */
+const BILGI_YOLLARI = [
+  '/hakkimizda',
+  '/yardim',
+  '/iletisim',
+  '/kullanim-kosullari',
+  '/gizlilik',
+];
+
 export function SiteBasligi() {
   const navigate = useNavigate();
   const konum = useLocation();
@@ -88,7 +97,7 @@ export function SiteBasligi() {
       gorunur: true,
       aktif: konum.pathname === '/mekanlar',
     },
-    { yol: '/yardim', metin: 'Yardım', gorunur: true, aktif: konum.pathname === '/yardim' },
+
     {
       yol: '/rezervasyonlarim',
       metin: 'Rezervasyonlarım',
@@ -150,6 +159,20 @@ export function SiteBasligi() {
               metin: kategori.name,
               yol: `/?kategori=${kategori.id}`,
             }))}
+          />
+
+          {/* Bes bilgi sayfasi duz baglanti olsaydi cubuk tasardi; hepsi
+              tek maddede toplandi. */}
+          <MenuAcilir
+            baslik="Kurumsal"
+            aktif={BILGI_YOLLARI.includes(konum.pathname)}
+            secenekler={[
+              { id: 'hakkimizda', metin: 'Hakkımızda', yol: '/hakkimizda' },
+              { id: 'yardim', metin: 'Yardım merkezi', yol: '/yardim' },
+              { id: 'iletisim', metin: 'İletişim', yol: '/iletisim' },
+              { id: 'kosullar', metin: 'Kullanım koşulları', yol: '/kullanim-kosullari' },
+              { id: 'gizlilik', metin: 'Gizlilik', yol: '/gizlilik' },
+            ]}
           />
 
           <MenuAcilir
