@@ -17,19 +17,12 @@ import { rezervasyonGetir, type Rezervasyon } from '../api/reservations';
 import { biletlerimGetir, type Bilet } from '../api/tickets';
 import { BiletKarti } from '../components/BiletKarti';
 import { sureBicimle, useGeriSayim } from '../hooks/useGeriSayim';
+import { para } from '../lib/bicim';
+import { tarihSaatBicimi } from '../lib/bicim';
 
 /** Son bir dakikada sayac kirmiziya doner. */
 const UYARI_ESIGI_SANIYE = 60;
 
-const paraBicimi = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY',
-});
-
-const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
 
 /** Odeme akisinin baglandigi rezervasyon durumu icin kisa aciklama. */
 const REZERVASYON_DURUM_METNI: Record<Rezervasyon['status'], string> = {
@@ -286,7 +279,7 @@ export function OdemePage() {
           {rezervasyon.eventTitle}
         </h1>
         <p className="font-body text-body-sm text-on-surface-variant">
-          {tarihBicimi.format(new Date(rezervasyon.sessionStartsAtUtc))}
+          {tarihSaatBicimi.format(new Date(rezervasyon.sessionStartsAtUtc))}
         </p>
       </header>
 
@@ -349,7 +342,7 @@ export function OdemePage() {
                 {koltuk.sectionName} {koltuk.rowLabel}-{koltuk.seatNumber}
                 <span className="ml-base text-on-surface-variant">({koltuk.ticketTypeName})</span>
               </span>
-              <span>{paraBicimi.format(koltuk.price)}</span>
+              <span>{para(koltuk.price)}</span>
             </li>
           ))}
         </ul>
@@ -361,14 +354,14 @@ export function OdemePage() {
         {rezervasyon.serviceFee > 0 && (
           <div className="mt-stack-sm flex items-baseline justify-between border-t border-outline-variant/30 pt-stack-sm font-body text-body-sm text-on-surface-variant">
             <span>Koltuklar</span>
-            <span>{paraBicimi.format(rezervasyon.totalAmount - rezervasyon.serviceFee)}</span>
+            <span>{para(rezervasyon.totalAmount - rezervasyon.serviceFee)}</span>
           </div>
         )}
 
         {rezervasyon.serviceFee > 0 && (
           <div className="flex items-baseline justify-between font-body text-body-sm text-on-surface-variant">
             <span>Hizmet bedeli</span>
-            <span>{paraBicimi.format(rezervasyon.serviceFee)}</span>
+            <span>{para(rezervasyon.serviceFee)}</span>
           </div>
         )}
 
@@ -380,7 +373,7 @@ export function OdemePage() {
           }`}
         >
           Toplam:{' '}
-          <strong className="font-semibold">{paraBicimi.format(rezervasyon.totalAmount)}</strong>
+          <strong className="font-semibold">{para(rezervasyon.totalAmount)}</strong>
         </p>
       </section>
 
@@ -420,7 +413,7 @@ export function OdemePage() {
         <HavaleTalimatiKarti
           talimat={yontemler?.instructions ?? null}
           kod={odemeVerisi.providerReference}
-          tutar={paraBicimi.format(odemeVerisi.amount)}
+          tutar={para(odemeVerisi.amount)}
           sonOdeme={rezervasyon.status === 'Pending' ? rezervasyon.remainingSeconds : 0}
         />
       ) : odemeId !== null ? (

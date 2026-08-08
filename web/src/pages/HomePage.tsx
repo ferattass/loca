@@ -10,8 +10,8 @@ import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/TextField';
 import { BiletIkonu, OnayIkonu, SagOkIkonu, UyariIkonu } from '../components/ui/Ikon';
 import { useAuthStore } from '../stores/authStore';
+import { uzunTarihSaatBicimi } from '../lib/bicim';
 
-const tarihBicimi = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long', timeStyle: 'short' });
 
 const ROL_METNI: Record<string, string> = {
   Admin: 'Yönetici',
@@ -240,7 +240,7 @@ function SiradakiEtkinlik({ bilet }: { bilet: Bilet }) {
             {bilet.eventTitle}
           </h2>
           <p className="font-body text-body-sm text-on-surface-variant">
-            {tarihBicimi.format(baslangic)} · {bilet.venueName} · {bilet.seatLabel}
+            {uzunTarihSaatBicimi.format(baslangic)} · {bilet.venueName} · {bilet.seatLabel}
           </p>
         </div>
 

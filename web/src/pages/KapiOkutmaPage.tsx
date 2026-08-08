@@ -5,8 +5,8 @@ import { hataKodu, hataMesaji } from '../api/client';
 import { biletOkut, type BiletOkutmaSonucu } from '../api/tickets';
 import { useQrOkuyucu } from '../hooks/useQrOkuyucu';
 import { CarpiIkonu, OkutmaIkonu, OnayIkonu, UyariIkonu } from '../components/ui/Ikon';
+import { saatBicimi } from '../lib/bicim';
 
-const saatBicimi = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
 /** Gecmis listesinde tutulan okutma sayisi. */
 const GECMIS_SINIRI = 12;

@@ -10,15 +10,12 @@ import {
 } from '../../api/admin';
 import { havaleOnayla, havaleReddet, type OdemeDurumu } from '../../api/payments';
 import { SolOkIkonu, SagOkIkonu } from '../../components/ui/Ikon';
+import { para } from '../../lib/bicim';
 
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
   dateStyle: 'short',
   timeStyle: 'short',
 });
-
-function paraFormatla(tutar: number, birim: string): string {
-  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: birim }).format(tutar);
-}
 
 const DURUM_METNI: Record<OdemeDurumu, string> = {
   Pending: 'Bekliyor',
@@ -244,7 +241,7 @@ export function OdemelerPage() {
 
                   <Hucre>
                     <span className="tabular-nums font-semibold text-on-surface">
-                      {paraFormatla(odeme.amount, odeme.currency)}
+                      {para(odeme.amount, odeme.currency)}
                     </span>
                   </Hucre>
 
@@ -418,7 +415,7 @@ function HavaleKarariOnayi({
         </h2>
 
         <p className="mt-base font-body text-body-md text-on-surface">
-          {odeme.userFullName} · {paraFormatla(odeme.amount, odeme.currency)}
+          {odeme.userFullName} · {para(odeme.amount, odeme.currency)}
         </p>
         <p className="font-body text-body-sm text-on-surface-variant">{odeme.eventTitle}</p>
 
@@ -526,7 +523,7 @@ function IadeOnayi({
         </h2>
 
         <p className="mt-base font-body text-body-md text-on-surface">
-          {odeme.userFullName} · {paraFormatla(odeme.amount, odeme.currency)}
+          {odeme.userFullName} · {para(odeme.amount, odeme.currency)}
         </p>
         <p className="font-body text-body-sm text-on-surface-variant">{odeme.eventTitle}</p>
 

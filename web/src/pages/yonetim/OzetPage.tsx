@@ -4,14 +4,9 @@ import { Link } from 'react-router-dom';
 import { hataMesaji } from '../../api/client';
 import { ozetGetir, type AdminOzeti } from '../../api/admin';
 import { UyariIkonu } from '../../components/ui/Ikon';
+import { paraKurussuz } from '../../lib/bicim';
+import { saatBicimi } from '../../lib/bicim';
 
-const paraBicimi = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY',
-  maximumFractionDigits: 0,
-});
-
-const saatBicimi = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
 /** Ozet 30 saniyede bir tazeleniyor: panel acik birakilip izleniyor. */
 const TAZELEME_MS = 30_000;
@@ -69,7 +64,7 @@ export function OzetPage() {
           <section aria-label="Bugün" className="grid gap-stack-sm sm:grid-cols-2 lg:grid-cols-4">
             <Kutu
               baslik="Bugünkü satış"
-              deger={paraBicimi.format(data.today.totalAmount)}
+              deger={paraKurussuz(data.today.totalAmount)}
               alt={`${data.today.succeededCount} ödeme`}
               vurgulu
             />
@@ -80,7 +75,7 @@ export function OzetPage() {
             />
             <Kutu
               baslik="İade"
-              deger={paraBicimi.format(data.today.refundedAmount)}
+              deger={paraKurussuz(data.today.refundedAmount)}
               alt={`${data.today.refundedCount} işlem`}
               // Iade tutari satistan DUSULMUYOR, ayri duruyor: tek bir net
               // rakama indirilirse iade oraninin arttigi fark edilmez.

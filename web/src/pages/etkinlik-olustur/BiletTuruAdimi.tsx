@@ -5,7 +5,8 @@ import { biletTuruEkle } from '../../api/events';
 import { planGetir } from '../../api/seatLayouts';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
-import { Alan, Secim, type HataBildir } from './ortak';
+import { Secim } from '../../components/ui/Secim';
+import { Alan, type HataBildir } from './ortak';
 import { yereldenUtc } from './tarih';
 
 // --- 3 · Bilet türleri ----------------------------------------------------

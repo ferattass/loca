@@ -5,7 +5,8 @@ import { mekanlariGetir, salonlariGetir, sehirleriGetir } from '../../api/catalo
 import { etkinlikOlustur, kategorileriGetir } from '../../api/events';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
-import { Alan, Secim, type HataBildir } from './ortak';
+import { Secim } from '../../components/ui/Secim';
+import { Alan, type HataBildir } from './ortak';
 import { yereldenUtc } from './tarih';
 
 // --- 1 · Etkinlik ---------------------------------------------------------

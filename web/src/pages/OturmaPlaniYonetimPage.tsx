@@ -17,6 +17,7 @@ import {
 import { SeatMap } from '../components/SeatMap';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/TextField';
+import { Secim } from '../components/ui/Secim';
 
 /** Bolumler alt alta dizilir; yeni bolume onerilen bosluk bu kadar birim. */
 const BOLUM_ARASI_BOSLUK = 80;
@@ -128,43 +129,6 @@ export function OturmaPlaniYonetimPage() {
 
 // --- Ortak secim kutusu ----------------------------------------------------
 
-function Secim({
-  etiket,
-  deger,
-  onDegis,
-  secenekler,
-  bosMetin = 'Seçiniz',
-  gerekli = true,
-  devreDisi = false,
-}: {
-  etiket: string;
-  deger: string;
-  onDegis: (deger: string) => void;
-  secenekler: Array<{ id: string; ad: string }>;
-  bosMetin?: string;
-  gerekli?: boolean;
-  devreDisi?: boolean;
-}) {
-  return (
-    <label className="flex flex-col gap-base">
-      <span className="font-body text-body-sm text-on-surface-variant">{etiket}</span>
-      <select
-        value={deger}
-        required={gerekli}
-        disabled={devreDisi}
-        onChange={(olay) => onDegis(olay.target.value)}
-        className="w-full rounded-md border border-outline-variant bg-surface-container-low px-stack-sm py-stack-sm font-body text-body-md text-on-surface disabled:opacity-50"
-      >
-        <option value="">{bosMetin}</option>
-        {secenekler.map((secenek) => (
-          <option key={secenek.id} value={secenek.id}>
-            {secenek.ad}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 // --- Plan listesi ve olusturma ----------------------------------------------
 

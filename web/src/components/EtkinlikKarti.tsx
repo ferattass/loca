@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 
 import { dosyaAdresi } from '../api/client';
 import type { EtkinlikOzeti } from '../api/eventCatalog';
+import { paraKurussuz } from '../lib/bicim';
+import { saatBicimi } from '../lib/bicim';
 
 // Ay adi Intl'den Turkce geliyor ama kucuk harfle ("eylul" degil "Eylul").
 // Tasarimdaki buyuk harfli etiket icin CSS text-transform KULLANILMIYOR:
@@ -10,13 +12,6 @@ import type { EtkinlikOzeti } from '../api/eventCatalog';
 // (nokta kaybolur). toLocaleUpperCase('tr-TR') bunu doğru yapiyor.
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long' });
 const gunBicimi = new Intl.DateTimeFormat('tr-TR', { weekday: 'short' });
-const saatBicimi = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' });
-
-const paraBicimi = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY',
-  maximumFractionDigits: 0,
-});
 
 interface EtkinlikKartiProps {
   etkinlik: EtkinlikOzeti;
@@ -109,7 +104,7 @@ export function EtkinlikKarti({ etkinlik }: EtkinlikKartiProps) {
                 <>
                   <span className="text-on-surface-variant/70">başlangıç </span>
                   <strong className="font-semibold text-on-surface">
-                    {paraBicimi.format(etkinlik.minPrice)}
+                    {paraKurussuz(etkinlik.minPrice)}
                   </strong>
                 </>
               ) : (

@@ -4,13 +4,9 @@ import { Link } from 'react-router-dom';
 import { hataMesaji } from '../api/client';
 import { rezervasyonlarimGetir, type RezervasyonOzeti } from '../api/reservations';
 import { sureBicimle } from '../hooks/useGeriSayim';
+import { para } from '../lib/bicim';
+import { tarihSaatBicimi } from '../lib/bicim';
 
-const paraBicimi = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' });
-
-const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
 
 const ROZET: Record<RezervasyonOzeti['status'], { metin: string; sinif: string }> = {
   Pending: { metin: 'Odeme bekleniyor', sinif: 'border-tertiary/50 text-tertiary' },
@@ -70,7 +66,7 @@ export function RezervasyonlarimPage() {
                     <div>
                       <p className="font-body text-body-md text-on-surface">{kayit.eventTitle}</p>
                       <p className="font-body text-body-sm text-on-surface-variant">
-                        {kayit.venueName} · {tarihBicimi.format(new Date(kayit.sessionStartsAtUtc))}
+                        {kayit.venueName} · {tarihSaatBicimi.format(new Date(kayit.sessionStartsAtUtc))}
                       </p>
                     </div>
 
@@ -82,7 +78,7 @@ export function RezervasyonlarimPage() {
                   </div>
 
                   <p className="mt-base font-body text-body-sm text-on-surface-variant">
-                    {kayit.seatCount} koltuk · {paraBicimi.format(kayit.totalAmount)}
+                    {kayit.seatCount} koltuk · {para(kayit.totalAmount)}
                     {/*
                       Kalan sure sunucudan gelen deger; listede canli saymiyor.
                       Her satir icin ayri zamanlayici kurmak, uzun listede

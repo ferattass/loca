@@ -1,4 +1,5 @@
 import { Button } from './ui/Button';
+import { para } from '../lib/bicim';
 
 export interface SecimOzetiKoltugu {
   koltukId: string;
@@ -10,7 +11,6 @@ export interface SecimOzetiKoltugu {
 interface SecimOzetiPaneliProps {
   koltuklar: SecimOzetiKoltugu[];
   toplam: number;
-  paraBicimi: Intl.NumberFormat;
   yukleniyor: boolean;
   onOdemeyeGec: () => void;
   onTemizle: () => void;
@@ -27,7 +27,6 @@ interface SecimOzetiPaneliProps {
 export function SecimOzetiPaneli({
   koltuklar,
   toplam,
-  paraBicimi,
   yukleniyor,
   onOdemeyeGec,
   onTemizle,
@@ -58,7 +57,7 @@ export function SecimOzetiPaneli({
                   {koltuk.etiket}
                   {koltuk.tur && <span className="ml-base text-on-surface-variant">({koltuk.tur})</span>}
                 </span>
-                <span className="tabular shrink-0">{paraBicimi.format(koltuk.tutar ?? 0)}</span>
+                <span className="tabular shrink-0">{para(koltuk.tutar ?? 0)}</span>
               </li>
             ))}
           </ul>
@@ -72,11 +71,11 @@ export function SecimOzetiPaneli({
           <div className="mt-stack-sm space-y-base border-t border-outline-variant/30 pt-stack-sm font-body text-body-sm text-on-surface-variant">
             <div className="flex items-center justify-between">
               <span>Ara toplam</span>
-              <span className="tabular">{paraBicimi.format(toplam)}</span>
+              <span className="tabular">{para(toplam)}</span>
             </div>
             <div className="flex items-center justify-between font-body text-body-md font-semibold text-on-surface">
               <span>Toplam</span>
-              <span className="tabular">{paraBicimi.format(toplam)}</span>
+              <span className="tabular">{para(toplam)}</span>
             </div>
           </div>
 

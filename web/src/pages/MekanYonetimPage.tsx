@@ -15,6 +15,7 @@ import {
 } from '../api/venues';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/TextField';
+import { Secim } from '../components/ui/Secim';
 
 const SAYFA_BOYUTU = 10;
 
@@ -238,40 +239,6 @@ function HataKutusu({ hata }: { hata: HataYapisi | null }) {
   );
 }
 
-function Secim({
-  etiket,
-  deger,
-  onDegis,
-  secenekler,
-  bosMetin = 'Seçiniz',
-  gerekli = true,
-}: {
-  etiket: string;
-  deger: string;
-  onDegis: (deger: string) => void;
-  secenekler: Array<{ id: string; ad: string }>;
-  bosMetin?: string;
-  gerekli?: boolean;
-}) {
-  return (
-    <label className="flex flex-col gap-base">
-      <span className="font-body text-body-sm text-on-surface-variant">{etiket}</span>
-      <select
-        value={deger}
-        required={gerekli}
-        onChange={(olay) => onDegis(olay.target.value)}
-        className="w-full rounded-md border border-outline-variant bg-surface-container-low px-stack-sm py-stack-sm font-body text-body-md text-on-surface"
-      >
-        <option value="">{bosMetin}</option>
-        {secenekler.map((secenek) => (
-          <option key={secenek.id} value={secenek.id}>
-            {secenek.ad}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 /**
  * Silme dugmesi — tek tiklamayla islem tetiklemez.

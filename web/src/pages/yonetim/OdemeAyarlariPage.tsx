@@ -11,6 +11,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { OnayIkonu, UyariIkonu } from '../../components/ui/Ikon';
+import { para } from '../../lib/bicim';
 
 interface Form {
   apiKey: string;
@@ -486,8 +487,6 @@ export function OdemeAyarlariPage() {
  * deneme yeri canli sistem olurdu.
  */
 function HizmetBedeliOrnegi({ yuzde, altSinir }: { yuzde: number; altSinir: number }) {
-  const bicim = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' });
-
   const hesapla = (fiyat: number) => Math.max((fiyat * yuzde) / 100, altSinir);
 
   if (yuzde === 0 && altSinir === 0) {
@@ -505,10 +504,10 @@ function HizmetBedeliOrnegi({ yuzde, altSinir }: { yuzde: number; altSinir: numb
       <ul className="mt-base space-y-[2px] font-body text-body-sm text-on-surface">
         {[5, 100, 1000].map((fiyat) => (
           <li key={fiyat} className="flex justify-between tabular-nums">
-            <span>{bicim.format(fiyat)} koltuk</span>
+            <span>{para(fiyat)} koltuk</span>
             <span>
-              + {bicim.format(hesapla(fiyat))} ={' '}
-              <strong className="font-semibold">{bicim.format(fiyat + hesapla(fiyat))}</strong>
+              + {para(hesapla(fiyat))} ={' '}
+              <strong className="font-semibold">{para(fiyat + hesapla(fiyat))}</strong>
             </span>
           </li>
         ))}

@@ -1,3 +1,4 @@
+import { paraKurussuz } from '../lib/bicim';
 export interface BolumOzeti {
   id: string;
   ad: string;
@@ -15,12 +16,6 @@ interface BolumHaritasiProps {
   /** Kullanicinin bu oturumda halihazirda sectigi koltuklarin bolum dagilimi. */
   seciliKoltukSayilari?: ReadonlyMap<string, number>;
 }
-
-const paraBicimi = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY',
-  maximumFractionDigits: 0,
-});
 
 /**
  * Salonun bolum bolum genel gorunumu.
@@ -106,7 +101,7 @@ export function BolumHaritasi({
 
                   <span className="font-body text-body-sm text-on-surface-variant">
                     {bolum.enDusukFiyat !== null
-                      ? `${paraBicimi.format(bolum.enDusukFiyat)}'den`
+                      ? `${paraKurussuz(bolum.enDusukFiyat)}'den`
                       : ''}
                   </span>
                 </div>

@@ -15,6 +15,7 @@ import { DOLGU, SeatMap, type BolumVerisi } from '../components/SeatMap';
 import { SolOkIkonu } from '../components/ui/Ikon';
 import type { SeatStatus } from '../components/SeatStatePreview';
 import { sureBicimle } from '../hooks/useGeriSayim';
+import { uzunTarihSaatBicimi } from '../lib/bicim';
 
 /** Sunucu durumunun gorsel karsiligi. */
 const GORSEL_DURUM: Record<KoltukDurumu, SeatStatus> = {
@@ -33,12 +34,6 @@ const EN_FAZLA_KOLTUK = 6;
 
 /** Plan kac saniyede bir tazeleniyor; ust bilgideki gostergeyle de esler. */
 const YENILEME_ARALIGI_SANIYE = 15;
-
-const paraBicimi = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY',
-  maximumFractionDigits: 2,
-});
 
 /**
  * Koltuk secimi ve rezervasyon acma ekrani.
@@ -323,7 +318,6 @@ export function KoltukSecimPage() {
           <SecimOzetiPaneli
             koltuklar={secilenler}
             toplam={onizlemeToplam}
-            paraBicimi={paraBicimi}
             yukleniyor={olustur.isPending}
             onOdemeyeGec={() => olustur.mutate()}
             onTemizle={temizle}
@@ -346,10 +340,6 @@ export function KoltukSecimPage() {
  * planin otomatik yenilenmesine (react-query'nin refetchInterval'i) kalan
  * sure. Ayni gorsel agirlik, dogru bilgi.
  */
-const oturumTarihi = new Intl.DateTimeFormat('tr-TR', {
-  dateStyle: 'long',
-  timeStyle: 'short',
-});
 
 /**
  * Etkinlik bilgisi koltuk musaitligi yanitindan geliyor.
@@ -381,7 +371,7 @@ function BaslikBlogu({
         </h1>
 
         <p className="mt-base font-body text-body-md text-primary">
-          {oturumTarihi.format(new Date(musaitlik.startsAtUtc))}
+          {uzunTarihSaatBicimi.format(new Date(musaitlik.startsAtUtc))}
         </p>
 
         <p className="mt-base max-w-xl font-body text-body-sm text-on-surface-variant">

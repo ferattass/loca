@@ -12,7 +12,8 @@ import {
 } from '../../api/onay';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
-import { Secim, type HataBildir } from './ortak';
+import { Secim } from '../../components/ui/Secim';
+import { type HataBildir } from './ortak';
 
 // --- 5 · Belgeler ---------------------------------------------------------
 

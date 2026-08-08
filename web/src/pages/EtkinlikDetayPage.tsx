@@ -8,6 +8,7 @@ import {
   type OturumOzeti,
 } from '../api/eventCatalog';
 import { UyariIkonu } from '../components/ui/Ikon';
+import { para } from '../lib/bicim';
 
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
   dateStyle: 'full',
@@ -15,9 +16,6 @@ const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
 });
 
 const saatBicimi = new Intl.DateTimeFormat('tr-TR', { timeStyle: 'short' });
-
-const paraBicimi = (tutar: number, birim: string) =>
-  new Intl.NumberFormat('tr-TR', { style: 'currency', currency: birim }).format(tutar);
 
 /**
  * Etkinlik detayi.
@@ -161,7 +159,7 @@ export function EtkinlikDetayPage() {
 
           {enDusukFiyat !== null && (
             <p className="font-body text-body-sm text-on-surface-variant">
-              {paraBicimi(enDusukFiyat, aktifTurler[0].currency)}'den başlayan fiyatlarla
+              {para(enDusukFiyat, aktifTurler[0].currency)}'den başlayan fiyatlarla
             </p>
           )}
         </div>
@@ -217,7 +215,7 @@ export function EtkinlikDetayPage() {
                       {tur.seatSectionName ?? 'Tüm salon'}
                     </td>
                     <td className="py-stack-sm text-right font-body text-body-md tabular-nums text-on-surface">
-                      {paraBicimi(tur.price, tur.currency)}
+                      {para(tur.price, tur.currency)}
                     </td>
                   </tr>
                 ))}

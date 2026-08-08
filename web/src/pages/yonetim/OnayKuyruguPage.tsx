@@ -13,11 +13,8 @@ import {
   type EtkinlikBelgesi,
 } from '../../api/onay';
 import { BelgeIkonu, OnayIkonu, UyariIkonu } from '../../components/ui/Ikon';
+import { tarihSaatBicimi } from '../../lib/bicim';
 
-const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
 
 function boyutBicimle(bayt: number): string {
   return bayt < 1024 * 1024
@@ -109,7 +106,7 @@ export function OnayKuyruguPage() {
                 </h2>
 
                 <p className="font-body text-body-sm text-on-surface-variant">
-                  {tarihBicimi.format(new Date(etkinlik.eventDateUtc))} ·{' '}
+                  {tarihSaatBicimi.format(new Date(etkinlik.eventDateUtc))} ·{' '}
                   {etkinlik.venueName}, {etkinlik.cityName}
                 </p>
 

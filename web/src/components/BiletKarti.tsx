@@ -6,18 +6,11 @@ import { QRCodeSVG } from 'qrcode.react';
 import { biletiGorselIndir, biletiPdfIndir } from '../lib/biletIndir';
 import type { Bilet } from '../api/tickets';
 import { BelgeIkonu, GorselIkonu } from './ui/Ikon';
+import { paraKurussuz } from '../lib/bicim';
+import { saatBicimi } from '../lib/bicim';
 
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long' });
 const yilBicimi = new Intl.DateTimeFormat('tr-TR', { year: 'numeric' });
-const saatBicimi = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' });
-
-function paraFormatla(tutar: number, paraBirimi: string): string {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: paraBirimi,
-    maximumFractionDigits: 0,
-  }).format(tutar);
-}
 
 /**
  * Gecerli olmayan biletin ust seridi.
@@ -178,7 +171,7 @@ export function BiletKarti({ bilet }: BiletKartiProps) {
                 Girişte okutulacak
               </p>
               <p className="mt-stack-sm font-body text-body-sm font-semibold text-[#1c1a22]">
-                {paraFormatla(bilet.price, bilet.currency)}
+                {paraKurussuz(bilet.price, bilet.currency)}
               </p>
             </div>
           </div>

@@ -10,19 +10,12 @@ import {
   type Rezervasyon,
 } from '../api/reservations';
 import { sureBicimle, useGeriSayim } from '../hooks/useGeriSayim';
+import { para } from '../lib/bicim';
+import { tarihSaatBicimi } from '../lib/bicim';
 
 /** Son bir dakikada sayac kirmiziya doner. */
 const UYARI_ESIGI_SANIYE = 60;
 
-const paraBicimi = new Intl.NumberFormat('tr-TR', {
-  style: 'currency',
-  currency: 'TRY',
-});
-
-const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
 
 const DURUM_METNI: Record<Rezervasyon['status'], string> = {
   Pending: 'Odeme bekleniyor',
@@ -126,7 +119,7 @@ export function RezervasyonPage() {
         </p>
         <h1 className="font-headline text-headline-md text-on-surface">{data.eventTitle}</h1>
         <p className="font-body text-body-sm text-on-surface-variant">
-          {tarihBicimi.format(new Date(data.sessionStartsAtUtc))}
+          {tarihSaatBicimi.format(new Date(data.sessionStartsAtUtc))}
         </p>
       </header>
 
@@ -190,13 +183,13 @@ export function RezervasyonPage() {
                 {koltuk.sectionName} {koltuk.rowLabel}-{koltuk.seatNumber}
                 <span className="ml-base text-on-surface-variant">({koltuk.ticketTypeName})</span>
               </span>
-              <span>{paraBicimi.format(koltuk.price)}</span>
+              <span>{para(koltuk.price)}</span>
             </li>
           ))}
         </ul>
 
         <p className="mt-stack-sm border-t border-outline-variant/30 pt-stack-sm font-body text-body-md text-on-surface">
-          Toplam: <strong className="font-semibold">{paraBicimi.format(data.totalAmount)}</strong>
+          Toplam: <strong className="font-semibold">{para(data.totalAmount)}</strong>
         </p>
       </section>
 
