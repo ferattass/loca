@@ -11,10 +11,10 @@ import {
 } from '../api/reservations';
 import { sureBicimle, useGeriSayim } from '../hooks/useGeriSayim';
 import { para, tarihSaatBicimi } from '../lib/bicim';
+import { Sayfa } from '../components/ui/Sayfa';
 
 /** Son bir dakikada sayac kirmiziya doner. */
 const UYARI_ESIGI_SANIYE = 60;
-
 
 const DURUM_METNI: Record<Rezervasyon['status'], string> = {
   Pending: 'Odeme bekleniyor',
@@ -253,10 +253,3 @@ export function RezervasyonPage() {
   );
 }
 
-function Sayfa({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="min-h-screen px-container-margin-mobile md:px-container-margin-desktop py-stack-lg">
-      <div className="mx-auto max-w-3xl">{children}</div>
-    </main>
-  );
-}

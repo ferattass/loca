@@ -13,7 +13,8 @@ import { SolOkIkonu, SagOkIkonu } from '../../components/ui/Ikon';
 import { para } from '../../lib/bicim';
 import { HavaleKarariOnayi } from './odemeler/HavaleKarariOnayi';
 import { IadeOnayi } from './odemeler/IadeOnayi';
-import { Baslik, FiltreDugmesi, Hucre, SayfaDugmesi } from './odemeler/tablo';
+import { FiltreDugmesi } from '../../components/ui/FiltreDugmesi';
+import { Baslik, Hucre, SayfaDugmesi } from './odemeler/tablo';
 
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
   dateStyle: 'short',

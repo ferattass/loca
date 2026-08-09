@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 import { hataMesaji } from '../api/client';
 import { koltukDurumuDegistir, planGetir, type OturmaPlani } from '../api/seatLayouts';
 import { SeatMap } from '../components/SeatMap';
+import { Sayfa } from '../components/ui/Sayfa';
 
 /**
  * Oturma planinin gorsel ekrani.
@@ -63,7 +64,7 @@ export function SeatLayoutPage() {
 
   if (isPending) {
     return (
-      <Sayfa>
+      <Sayfa genislik="5xl">
         <div className="animate-pulse space-y-stack-sm" aria-hidden="true">
           <div className="h-6 w-64 rounded bg-surface-variant/60" />
           <div className="h-96 rounded-lg bg-surface-variant/40" />
@@ -77,7 +78,7 @@ export function SeatLayoutPage() {
 
   if (isError) {
     return (
-      <Sayfa>
+      <Sayfa genislik="5xl">
         <p
           role="alert"
           className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
@@ -89,7 +90,7 @@ export function SeatLayoutPage() {
   }
 
   return (
-    <Sayfa>
+    <Sayfa genislik="5xl">
       <header className="mb-stack-md">
         <p className="font-body text-label-caps uppercase tracking-widest text-primary">
           {data.hallName}
@@ -169,10 +170,3 @@ export function SeatLayoutPage() {
   );
 }
 
-function Sayfa({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="min-h-screen px-container-margin-mobile md:px-container-margin-desktop py-stack-lg">
-      <div className="mx-auto max-w-5xl">{children}</div>
-    </main>
-  );
-}

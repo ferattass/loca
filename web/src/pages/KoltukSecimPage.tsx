@@ -16,6 +16,7 @@ import { SolOkIkonu } from '../components/ui/Ikon';
 import type { SeatStatus } from '../components/SeatStatePreview';
 import { sureBicimle } from '../hooks/useGeriSayim';
 import { uzunTarihSaatBicimi } from '../lib/bicim';
+import { Sayfa } from '../components/ui/Sayfa';
 
 /** Sunucu durumunun gorsel karsiligi. */
 const GORSEL_DURUM: Record<KoltukDurumu, SeatStatus> = {
@@ -223,7 +224,7 @@ export function KoltukSecimPage() {
 
   if (isPending) {
     return (
-      <Sayfa>
+      <Sayfa genislik="6xl">
         <div className="animate-pulse space-y-stack-sm" aria-hidden="true">
           <div className="h-6 w-64 rounded bg-surface-variant/60" />
           <div className="h-96 rounded-lg bg-surface-variant/40" />
@@ -237,7 +238,7 @@ export function KoltukSecimPage() {
 
   if (isError) {
     return (
-      <Sayfa>
+      <Sayfa genislik="6xl">
         <p
           role="alert"
           className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
@@ -249,7 +250,7 @@ export function KoltukSecimPage() {
   }
 
   return (
-    <Sayfa>
+    <Sayfa genislik="6xl">
       <BaslikBlogu musaitlik={data} dataUpdatedAt={dataUpdatedAt} />
 
       {uyari && (
@@ -468,10 +469,3 @@ function Aciklama() {
   );
 }
 
-function Sayfa({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="min-h-screen px-container-margin-mobile md:px-container-margin-desktop py-stack-lg">
-      <div className="mx-auto max-w-6xl">{children}</div>
-    </main>
-  );
-}

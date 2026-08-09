@@ -13,6 +13,7 @@ import { tarihSaatBicimi } from '../lib/bicim';
 import { HavaleTalimatiKarti } from './odeme/HavaleTalimatiKarti';
 import { KOLTUK_SERBEST_KODLARI, odemeHatasiniAcikla, REZERVASYON_DURUM_METNI } from './odeme/hatalar';
 import { YontemSecenegi } from './odeme/YontemSecenegi';
+import { Sayfa } from '../components/ui/Sayfa';
 
 /** Son bir dakikada sayac kirmiziya doner. */
 const UYARI_ESIGI_SANIYE = 60;
@@ -471,11 +472,3 @@ export function OdemePage() {
   );
 }
 
-
-function Sayfa({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="min-h-screen px-container-margin-mobile md:px-container-margin-desktop py-stack-lg">
-      <div className="mx-auto max-w-3xl">{children}</div>
-    </main>
-  );
-}
