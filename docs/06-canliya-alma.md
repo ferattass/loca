@@ -113,10 +113,29 @@ ekranının açıldığını gör.
 Kalıcı disk olmadığı için afişler dağıtımla birlikte gitti. Yerelden:
 
 ```bash
-LOCA_SUNUCU=https://loca-xxxx.onrender.com python tools/demo-veri/afisleri_yenile.py
+export LOCA_API=https://loca-xxxx.onrender.com/api/v1
+export LOCA_ADMIN_EPOSTA=admin@loca.dev
+export LOCA_ADMIN_SIFRE='...'
+
+python tools/demo-veri/afisleri_yenile.py
 ```
 
-Katalog tamamen boşsa önce `tools/demo-veri/etkinlikleri_doldur.py`.
+Değişkenin adı `LOCA_API` ve **`/api/v1` ekiyle** veriliyor; betikler kökü
+değil API tabanını bekliyor.
+
+Katalog tamamen boşsa sıra şu — her adım bir öncekinin ürettiğine dayanıyor
+(etkinlik betiği oturma planı olan bir salon arıyor):
+
+```bash
+python tools/demo-veri/hesaplari_doldur.py     # demo hesaplar ve roller
+python tools/demo-veri/mekanlari_doldur.py     # mekan, salon, oturma plani, koltuklar
+python tools/demo-veri/etkinlikleri_doldur.py  # etkinlik, oturum, bilet turu, yayin
+python tools/demo-veri/afisleri_yenile.py      # afisler
+```
+
+Veritabanı Render dışındaysa (ör. Neon) yalnızca afiş adımı tekrar gerekir:
+etkinlikler ve mekânlar dağıtımdan etkilenmez, **yalnızca yüklenen dosyalar
+siliniyor.**
 
 ---
 
