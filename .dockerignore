@@ -42,4 +42,11 @@ tools/
 # Playwright ve tarayici ciktilari
 .playwright-mcp/
 **/report.md
-**/*.png
+
+# Depo kokune birakilmis ekran goruntuleri. Kural KOKE BAGLI (`*.png`,
+# `**/*.png` DEGIL) ve bu fark kritik: `**/*.png` baglamdaki her PNG'yi
+# eliyordu, web/public altindaki favicon ve logolar dahil. Sonucu yalnizca
+# tarayicida gorunuyordu — imaj derleniyor, uygulama ayaga kalkiyor, JS ve
+# CSS geliyor (onlar PNG degil), ama logolar 404 donuyordu.
+# docs/ ve .playwright-mcp/ zaten kendi kurallariyla disarida.
+*.png
