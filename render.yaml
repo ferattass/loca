@@ -56,12 +56,19 @@
 # Kurulum: Render panelinde New → Blueprint, depoyu sec. Asagidaki
 # degiskenlerden sync:false olanlar ELLE giriliyor (panel soruyor);
 # gerisi otomatik.
+#
+# Adim adim kilavuz: docs/06-canliya-alma.md
 
 services:
   - type: web
     name: loca
     runtime: docker
     plan: free
+    # Dal ACIKCA yaziliyor. Belirtilmeseydi Render deponun varsayilan dalini
+    # kullanirdi ve bu sessiz bir tuzak: main uzun sure gercek isin 123
+    # commit gerisinde durmustu, o hâliyle bir dagitim calisan uygulamayi
+    # degil bos iskeleti canliya alirdi.
+    branch: main
     # Depo kokundeki tek konteyner imaji: arayuz + API. Ayri servisler
     # kurulsaydi CORS ve ikinci bir alan adi gerekirdi; ucretsiz katmanda
     # ayrica iki servisin ikisini birden uyandirmak gerekirdi.

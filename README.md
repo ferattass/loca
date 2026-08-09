@@ -78,12 +78,26 @@ cd web && npm run dev
 | Redis Insight | http://localhost:5540 |
 | Mailpit | http://localhost:8025 |
 
+## Canlıya alma
+
+Depo kökündeki `render.yaml` ve tek konteynerlik `Dockerfile` hazır: arayüz
+derlemesi API'nin `wwwroot`'una kopyalanıyor ve tek adresten servis ediliyor
+(tek origin, CORS yok, iyzico callback'i için tahmin edilebilir adres).
+
+```bash
+docker build -t loca .        # aynı imaj Render'da çalışıyor
+```
+
+Adım adım: [docs/06-canliya-alma.md](docs/06-canliya-alma.md)
+
 ## Dokümantasyon
 
 - [İş analizi](docs/01-analiz.md) — roller, iş kuralları, kararlar
 - [Veri modeli](docs/02-veri-modeli.md) — 28 tablo, unique ve index kararları
 - [Tasarım](docs/03-tasarim.md) — Figma, tasarım sistemi, ekranlar
 - [Eşzamanlılık kararı](docs/04-eszamanlilik.md) — koltuk kilitleme stratejisi
+- [Ödeme ve iyzico](docs/05-odeme-iyzico.md) — checkout form akışı, imzalama, callback
+- [Canlıya alma](docs/06-canliya-alma.md) — Render adımları, ücretsiz katmanın sınırları
 - [Mimari](docs/diagrams/mimari.md) — 12 diyagram: katmanlar, istek akışı, kimlik doğrulama, rezervasyon
 - [Durum makineleri](docs/diagrams/durum-makineleri.md) — etkinlik, rezervasyon, ödeme, bilet
 
