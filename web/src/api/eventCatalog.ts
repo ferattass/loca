@@ -126,23 +126,6 @@ export interface EtkinlikListesiParametreleri {
   bitisUtc?: string;
 }
 
-/**
- * Bugunun (yerel gunun) UTC siniri.
- *
- * <b>Yerel gune gore hesaplaniyor, UTC gunune gore degil.</b> Kullanici
- * "bugun" derken kendi takvimindeki gunu kastediyor; Turkiye UTC+3 oldugu
- * icin UTC gun sinirlari kullanilsaydi gece 00:00-03:00 arasindaki
- * etkinlikler "yarin" grubuna duserdi.
- */
-export function bugununSiniri(): { baslangicUtc: string; bitisUtc: string } {
-  const simdi = new Date();
-  const baslangic = new Date(simdi.getFullYear(), simdi.getMonth(), simdi.getDate());
-  const bitis = new Date(baslangic);
-  bitis.setDate(bitis.getDate() + 1);
-
-  return { baslangicUtc: baslangic.toISOString(), bitisUtc: bitis.toISOString() };
-}
-
 export async function etkinlikleriGetir(
   parametreler: EtkinlikListesiParametreleri = {},
 ): Promise<SayfaliSonuc<EtkinlikOzeti>> {
