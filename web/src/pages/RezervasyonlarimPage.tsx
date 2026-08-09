@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom';
 import { hataMesaji } from '../api/client';
 import { rezervasyonlarimGetir, type RezervasyonOzeti } from '../api/reservations';
 import { sureBicimle } from '../hooks/useGeriSayim';
-import { para } from '../lib/bicim';
-import { tarihSaatBicimi } from '../lib/bicim';
+import { para, tarihSaatBicimi } from '../lib/bicim';
 
 
 const ROZET: Record<RezervasyonOzeti['status'], { metin: string; sinif: string }> = {

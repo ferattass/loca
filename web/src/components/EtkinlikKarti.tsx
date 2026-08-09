@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { dosyaAdresi } from '../api/client';
 import type { EtkinlikOzeti } from '../api/eventCatalog';
-import { paraKurussuz } from '../lib/bicim';
-import { saatBicimi } from '../lib/bicim';
+import { paraKurussuz, saatBicimi } from '../lib/bicim';
 
 // Ay adi Intl'den Turkce geliyor ama kucuk harfle ("eylul" degil "Eylul").
 // Tasarimdaki buyuk harfli etiket icin CSS text-transform KULLANILMIYOR:

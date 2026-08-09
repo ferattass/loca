@@ -10,8 +10,7 @@ import {
   type Rezervasyon,
 } from '../api/reservations';
 import { sureBicimle, useGeriSayim } from '../hooks/useGeriSayim';
-import { para } from '../lib/bicim';
-import { tarihSaatBicimi } from '../lib/bicim';
+import { para, tarihSaatBicimi } from '../lib/bicim';
 
 /** Son bir dakikada sayac kirmiziya doner. */
 const UYARI_ESIGI_SANIYE = 60;

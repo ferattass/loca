@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom';
 import { hataMesaji } from '../../api/client';
 import { ozetGetir, type AdminOzeti } from '../../api/admin';
 import { UyariIkonu } from '../../components/ui/Ikon';
-import { paraKurussuz } from '../../lib/bicim';
-import { saatBicimi } from '../../lib/bicim';
+import { paraKurussuz, saatBicimi } from '../../lib/bicim';
 
 
 /** Ozet 30 saniyede bir tazeleniyor: panel acik birakilip izleniyor. */

@@ -6,8 +6,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { biletiGorselIndir, biletiPdfIndir } from '../lib/biletIndir';
 import type { Bilet } from '../api/tickets';
 import { BelgeIkonu, GorselIkonu } from './ui/Ikon';
-import { paraKurussuz } from '../lib/bicim';
-import { saatBicimi } from '../lib/bicim';
+import { paraKurussuz, saatBicimi } from '../lib/bicim';
 
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long' });
 const yilBicimi = new Intl.DateTimeFormat('tr-TR', { year: 'numeric' });

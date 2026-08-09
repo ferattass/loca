@@ -2,65 +2,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 
-import { hataKodu, hataMesaji } from '../api/client';
-import {
-  odemeBaslat,
-  odemeGetir,
-  odemeTamamla,
-  odemeYontemleriGetir,
-  type OdemeDetayi,
-  type OdemeTamamlamaSonucu,
-  type OdemeYontemi,
-  type OdemeYontemleri,
-} from '../api/payments';
+import { hataMesaji } from '../api/client';
+import { odemeBaslat, odemeGetir, odemeTamamla, odemeYontemleriGetir, type OdemeDetayi, type OdemeTamamlamaSonucu, type OdemeYontemi, type OdemeYontemleri } from '../api/payments';
 import { rezervasyonGetir, type Rezervasyon } from '../api/reservations';
 import { biletlerimGetir, type Bilet } from '../api/tickets';
 import { BiletKarti } from '../components/BiletKarti';
 import { sureBicimle, useGeriSayim } from '../hooks/useGeriSayim';
 import { para } from '../lib/bicim';
 import { tarihSaatBicimi } from '../lib/bicim';
+import { HavaleTalimatiKarti } from './odeme/HavaleTalimatiKarti';
+import { KOLTUK_SERBEST_KODLARI, odemeHatasiniAcikla, REZERVASYON_DURUM_METNI } from './odeme/hatalar';
+import { YontemSecenegi } from './odeme/YontemSecenegi';
 
 /** Son bir dakikada sayac kirmiziya doner. */
 const UYARI_ESIGI_SANIYE = 60;
-
-
-/** Odeme akisinin baglandigi rezervasyon durumu icin kisa aciklama. */
-const REZERVASYON_DURUM_METNI: Record<Rezervasyon['status'], string> = {
-  Pending: 'Odeme bekleniyor',
-  Confirmed: 'Bu rezervasyon zaten ödendi.',
-  Cancelled: 'Bu rezervasyon iptal edilmiş.',
-  Expired: 'Süresi doldu, koltuklar serbest bırakıldı.',
-};
-
-/**
- * Sunucunun makine okunur odeme hata kodlari icin kullanici mesaji.
- *
- * Karar mesaj metnine degil koda gore veriliyor ki sunucudaki metin
- * degistiginde arayuz mantigi kirilmasin.
- */
-const ODEME_HATA_METNI: Record<string, string> = {
-  'Payment.AlreadyPaid': 'Bu rezervasyon zaten ödendi.',
-  'Payment.AlreadyPending': 'Bu rezervasyon için zaten bekleyen bir ödeme var.',
-  'Payment.ReservationNotActive': 'Süresi doldu, koltuklar bırakıldı.',
-  'Payment.ProviderRejected': 'Ödeme sağlayıcı işlemi reddetti.',
-  'Payment.NotOwner': 'Bu rezervasyon sana ait değil.',
-  'Payment.SeatsNoLongerHeld': 'Koltukların süresi doldu, tekrar seç.',
-  'Payment.BankTransferDisabled': 'Havale ile ödeme şu anda kapalı.',
-  'Payment.BankTransferNotCompletable':
-    'Havale ödemesi burada tamamlanmaz; ödemen ulaştığında yönetim onaylar.',
-};
-
-/** Bu kodlarda koltuklar sunucu tarafinda zaten serbest birakilmistir. */
-const KOLTUK_SERBEST_KODLARI = new Set([
-  'Payment.ReservationNotActive',
-  'Payment.SeatsNoLongerHeld',
-]);
-
-function odemeHatasiniAcikla(hata: unknown, varsayilan: string): { mesaj: string; kod?: string } {
-  const kod = hataKodu(hata);
-  const mesaj = (kod && ODEME_HATA_METNI[kod]) || hataMesaji(hata, varsayilan);
-  return { mesaj, kod };
-}
 
 /**
  * Odeme baslatma, tamamlama ve bilet gosterme akisi.
@@ -516,154 +471,6 @@ export function OdemePage() {
   );
 }
 
-/**
- * Odeme yontemi secenegi.
- *
- * Gorunuse ragmen gercek bir <c>radio</c>: klavye ile ok tuslariyla
- * gezilebilmesi ve ekran okuyucunun "iki secenekten biri" demesi buna
- * bagli. Div uzerine onClick konsaydi fare disinda hicbir sey calismazdi.
- */
-function YontemSecenegi({
-  secili,
-  onSelect,
-  baslik,
-  aciklama,
-}: {
-  secili: boolean;
-  onSelect: () => void;
-  baslik: string;
-  aciklama: string;
-}) {
-  return (
-    <label
-      className={`flex cursor-pointer items-start gap-stack-sm rounded-md border px-stack-sm py-stack-sm transition-colors ${
-        secili
-          ? 'border-primary bg-primary-container/15'
-          : 'border-outline-variant hover:border-outline'
-      }`}
-    >
-      <input
-        type="radio"
-        name="odeme-yontemi"
-        checked={secili}
-        onChange={onSelect}
-        className="mt-1 h-4 w-4 accent-primary"
-      />
-      <span className="font-body text-body-sm text-on-surface">
-        {baslik}
-        <span className="mt-[2px] block text-body-sm text-on-surface-variant/80">
-          {aciklama}
-        </span>
-      </span>
-    </label>
-  );
-}
-
-/**
- * Havale talimati.
- *
- * <b>Aciklama kodu en one cikiyor:</b> yonetici gelen ekstreyi bu kodla
- * esliyor ve kod yazilmadan gonderilen para hangi rezervasyona ait
- * bulunamiyor. Kod kopyalanabilir bir dugmeye bagli, cunku elle yazilirken
- * bir karakter kaybolmasi odemenin eslesmemesi demek.
- */
-function HavaleTalimatiKarti({
-  talimat,
-  kod,
-  tutar,
-  sonOdeme,
-}: {
-  talimat: { bankName: string; accountName: string; iban: string; deadlineHours: number } | null;
-  kod: string | null;
-  tutar: string;
-  sonOdeme: number;
-}) {
-  const [kopyalandi, setKopyalandi] = useState(false);
-
-  const kopyala = async (metin: string) => {
-    try {
-      await navigator.clipboard.writeText(metin);
-      setKopyalandi(true);
-      window.setTimeout(() => setKopyalandi(false), 2000);
-    } catch {
-      // Pano izni yoksa sessiz kaliyor: metin zaten ekranda ve secilebilir,
-      // kullaniciya "kopyalanamadi" demenin bir faydasi yok.
-    }
-  };
-
-  return (
-    <section
-      aria-label="Havale bilgileri"
-      className="space-y-stack-sm rounded-lg border border-primary/40 bg-primary-container/10 p-stack-sm"
-    >
-      <p className="font-body text-body-md font-semibold text-on-surface">
-        Havale bilgileri hazır — ödeme bekleniyor
-      </p>
-
-      {talimat ? (
-        <dl className="space-y-base font-body text-body-sm">
-          <Satir etiket="Banka" deger={talimat.bankName} />
-          <Satir etiket="Hesap sahibi" deger={talimat.accountName} />
-          <Satir etiket="IBAN" deger={talimat.iban.replace(/(.{4})/g, '$1 ').trim()} tekAralik />
-          <Satir etiket="Tutar" deger={tutar} />
-        </dl>
-      ) : (
-        <p className="font-body text-body-sm text-on-surface-variant">
-          Banka bilgileri şu an alınamadı. Sayfayı yenile.
-        </p>
-      )}
-
-      {kod && (
-        <div className="rounded-md border border-outline-variant bg-surface-container-low px-stack-sm py-base">
-          <p className="font-body text-body-sm text-on-surface-variant">
-            Havale açıklamasına mutlaka bu kodu yaz:
-          </p>
-          <div className="mt-base flex flex-wrap items-center gap-stack-sm">
-            <code className="font-mono text-body-md font-semibold text-primary">{kod}</code>
-            <button
-              type="button"
-              onClick={() => void kopyala(kod)}
-              className="rounded-full border border-outline px-stack-sm py-1 font-body text-body-sm text-on-surface transition-colors hover:bg-surface-container-high"
-            >
-              {kopyalandi ? 'Kopyalandı' : 'Kopyala'}
-            </button>
-          </div>
-          <p className="mt-base font-body text-body-sm text-on-surface-variant/70">
-            Kod yazılmazsa ödemen hangi rezervasyona ait olduğu anlaşılamaz ve onay gecikir.
-          </p>
-        </div>
-      )}
-
-      <p className="font-body text-body-sm text-on-surface-variant">
-        {sonOdeme > 0
-          ? `Koltukların ${Math.max(1, Math.round(sonOdeme / 3600))} saat daha tutuluyor. `
-          : 'Ödeme süresi doldu. '}
-        Ödemen hesaba geçtiğinde yönetim onaylar ve biletlerin{' '}
-        <Link to="/biletlerim" className="text-primary underline underline-offset-2">
-          Biletlerim
-        </Link>{' '}
-        sayfasına düşer.
-      </p>
-    </section>
-  );
-}
-
-function Satir({
-  etiket,
-  deger,
-  tekAralik,
-}: {
-  etiket: string;
-  deger: string;
-  tekAralik?: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap items-baseline justify-between gap-base">
-      <dt className="text-on-surface-variant">{etiket}</dt>
-      <dd className={`text-on-surface ${tekAralik ? 'font-mono' : 'font-semibold'}`}>{deger}</dd>
-    </div>
-  );
-}
 
 function Sayfa({ children }: { children: React.ReactNode }) {
   return (
