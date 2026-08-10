@@ -37,7 +37,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!accessToken || !kullanici) {
     // Nereye gitmek istedigi tasinir; giristen sonra oraya donulur.
-    return <Navigate to="/giris" state={{ hedef: location.pathname }} replace />;
+    //
+    // SORGU DIZESI DE TASINIYOR. Yalnizca `pathname` tasinsaydi adresteki
+    // parametreler sessizce dusuyordu ve en pahali yerde: odeme
+    // saglayicisindan donuldugunde adres `/odeme/{rez}?odemeId={odeme}`
+    // oluyor, `odemeId` de arayuzun "saglayicidan donuldu, tamamlama
+    // cagrisini yap" isareti. Oturum o sirada yenilenmek zorunda kalirsa
+    // parametre kayboluyor, ekran odeme formunu bastan gosteriyor ve
+    // parasini odemis kullanici ikinci kez odemeye davet ediliyordu.
+    const hedef = location.pathname + location.search;
+
+    return <Navigate to="/giris" state={{ hedef }} replace />;
   }
 
   return <>{children}</>;

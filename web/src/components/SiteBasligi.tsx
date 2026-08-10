@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { sehirleriGetir, type Sehir } from '../api/catalog';
 import { kategorileriGetir } from '../api/events';
 import type { EtkinlikKategorisi } from '../api/events';
-import { MenuAcilir } from './MenuAcilir';
+import { MenuAcilir, type AcilirSecenek } from './MenuAcilir';
 
 import { Logo } from './ui/Logo';
 import { CarpiIkonu, MenuIkonu } from './ui/Ikon';
@@ -87,52 +87,83 @@ export function SiteBasligi() {
   const kesfetSecili =
     anaSayfada && !bugunSecili && !haftaSecili && !kategoriSecili && !sehirSecili;
 
-  const baglantilar = [
-    { yol: '/', metin: 'Keşfet', gorunur: true, aktif: kesfetSecili },
-    { yol: '/?ne_zaman=bugun', metin: 'Bugün', gorunur: true, aktif: bugunSecili },
-    { yol: '/?ne_zaman=hafta', metin: 'Bu hafta', gorunur: true, aktif: haftaSecili },
-    {
-      yol: '/mekanlar',
-      metin: 'Mekânlar',
-      gorunur: true,
-      aktif: konum.pathname === '/mekanlar',
-    },
+  // UST CUBUK MADDE DEGIL KONU TASIYOR.
+  //
+  // Onceki hâlde her sayfa ayri bir baglantiydi ve giris yapmis bir
+  // organizatorde cubuk ON IKI maddeye cikiyordu: sigmiyor, sagdaki
+  // maddeler kirpiliyor ve sayfa yatay kaydirma aciyordu. Maddeleri
+  // kucultmek ya da bosluklari daraltmak yalnizca esigi oteler; sorun
+  // sayinin kendisi.
+  //
+  // Maddeler artik konuya gore acilir listelerde. Rol bazli olanlar
+  // (organizator, yonetim) yalnizca o role sahipse hic uretilmiyor:
+  // gorunur ama tikladiginda 403 donen bir menu, yetkiyi menuden
+  // ogrenmeye calisan kullaniciyi yaniltir.
+  const kesfetSecenekleri: AcilirSecenek[] = [
+    { id: 'tumu', metin: 'Tüm etkinlikler', yol: '/' },
+    { id: 'bugun', metin: 'Bugün', yol: '/?ne_zaman=bugun' },
+    { id: 'hafta', metin: 'Bu hafta', yol: '/?ne_zaman=hafta' },
+    { id: 'mekanlar', metin: 'Mekânlar', yol: '/mekanlar' },
+    // Kategoriler ayri bir acilir liste degil, bu listenin icinde bir
+    // bolum: ikisi de "ne izleyeyim" sorusunun cevabi ve ayri
+    // dusmelerinin bir sebebi yok.
+    ...(kategoriler.data ?? []).map((kategori) => ({
+      id: kategori.id,
+      metin: kategori.name,
+      yol: `/?kategori=${kategori.id}`,
+      bolum: 'Kategoriler',
+    })),
+  ];
 
-    {
-      yol: '/rezervasyonlarim',
-      metin: 'Rezervasyonlarım',
-      gorunur: girisYapildi,
-      aktif: konum.pathname === '/rezervasyonlarim',
-    },
-    {
-      yol: '/biletlerim',
-      metin: 'Biletlerim',
-      gorunur: girisYapildi,
-      aktif: konum.pathname === '/biletlerim',
-    },
-    {
-      yol: '/hesabim',
-      metin: 'Hesabım',
-      gorunur: girisYapildi,
-      aktif: konum.pathname === '/hesabim',
-    },
-    {
-      yol: '/etkinlikler/yeni',
-      metin: 'Etkinlik oluştur',
-      gorunur: organizatorMu,
-      aktif: konum.pathname === '/etkinlikler/yeni',
-    },
-    { yol: '/kapi', metin: 'Kapı', gorunur: organizatorMu, aktif: konum.pathname === '/kapi' },
-    // Yonetim sayfalari tek baglantiya indi: Mekanlar ve Planlar artik
-    // yonetim kabugunun kendi menusunde. Ust menu sekiz baglantiya
-    // ciktiginda hangisinin ne oldugu ancak okunarak anlasiliyordu.
-    {
-      yol: '/yonetim',
-      metin: 'Yönetim',
-      gorunur: adminMi,
-      aktif: konum.pathname.startsWith('/yonetim'),
-    },
-  ].filter((baglanti) => baglanti.gorunur);
+  const hesapSecenekleri: AcilirSecenek[] = girisYapildi
+    ? [
+        { id: 'rezervasyonlarim', metin: 'Rezervasyonlarım', yol: '/rezervasyonlarim' },
+        { id: 'biletlerim', metin: 'Biletlerim', yol: '/biletlerim' },
+        { id: 'hesabim', metin: 'Hesap ayarları', yol: '/hesabim' },
+      ]
+    : [];
+
+  const organizatorSecenekleri: AcilirSecenek[] = organizatorMu
+    ? [
+        { id: 'etkinlik-yeni', metin: 'Etkinlik oluştur', yol: '/etkinlikler/yeni' },
+        { id: 'kapi', metin: 'Kapıda bilet okut', yol: '/kapi' },
+      ]
+    : [];
+
+  const kesfetBolumuAktif =
+    kesfetSecili || bugunSecili || haftaSecili || kategoriSecili || konum.pathname === '/mekanlar';
+
+  const hesapAktif = ['/rezervasyonlarim', '/biletlerim', '/hesabim'].includes(konum.pathname);
+
+  const organizatorAktif = ['/etkinlikler/yeni', '/kapi'].includes(konum.pathname);
+
+  // Yonetim tek baglantida kaliyor: kabugun kendi menusu zaten var ve
+  // burada ikinci kez listelemek ayni sayfalari iki yerden yonetmek olurdu.
+  const yonetimAktif = konum.pathname.startsWith('/yonetim');
+
+  // DAR EKRANDA GRUPLAMA YOK, DUZ LISTE VAR.
+  //
+  // Genis ekranda maddeleri acilir listelere toplamanin sebebi yatay
+  // yer darligi; mobil menu zaten dikey ve asagi dogru istedigi kadar
+  // uzayabiliyor. Orada da acilir liste kullanmak, kullaniciyi ayni
+  // hedefe ulasmak icin iki kez dokunmaya zorlardi — ustelik ic ice
+  // acilan bir menu parmakla zor kullaniliyor.
+  //
+  // Kategoriler ve sehirler bu listeye GIRMIYOR: on bir madde daha
+  // eklemek mobil menuyu okunamaz hâle getirirdi ve ikisi de kesfet
+  // ekranindaki suzgec cubugundan zaten secilebiliyor.
+  const mobilBaglantilar = [
+    { yol: '/', metin: 'Keşfet', aktif: kesfetSecili },
+    { yol: '/?ne_zaman=bugun', metin: 'Bugün', aktif: bugunSecili },
+    { yol: '/?ne_zaman=hafta', metin: 'Bu hafta', aktif: haftaSecili },
+    { yol: '/mekanlar', metin: 'Mekânlar', aktif: konum.pathname === '/mekanlar' },
+    ...[...hesapSecenekleri, ...organizatorSecenekleri].map((secenek) => ({
+      yol: secenek.yol,
+      metin: secenek.metin,
+      aktif: konum.pathname === secenek.yol,
+    })),
+    ...(adminMi ? [{ yol: '/yonetim', metin: 'Yönetim', aktif: yonetimAktif }] : []),
+  ];
 
   return (
     <header className="sticky top-0 z-50 border-b border-outline-variant/40 bg-surface-container-lowest/90 backdrop-blur">
@@ -149,15 +180,19 @@ export function SiteBasligi() {
             baslikta DEGIL kesfet ekraninin suzgec cubugunda: baslik her
             sayfada duruyor ve arama yalnizca katalogda anlamli. */}
         <nav aria-label="Ana menü" className="hidden flex-1 items-center gap-base lg:flex">
-          {/* Kategori ve sehir ACILIR LISTE: alti kategori ve bes sehir duz
-              baglanti olsaydi cubuk on dort maddeye cikar ve tasardi. */}
           <MenuAcilir
-            baslik="Kategoriler"
-            aktif={kategoriSecili}
-            secenekler={(kategoriler.data ?? []).map((kategori) => ({
-              id: kategori.id,
-              metin: kategori.name,
-              yol: `/?kategori=${kategori.id}`,
+            baslik="Keşfet"
+            aktif={kesfetBolumuAktif}
+            secenekler={kesfetSecenekleri}
+          />
+
+          <MenuAcilir
+            baslik="Şehirler"
+            aktif={sehirSecili}
+            secenekler={(sehirler.data ?? []).map((sehir) => ({
+              id: sehir.id,
+              metin: sehir.name,
+              yol: `/?sehir=${sehir.id}`,
             }))}
           />
 
@@ -175,30 +210,29 @@ export function SiteBasligi() {
             ]}
           />
 
+          {/* Bu ikisi secenek listesi bosken MenuAcilir'in kendisi
+              tarafindan hic cizilmiyor; ayrica kosul yazmaya gerek yok. */}
+          <MenuAcilir baslik="Hesabım" aktif={hesapAktif} secenekler={hesapSecenekleri} />
+
           <MenuAcilir
-            baslik="Şehirler"
-            aktif={sehirSecili}
-            secenekler={(sehirler.data ?? []).map((sehir) => ({
-              id: sehir.id,
-              metin: sehir.name,
-              yol: `/?sehir=${sehir.id}`,
-            }))}
+            baslik="Organizatör"
+            aktif={organizatorAktif}
+            secenekler={organizatorSecenekleri}
           />
 
-          {baglantilar.map((baglanti) => (
+          {adminMi && (
             <Link
-              key={baglanti.yol}
-              to={baglanti.yol}
-              aria-current={baglanti.aktif ? 'page' : undefined}
+              to="/yonetim"
+              aria-current={yonetimAktif ? 'page' : undefined}
               className={`whitespace-nowrap rounded-full px-stack-sm py-1 font-body text-body-sm transition-colors ${
-                baglanti.aktif
+                yonetimAktif
                   ? 'bg-primary-container/25 text-primary'
                   : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
-              {baglanti.metin}
+              Yönetim
             </Link>
-          ))}
+          )}
         </nav>
 
         <div className="ml-auto flex items-center gap-stack-sm">
@@ -264,7 +298,7 @@ export function SiteBasligi() {
           )}
 
           <ul className="flex flex-col">
-            {baglantilar.map((baglanti) => (
+            {mobilBaglantilar.map((baglanti) => (
               <li key={baglanti.yol}>
                 <Link
                   to={baglanti.yol}

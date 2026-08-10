@@ -5,6 +5,18 @@ export interface AcilirSecenek {
   id: string;
   metin: string;
   yol: string;
+
+  /**
+   * Listedeki bolum basligi. Ayni bolum adini tasiyan ardisik secenekler
+   * tek bir baslik altinda toplanir.
+   *
+   * <b>Neden gerekli:</b> ust cubuk on iki maddeye cikip tasmisti ve
+   * maddeler tek tek acilir listeye tasindiginda bu sefer liste sayisi
+   * artiyordu. Bolum basligi, ilgili maddeleri TEK bir listede
+   * gruplayarak ikisini birden cozuyor: "Keşfet" listesinin icinde
+   * kategoriler ayri bir baslik altinda duruyor.
+   */
+  bolum?: string;
 }
 
 /**
@@ -76,17 +88,34 @@ export function MenuAcilir({
           role="menu"
           className="absolute left-0 top-full z-50 mt-1 min-w-44 rounded-lg border border-outline-variant/60 bg-surface-container p-1 shadow-lg"
         >
-          {secenekler.map((secenek) => (
-            <Link
-              key={secenek.id}
-              to={secenek.yol}
-              role="menuitem"
-              onClick={() => setAcik(false)}
-              className="block rounded-md px-stack-sm py-base font-body text-body-sm text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-            >
-              {secenek.metin}
-            </Link>
-          ))}
+          {secenekler.map((secenek, sira) => {
+            // Baslik yalnizca bolum DEGISTIGINDE yaziliyor; her secenegin
+            // ustune basilsaydi liste bastan asagi baslik olurdu.
+            const yeniBolum =
+              secenek.bolum !== undefined && secenek.bolum !== secenekler[sira - 1]?.bolum;
+
+            return (
+              <div key={secenek.id}>
+                {yeniBolum && (
+                  <p
+                    role="presentation"
+                    className="mt-1 px-stack-sm pb-0.5 pt-stack-sm font-body text-label-sm uppercase tracking-wide text-on-surface-variant/70"
+                  >
+                    {secenek.bolum}
+                  </p>
+                )}
+
+                <Link
+                  to={secenek.yol}
+                  role="menuitem"
+                  onClick={() => setAcik(false)}
+                  className="block rounded-md px-stack-sm py-base font-body text-body-sm text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
+                >
+                  {secenek.metin}
+                </Link>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
