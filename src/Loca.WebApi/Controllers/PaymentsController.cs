@@ -1,3 +1,4 @@
+using Loca.Application.Features.Admin.Settings;
 using Loca.Application.Features.Payments.BankTransfer;
 using Loca.Application.Features.Payments.Common;
 using Loca.Application.Features.Payments.CompletePayment;
@@ -178,16 +179,31 @@ public sealed class PaymentsController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status302Found)]
     public async Task<IActionResult> IyzicoCallback(
         [FromForm] string? token,
-        [FromServices] IOptions<IyzicoOptions> iyzicoOptions,
+        [FromServices] IPaymentSettingsReader odemeAyarlari,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(iyzicoOptions);
+        ArgumentNullException.ThrowIfNull(odemeAyarlari);
 
-        var kok = iyzicoOptions.Value.ReturnUrl.TrimEnd('/');
+        // AYARLAR PANELDEN OKUNUYOR, IOptions'tan DEGIL.
+        //
+        // Burasi bir donem IOptions<IyzicoOptions> kullaniyordu ve
+        // yapilandirmada (ortam degiskeni) ReturnUrl tanimli olmadigi
+        // surece asagidaki kontrol devreye girip 404 donuyordu. Adresi
+        // panelden girmek yetmiyordu cunku IOptions acilista baglaniyor
+        // ve panelden yazilan degeri hic gormuyor — belgelerin "anahtarlar
+        // panelden giriliyor" dedigi kurulumda uc calismaz hâldeydi.
+        //
+        // Hatanin gorunumu en kotu yerdeydi: kullanici karti cekiliyor,
+        // iyzico tarayiciyi buraya gonderiyor ve ekranda 404 kaliyordu.
+        // Parasi gitmis kullanici icin bundan daha kotu bir ekran yok.
+        // IyzicoSettingsProvider zaten veritabanini yapilandirmanin
+        // ustune koyuyor; tek yapilmasi gereken ayni kaynagi kullanmakti.
+        var ayarlar = await odemeAyarlari.GetAsync(cancellationToken);
 
-        // Iyzico ayarlari yalnizca saglayici Iyzico secildiginde baglaniyor;
-        // taklit saglayiciyla calisirken bu uc anlamsiz. Bos bir koke
-        // yonlendirmek yerine acikca yok deniyor.
+        var kok = ayarlar.ReturnUrl.TrimEnd('/');
+
+        // Adres hicbir kaynakta yoksa nereye donulecegi bilinmiyor.
+        // Taklit saglayiciyla calisirken bu uc zaten anlamsiz.
         if (kok.Length == 0)
             return NotFound();
 
