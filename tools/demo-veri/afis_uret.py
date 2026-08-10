@@ -14,7 +14,10 @@ demo verisi hazirlayan bir gelistirme araci.
     pip install pillow
 """
 
+import hashlib
+import os
 import struct
+import urllib.request
 import zlib
 
 GENISLIK = 600
@@ -31,6 +34,13 @@ PALETLER = [
 ]
 
 # Turkce karakter tasiyan yaygin yazi tipleri; ilk bulunan kullaniliyor.
+YAZI_TIPLERI_BASLIK = [
+    r"C:\Windows\Fonts\seguibl.ttf",
+    r"C:\Windows\Fonts\ariblk.ttf",
+    r"C:\Windows\Fonts\segoeuib.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
+
 YAZI_TIPLERI = [
     r"C:\Windows\Fonts\segoeuib.ttf",
     r"C:\Windows\Fonts\arialbd.ttf",
@@ -138,45 +148,188 @@ def _sar(cizim, metin, yazi, genislik):
     return satirlar
 
 
+# Afis iki kat cozunurlukte cizilip kucultuluyor. Dogrudan 600x800
+# cizildiginde yazi kenarlari kirik cikiyordu; kucultme kenar
+# yumusatmasini bedavaya getiriyor.
+OLCEK = 2
+
+# Fotograf kaynagi. Tohum basliktan turetiliyor: ayni etkinlik her
+# kosumda AYNI fotografi aliyor, katalog dagitimdan dagitima
+# degismiyor. Rastgele olsaydi her afis yenilemede vitrin bastan
+# baslardi ve ekran goruntuleri tutmazdi.
+FOTOGRAF_ADRESI = "https://picsum.photos/seed/{tohum}/{genislik}/{yukseklik}"
+
+# Ag yoksa ya da kapatilmak istenirse: LOCA_AFIS_FOTOGRAF=0
+FOTOGRAF_ACIK = os.environ.get("LOCA_AFIS_FOTOGRAF", "1") != "0"
+
+
+def _fotograf_indir(tohum_metni, genislik, yukseklik):
+    """Fotografi indirir; basarisiz olursa None doner (afis yine uretilir)."""
+    if not FOTOGRAF_ACIK:
+        return None
+
+    # Tohum ASCII'ye indirgeniyor: adres bileseni olarak gidiyor ve
+    # Turkce harfler kaynakta farkli kodlanip her kosumda baska bir
+    # fotograf getirebilirdi.
+    tohum = hashlib.sha1(tohum_metni.encode("utf-8")).hexdigest()[:12]
+
+    adres = FOTOGRAF_ADRESI.format(tohum=tohum, genislik=genislik, yukseklik=yukseklik)
+
+    try:
+        with urllib.request.urlopen(adres, timeout=30) as cevap:
+            return cevap.read()
+    except Exception:
+        # Afis uretimi ag yuzunden HIC durmamali: fotograf yoksa
+        # degrade zemin kullaniliyor, yazilar aynen basiliyor.
+        return None
+
+
+def _duotone(gorsel, koyu, vurgu):
+    """Fotografi paletin iki rengi arasina esler.
+
+    Fotograflar birbirinden bagimsiz geliyor; oldugu gibi kullanilsalarsa
+    katalog rastgele bir fotograf yigini gibi gorunur. Tek renk ekseni
+    uzerine oturtulunca hepsi ayni tasarim dilinden konusuyor ve konusu
+    ne olursa olsun afis gibi duruyor.
+    """
+    from PIL import Image
+
+    gri = gorsel.convert("L")
+
+    tablo = []
+    for kanal in range(3):
+        tablo += [round(koyu[kanal] + (vurgu[kanal] - koyu[kanal]) * (i / 255))
+                  for i in range(256)]
+
+    return Image.merge("RGB", (gri, gri, gri)).point(tablo)
+
+
+def _karartma(boyut, vurgu):
+    """Alttan yukari koyulasan perde: yazinin okunmasi buna bagli.
+
+    Duz yariseffaf bir katman da okunurlugu saglardi ama fotografi
+    tamamen olduruyordu. Degrade, ustte fotografi birakip altta yaziya
+    yer aciyor.
+    """
+    from PIL import Image
+
+    genislik, yukseklik = boyut
+    perde = Image.new("L", (1, yukseklik))
+
+    for y in range(yukseklik):
+        oran = y / (yukseklik - 1)
+
+        if oran < 0.32:
+            saydam = 60 * (oran / 0.32)          # ustte hafif
+        else:
+            t = (oran - 0.32) / 0.68
+            saydam = 60 + 195 * (t ** 1.6)       # altta neredeyse tam
+
+        perde.putpixel((0, y), round(min(255, saydam)))
+
+    return perde.resize((genislik, yukseklik))
+
+
 def afis_uret(palet_no, tohum, baslik, tarih_metni, mekan, kategori):
     """Afisi uretir; Pillow yoksa yazisiz degrade doner."""
-    zemin = _zemin(PALETLER[palet_no % len(PALETLER)], tohum)
+    palet = PALETLER[palet_no % len(PALETLER)]
+    zemin = _zemin(palet, tohum)
     ham = _png(zemin)
 
     try:
         import io
 
-        from PIL import Image, ImageDraw
+        from PIL import Image, ImageDraw, ImageFilter
     except ImportError:
         return ham
 
-    gorsel = Image.open(io.BytesIO(ham)).convert("RGB")
+    G = GENISLIK * OLCEK
+    Y = YUKSEKLIK * OLCEK
+    koyu, _alt, vurgu = palet
+
+    fotograf = _fotograf_indir(baslik, G, Y)
+
+    if fotograf:
+        try:
+            arka = Image.open(io.BytesIO(fotograf)).convert("RGB")
+            arka = arka.resize((G, Y), Image.LANCZOS)
+            # BULANIKLIK YUKSEK VE BILINCLI. Fotograflar konuya gore
+            # secilemiyor: anahtar kelimeyle arama yapan ucretsiz
+            # kaynaklar ya gorselin ustune lisans damgasi basiyor ya da
+            # turev calismaya izin vermeyen lisanslar donuyor (cc-nc-nd).
+            # Kaynak bu yuzden konudan bagimsiz; nesneler secilir hâlde
+            # kalsaydi rock konserinin afisinde kupa, cocuk oyununda
+            # catal gorunurdu. Bu kadar bulaniklikta fotograf bir nesne
+            # olmaktan cikip isik ve doku oluyor, kompozisyon kaliyor.
+            arka = arka.filter(ImageFilter.GaussianBlur(radius=OLCEK * 14))
+            arka = _duotone(arka, koyu, vurgu)
+
+            # Dokuyu geri getiren ince tanecik: yalnizca bulanik degrade
+            # kalsaydi afis yeniden "duz renk blogu"na donerdi — ilk
+            # surumun tam olarak dustugu yer.
+            arka = Image.blend(
+                arka, arka.filter(ImageFilter.EMBOSS).convert("RGB"), 0.06)
+        except Exception:
+            fotograf = None
+
+    if not fotograf:
+        arka = Image.open(io.BytesIO(ham)).convert("RGB").resize((G, Y), Image.LANCZOS)
+
+    # Perde ayri bir katman olarak biniyor; dogrudan piksel piksel
+    # karartmak ayni sonucu verirdi ama 1200x1600'de gozle gorulur
+    # yavastir.
+    siyah = Image.new("RGB", (G, Y), (8, 8, 12))
+    gorsel = Image.composite(siyah, arka, _karartma((G, Y), vurgu))
+
     cizim = ImageDraw.Draw(gorsel)
 
-    kenar = 48
-    ic_genislik = GENISLIK - kenar * 2
-    vurgu = PALETLER[palet_no % len(PALETLER)][2]
+    kenar = 52 * OLCEK
+    ic_genislik = G - kenar * 2
 
-    # Kategori rozeti — ustte.
-    kucuk = _yazi_tipi(YAZI_TIPLERI, 22)
-    cizim.text((kenar, kenar), kategori.upper(), font=kucuk, fill=vurgu)
+    # --- Kategori rozeti -------------------------------------------------
+    kucuk = _yazi_tipi(YAZI_TIPLERI, 20 * OLCEK)
+    etiket = kategori.upper()
+    metin_en = cizim.textlength(etiket, font=kucuk)
+    dolgu_x, dolgu_y = 14 * OLCEK, 8 * OLCEK
 
-    # Baslik — alt bantta, asagidan yukari diziliyor ki uzun basliklar
-    # yukari dogru bussun ve alt kenardan tasmasin.
-    buyuk = _yazi_tipi(YAZI_TIPLERI, 46)
-    satirlar = _sar(cizim, baslik, buyuk, ic_genislik)
+    cizim.rounded_rectangle(
+        [kenar, kenar, kenar + metin_en + dolgu_x * 2, kenar + 22 * OLCEK + dolgu_y * 2],
+        radius=6 * OLCEK, fill=vurgu)
+    cizim.text((kenar + dolgu_x, kenar + dolgu_y - 2 * OLCEK), etiket,
+               font=kucuk, fill=(12, 10, 18))
 
-    orta = _yazi_tipi(YAZI_TIPLERI_INCE, 26)
+    # --- Baslik ----------------------------------------------------------
+    #
+    # Punto icerige gore kuculuyor: sabit puntoda uzun basliklar dort bes
+    # satira yayilip afisin yarisini kapliyordu.
+    for punto in (52, 46, 40, 35):
+        buyuk = _yazi_tipi(YAZI_TIPLERI_BASLIK, punto * OLCEK)
+        satirlar = _sar(cizim, baslik, buyuk, ic_genislik)
+        if len(satirlar) <= 3:
+            break
 
-    y = YUKSEKLIK - kenar - 34
-    cizim.text((kenar, y), mekan, font=orta, fill=(200, 200, 210))
+    orta = _yazi_tipi(YAZI_TIPLERI, 22 * OLCEK)
+    ince = _yazi_tipi(YAZI_TIPLERI_INCE, 21 * OLCEK)
 
-    y -= 42
+    y = Y - kenar - 30 * OLCEK
+    cizim.text((kenar, y), mekan, font=ince, fill=(196, 196, 210))
+
+    y -= 38 * OLCEK
     cizim.text((kenar, y), tarih_metni, font=orta, fill=vurgu)
 
+    y -= 20 * OLCEK
     for satir in reversed(satirlar):
-        y -= 58
+        y -= round(punto * 1.16) * OLCEK
         cizim.text((kenar, y), satir, font=buyuk, fill=(255, 255, 255))
+
+    # Basligin ustunde ince vurgu cizgisi: goz once buraya takiliyor ve
+    # afis "yazi yigini" olmaktan cikiyor.
+    y -= 26 * OLCEK
+    cizim.rounded_rectangle(
+        [kenar, y, kenar + 64 * OLCEK, y + 5 * OLCEK],
+        radius=3 * OLCEK, fill=vurgu)
+
+    gorsel = gorsel.resize((GENISLIK, YUKSEKLIK), Image.LANCZOS)
 
     cikti = io.BytesIO()
     gorsel.save(cikti, format="PNG", optimize=True)

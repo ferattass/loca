@@ -129,12 +129,20 @@ services:
 
       # Odeme SANDBOX'ta kaliyor. Gercek kart icin iyzico uye isyeri
       # basvurusu ve onayi gerekiyor; sartname de gercek odeme
-      # saglayicisini kapsam disi birakmis.
+      # saglayicisini kapsam disi birakmis. Sandbox'ta kart bilgisi
+      # gercek degil, para hareketi yok.
       #
-      # Gercek sandbox akisini denemek icin bu degeri Iyzico yapip
-      # panelden anahtarlari ve callback adresini girmek yeterli.
+      # Deger dosyada tutuluyor ki panelde elle yapilmis bir degisiklige
+      # bagli kalmasin: acik `value:` tasiyan degiskenler blueprint
+      # eslemesinde bu dosyadaki degere cekiliyor.
+      #
+      # Saglayici ACILISTA seciliyor (Infrastructure/DependencyInjection):
+      # secim DI'a bir kez kaydediliyor ve calisma aninda
+      # degistirilemiyor — degisiklik ancak yeniden baslatmayla gecerli
+      # oluyor. Anahtarlar bunun disinda: panelden giriliyor ve
+      # veritabaninda sifreli duruyor, imaja hic girmiyorlar.
       - key: Payment__Provider
-        value: Mock
+        value: Iyzico
       - key: Iyzico__UseSandbox
         value: "true"
 
