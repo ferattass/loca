@@ -276,6 +276,17 @@ def main():
         # reddederdi (araya bir saat temizlik payi da giriyor).
         baslangic = (simdi + dt.timedelta(days=gun)).replace(
             hour=17 + (sira % 3), minute=0, second=0)
+
+        # SAAT SABITLENDIGI ICIN "bugun" GECMISE DUSEBILIYOR. gun=0 olan
+        # etkinlik bugunun 17:00'sine yazilir; betik aksam ya da gece
+        # kosulduysa etkinlik DOGDUGU ANDA gecmis olur. Satis bitisi de
+        # baslangictan iki saat once oldugu icin katalog onu gosterir ama
+        # rezervasyon 409 "Reservation.SalesEnded" doner — yani ekranda
+        # duran, tiklanan, ama asla satin alinamayan bir etkinlik.
+        # Gecmise dusen her etkinlik bir sonraki gune otelenip kurtariliyor.
+        while baslangic <= simdi + dt.timedelta(hours=3):
+            baslangic += dt.timedelta(days=1)
+
         bitis = baslangic + dt.timedelta(minutes=sure)
 
         satis_bas = simdi - dt.timedelta(days=1)

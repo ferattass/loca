@@ -109,6 +109,20 @@ export function hataKodu(hata: unknown): string | undefined {
 }
 
 /**
+ * Yanitin HTTP durum kodu; istek sunucuya hic ulasmadiysa <c>undefined</c>.
+ *
+ * `hataKodu` yetmediginde gerekiyor: kimlik hatalarinin govdesinde uygulamaya
+ * ozel bir `code` bulunmuyor ve 401'i ayirt etmenin tek yolu durum kodu.
+ * Ag kopmasiyla 401'i ayirmak da onemli — ilkinde tekrar denemek anlamli,
+ * ikincisinde kullaniciyi girise gondermek gerekiyor.
+ */
+export function durumKodu(hata: unknown): number | undefined {
+  if (!axios.isAxiosError(hata)) return undefined;
+
+  return hata.response?.status;
+}
+
+/**
  * Sunucudan gelen alan bazli dogrulama hatalari.
  *
  * Tek satirlik ozet yerine tam liste gerektiginde kullanilir: bir formda

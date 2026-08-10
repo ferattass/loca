@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
-import { hataKodu, hataMesaji } from '../api/client';
+import { durumKodu, hataKodu, hataMesaji } from '../api/client';
 import {
   koltukMusaitligiGetir,
   type KoltukDurumu,
@@ -17,6 +17,7 @@ import type { SeatStatus } from '../components/SeatStatePreview';
 import { sureBicimle } from '../hooks/useGeriSayim';
 import { uzunTarihSaatBicimi } from '../lib/bicim';
 import { Sayfa } from '../components/ui/Sayfa';
+import { useAuthStore } from '../stores/authStore';
 
 /** Sunucu durumunun gorsel karsiligi. */
 const GORSEL_DURUM: Record<KoltukDurumu, SeatStatus> = {
@@ -46,7 +47,19 @@ const YENILEME_ARALIGI_SANIYE = 15;
 export function KoltukSecimPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+
+  /**
+   * Bu sayfa BILEREK anonim erisime acik: kullanici doluluğu görmek için
+   * kayıt olmak zorunda değil. Ama rezervasyon acmak oturum istiyor.
+   */
+  const oturumAcik = useAuthStore((durum) => Boolean(durum.accessToken && durum.kullanici));
+
+  /** Giristen sonra buraya donulsun; secim adresinde tasindigi icin kaybolmuyor. */
+  const girisEkraninaGonder = useCallback(() => {
+    navigate('/giris', { state: { hedef: location.pathname + location.search } });
+  }, [navigate, location.pathname, location.search]);
 
   const [seciliIdler, setSeciliIdler] = useState<ReadonlySet<string>>(new Set());
 
@@ -174,6 +187,16 @@ export function KoltukSecimPage() {
     },
     onError: async (hata) => {
       const kod = hataKodu(hata);
+
+      // Oturum akisin ORTASINDA dusmus olabilir: access token on bes dakikalik
+      // ve bu ekranda koltuk secmek uzun surebiliyor. Yenileme de basarisiz
+      // olduysa istek 401 doner. Burada genel bir hata metni gostermek
+      // kullaniciyi cikmaza sokardi — ne yanlis yaptigini anlamaz, tekrar
+      // dener ve yine 401 alirdi. Girise gonderiliyor, secim adreste duruyor.
+      if (durumKodu(hata) === 401) {
+        girisEkraninaGonder();
+        return;
+      }
 
       // Karar MESAJA degil KODA gore veriliyor: mesaj metni degistiginde
       // arayuz mantigi kirilmasin.
@@ -320,7 +343,7 @@ export function KoltukSecimPage() {
             koltuklar={secilenler}
             toplam={onizlemeToplam}
             yukleniyor={olustur.isPending}
-            onOdemeyeGec={() => olustur.mutate()}
+            onOdemeyeGec={() => (oturumAcik ? olustur.mutate() : girisEkraninaGonder())}
             onTemizle={temizle}
           />
         </aside>
