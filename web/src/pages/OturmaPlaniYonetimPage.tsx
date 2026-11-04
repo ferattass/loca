@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { mekanlariGetir, salonlariGetir } from '../api/seatLayoutAdmin';
 import { Secim } from '../components/ui/Secim';
+import { Uyari } from '../components/ui/Uyari';
 import { PlanYonetimi } from './oturma-plani/PlanYonetimi';
 import { PlanDetayi } from './oturma-plani/PlanDetayi';
 
@@ -42,12 +43,9 @@ export function OturmaPlaniYonetimPage() {
         </header>
 
         {hata && (
-          <p
-            role="alert"
-            className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-          >
+          <Uyari role="alert" dolgu="dar">
             {hata}
-          </p>
+          </Uyari>
         )}
 
         <div className="grid gap-stack-sm md:grid-cols-2">

@@ -9,6 +9,8 @@ import {
   type Sehir,
 } from '../api/catalog';
 import { etkinlikleriGetir } from '../api/eventCatalog';
+import { Iskelet } from '../components/ui/Iskelet';
+import { Uyari } from '../components/ui/Uyari';
 
 /**
  * Mekânlar — herkese acik salon listesi.
@@ -63,21 +65,14 @@ export function MekanlarPage() {
         </p>
       </header>
 
-      {hata && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hata}
-        </p>
-      )}
+      {hata && <Uyari role="alert">{hata}</Uyari>}
 
       {mekanSorgu.isPending && (
-        <div className="grid animate-pulse gap-stack-sm sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
-          {[0, 1, 2, 3, 4, 5].map((sira) => (
-            <div key={sira} className="h-28 rounded-lg bg-surface-variant/40" />
-          ))}
-        </div>
+        <Iskelet
+          adet={6}
+          cubuk="h-28 rounded-lg bg-surface-variant/40"
+          duzen="grid gap-stack-sm sm:grid-cols-2 lg:grid-cols-3"
+        />
       )}
 
       <div className="space-y-stack-lg">

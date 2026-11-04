@@ -13,7 +13,10 @@ import {
 } from '../../api/admin';
 import { useAuthStore } from '../../stores/authStore';
 import { OnayIkonu, SolOkIkonu, SagOkIkonu } from '../../components/ui/Ikon';
+import { BosDurum } from '../../components/ui/BosDurum';
+import { Iskelet } from '../../components/ui/Iskelet';
 import { TextField } from '../../components/ui/TextField';
+import { Uyari } from '../../components/ui/Uyari';
 import { FiltreDugmesi } from '../../components/ui/FiltreDugmesi';
 
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'medium' });
@@ -135,36 +138,18 @@ export function KullanicilarPage() {
       </div>
 
       {isPending && (
-        <div className="animate-pulse space-y-base" aria-hidden="true">
-          {[0, 1, 2, 3].map((sira) => (
-            <div key={sira} className="h-20 rounded-md bg-surface-variant/40" />
-          ))}
-        </div>
+        <Iskelet adet={4} cubuk="h-20 rounded-md bg-surface-variant/40" duzen="space-y-base" />
       )}
 
-      {isError && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Kullanıcılar yüklenemedi.')}
-        </p>
-      )}
+      {isError && <Uyari role="alert">{hataMesaji(error, 'Kullanıcılar yüklenemedi.')}</Uyari>}
 
       {rol.isError && (
-        <p
-          role="alert"
-          className="mb-stack-sm rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-        >
+        <Uyari role="alert" dolgu="dar" className="mb-stack-sm">
           {hataMesaji(rol.error, 'Rol değiştirilemedi.')}
-        </p>
+        </Uyari>
       )}
 
-      {data && data.items.length === 0 && (
-        <p className="rounded-lg border border-outline-variant/40 bg-surface-variant/20 px-stack-md py-stack-md font-body text-body-md text-on-surface-variant">
-          Eşleşen kullanıcı yok.
-        </p>
-      )}
+      {data && data.items.length === 0 && <BosDurum>Eşleşen kullanıcı yok.</BosDurum>}
 
       <ul className="space-y-base">
         {data?.items.map((satir) => (
@@ -320,9 +305,9 @@ function HesapAcmaPenceresi({
 
         {sonuc ? (
           <>
-            <p className="mt-stack-sm rounded-md border border-primary/40 bg-primary-container/15 px-stack-sm py-base font-body text-body-sm text-primary">
+            <Uyari ton="basari" dolgu="dar" className="mt-stack-sm">
               {sonuc.email} için hesap açıldı.
-            </p>
+            </Uyari>
 
             <p className="mt-base font-body text-body-sm text-on-surface-variant">
               {sonuc.resetLinkSent

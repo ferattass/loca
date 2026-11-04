@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 
 import { hataMesaji } from '../api/client';
 import { rezervasyonlarimGetir, type RezervasyonOzeti } from '../api/reservations';
+import { BosDurum } from '../components/ui/BosDurum';
+import { Iskelet } from '../components/ui/Iskelet';
+import { Uyari } from '../components/ui/Uyari';
 import { sureBicimle } from '../hooks/useGeriSayim';
 import { para, tarihSaatBicimi } from '../lib/bicim';
 
@@ -29,26 +32,14 @@ export function RezervasyonlarimPage() {
         </h1>
 
         {isPending && (
-          <div className="animate-pulse space-y-stack-sm" aria-hidden="true">
-            <div className="h-20 rounded-lg bg-surface-variant/40" />
-            <div className="h-20 rounded-lg bg-surface-variant/40" />
-          </div>
+          <Iskelet adet={2} cubuk="h-20 rounded-lg bg-surface-variant/40" duzen="space-y-stack-sm" />
         )}
 
         {isError && (
-          <p
-            role="alert"
-            className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-          >
-            {hataMesaji(error, 'Rezervasyonlar yuklenemedi.')}
-          </p>
+          <Uyari role="alert">{hataMesaji(error, 'Rezervasyonlar yuklenemedi.')}</Uyari>
         )}
 
-        {data?.length === 0 && (
-          <p className="rounded-lg border border-outline-variant/40 bg-surface-variant/20 px-stack-sm py-stack-md font-body text-body-sm text-on-surface-variant">
-            Henuz rezervasyonun yok.
-          </p>
-        )}
+        {data?.length === 0 && <BosDurum boyut="sm">Henuz rezervasyonun yok.</BosDurum>}
 
         <ul className="space-y-stack-sm">
           {data?.map((kayit) => {

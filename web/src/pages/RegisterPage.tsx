@@ -9,6 +9,7 @@ import { hataMesaji } from '../api/client';
 import { AuthLayout } from '../components/AuthLayout';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/TextField';
+import { Uyari } from '../components/ui/Uyari';
 import { useAuthStore } from '../stores/authStore';
 
 /**
@@ -119,12 +120,9 @@ export function RegisterPage() {
         />
 
         {sunucuHatasi && (
-          <div
-            role="alert"
-            className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base"
-          >
-            <p className="font-body text-body-sm text-error">{sunucuHatasi}</p>
-          </div>
+          <Uyari role="alert" dolgu="dar">
+            {sunucuHatasi}
+          </Uyari>
         )}
 
         <Button type="submit" yukleniyor={isSubmitting} className="mt-base w-full">

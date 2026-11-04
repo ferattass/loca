@@ -11,7 +11,9 @@ import {
 } from '../api/reservations';
 import { sureBicimle, useGeriSayim } from '../hooks/useGeriSayim';
 import { para, tarihSaatBicimi } from '../lib/bicim';
+import { Iskelet } from '../components/ui/Iskelet';
 import { Sayfa } from '../components/ui/Sayfa';
+import { Uyari } from '../components/ui/Uyari';
 
 /** Son bir dakikada sayac kirmiziya doner. */
 const UYARI_ESIGI_SANIYE = 60;
@@ -83,13 +85,11 @@ export function RezervasyonPage() {
   if (isPending) {
     return (
       <Sayfa>
-        <div className="animate-pulse space-y-stack-sm" aria-hidden="true">
-          <div className="h-6 w-56 rounded bg-surface-variant/60" />
-          <div className="h-40 rounded-lg bg-surface-variant/40" />
-        </div>
-        <span className="sr-only" role="status">
-          Rezervasyon yukleniyor
-        </span>
+        <Iskelet
+          cubuk={['h-6 w-56 rounded bg-surface-variant/60', 'h-40 rounded-lg bg-surface-variant/40']}
+          duzen="space-y-stack-sm"
+          duyuru="Rezervasyon yukleniyor"
+        />
       </Sayfa>
     );
   }
@@ -97,12 +97,7 @@ export function RezervasyonPage() {
   if (isError) {
     return (
       <Sayfa>
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Rezervasyon yuklenemedi.')}
-        </p>
+        <Uyari role="alert">{hataMesaji(error, 'Rezervasyon yuklenemedi.')}</Uyari>
       </Sayfa>
     );
   }
@@ -141,7 +136,7 @@ export function RezervasyonPage() {
             dakikada bir kez verilir.
           */}
           <p
-            className={`font-headline text-headline-lg tabular-nums ${
+            className={`font-headline text-display-lg-mobile tabular-nums ${
               azKaldi ? 'text-error' : 'text-on-surface'
             }`}
             aria-hidden="true"
@@ -193,12 +188,9 @@ export function RezervasyonPage() {
       </section>
 
       {islemHatasi && (
-        <p
-          role="alert"
-          className="mb-stack-sm rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-        >
+        <Uyari role="alert" dolgu="dar" className="mb-stack-sm">
           {islemHatasi}
-        </p>
+        </Uyari>
       )}
 
       <div className="flex flex-wrap items-center gap-stack-sm">

@@ -10,7 +10,10 @@ import {
   type KuyrukFiltresi,
   type KuyrukMesaji,
 } from '../../api/admin';
+import { BosDurum } from '../../components/ui/BosDurum';
 import { UyariIkonu } from '../../components/ui/Ikon';
+import { Iskelet } from '../../components/ui/Iskelet';
+import { Uyari } from '../../components/ui/Uyari';
 
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
   dateStyle: 'short',
@@ -97,44 +100,30 @@ export function SistemPage() {
       </div>
 
       {sekme === 'DeadLettered' && (
-        <p className="mb-stack-sm flex items-start gap-base rounded-md border border-tertiary/40 bg-tertiary-container/10 px-stack-sm py-base font-body text-body-sm text-tertiary">
-          <UyariIkonu className="mt-[2px] h-4 w-4 shrink-0" />
+        <Uyari
+          ton="dikkat"
+          dolgu="dar"
+          className="mb-stack-sm"
+          ikon={<UyariIkonu className="mt-[2px] h-4 w-4 shrink-0" />}
+        >
           Bu mesajlar iş akışı tarafından bir daha denenmiyor. Kuyruğa geri koymadan önce
           hatanın sebebinin giderildiğinden emin ol; giderilmediyse mesaj yeniden tükenir.
-        </p>
+        </Uyari>
       )}
 
       {isPending && (
-        <div className="animate-pulse space-y-base" aria-hidden="true">
-          {[0, 1, 2].map((sira) => (
-            <div key={sira} className="h-20 rounded-md bg-surface-variant/40" />
-          ))}
-        </div>
+        <Iskelet adet={3} cubuk="h-20 rounded-md bg-surface-variant/40" duzen="space-y-base" />
       )}
 
-      {isError && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Kuyruk yüklenemedi.')}
-        </p>
-      )}
+      {isError && <Uyari role="alert">{hataMesaji(error, 'Kuyruk yüklenemedi.')}</Uyari>}
 
       {geriKoy.isError && (
-        <p
-          role="alert"
-          className="mb-stack-sm rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-        >
+        <Uyari role="alert" dolgu="dar" className="mb-stack-sm">
           {hataMesaji(geriKoy.error, 'Mesaj kuyruğa konamadı.')}
-        </p>
+        </Uyari>
       )}
 
-      {data && data.length === 0 && (
-        <p className="rounded-lg border border-outline-variant/40 bg-surface-variant/20 px-stack-md py-stack-md font-body text-body-md text-on-surface-variant">
-          Bu durumda mesaj yok.
-        </p>
-      )}
+      {data && data.length === 0 && <BosDurum>Bu durumda mesaj yok.</BosDurum>}
 
       <ul className="space-y-base">
         {data?.map((mesaj) => (

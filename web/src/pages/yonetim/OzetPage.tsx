@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { hataMesaji } from '../../api/client';
 import { ozetGetir, type AdminOzeti } from '../../api/admin';
 import { UyariIkonu } from '../../components/ui/Ikon';
+import { Iskelet } from '../../components/ui/Iskelet';
+import { Uyari } from '../../components/ui/Uyari';
 import { paraKurussuz, saatBicimi } from '../../lib/bicim';
 
 
@@ -42,21 +44,14 @@ export function OzetPage() {
       </header>
 
       {isPending && (
-        <div className="grid animate-pulse gap-stack-sm sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
-          {[0, 1, 2, 3].map((sira) => (
-            <div key={sira} className="h-24 rounded-lg bg-surface-variant/40" />
-          ))}
-        </div>
+        <Iskelet
+          adet={4}
+          cubuk="h-24 rounded-lg bg-surface-variant/40"
+          duzen="grid gap-stack-sm sm:grid-cols-2 lg:grid-cols-4"
+        />
       )}
 
-      {isError && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Özet yüklenemedi.')}
-        </p>
-      )}
+      {isError && <Uyari role="alert">{hataMesaji(error, 'Özet yüklenemedi.')}</Uyari>}
 
       {data && (
         <>
@@ -136,11 +131,15 @@ export function OzetPage() {
               </dl>
 
               {data.queue.deadLettered > 0 && (
-                <p className="mt-stack-sm flex items-start gap-base rounded-md border border-tertiary/40 bg-tertiary-container/10 px-stack-sm py-base font-body text-body-sm text-tertiary">
-                  <UyariIkonu className="mt-[2px] h-4 w-4 shrink-0" />
+                <Uyari
+                  ton="dikkat"
+                  dolgu="dar"
+                  className="mt-stack-sm"
+                  ikon={<UyariIkonu className="mt-[2px] h-4 w-4 shrink-0" />}
+                >
                   Bu mesajlar bir daha denenmiyor. Sebep giderildikten sonra elle kuyruğa
                   konmaları gerekiyor.
-                </p>
+                </Uyari>
               )}
             </section>
 

@@ -13,6 +13,9 @@ import {
   type EtkinlikBelgesi,
 } from '../../api/onay';
 import { BelgeIkonu, OnayIkonu, UyariIkonu } from '../../components/ui/Ikon';
+import { BosDurum } from '../../components/ui/BosDurum';
+import { Iskelet } from '../../components/ui/Iskelet';
+import { Uyari } from '../../components/ui/Uyari';
 import { tarihSaatBicimi } from '../../lib/bicim';
 
 
@@ -65,27 +68,15 @@ export function OnayKuyruguPage() {
       </header>
 
       {isPending && (
-        <div className="animate-pulse space-y-stack-sm" aria-hidden="true">
-          {[0, 1, 2].map((sira) => (
-            <div key={sira} className="h-24 rounded-lg bg-surface-variant/40" />
-          ))}
-        </div>
+        <Iskelet adet={3} cubuk="h-24 rounded-lg bg-surface-variant/40" duzen="space-y-stack-sm" />
       )}
 
-      {isError && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Onay kuyruğu yüklenemedi.')}
-        </p>
-      )}
+      {isError && <Uyari role="alert">{hataMesaji(error, 'Onay kuyruğu yüklenemedi.')}</Uyari>}
 
       {data?.items.length === 0 && (
-        <p className="flex items-center gap-base rounded-lg border border-outline-variant/40 bg-surface-variant/20 px-stack-md py-stack-md font-body text-body-md text-on-surface-variant">
-          <OnayIkonu className="h-5 w-5 shrink-0 text-primary" />
+        <BosDurum ikon={<OnayIkonu className="h-5 w-5 shrink-0 text-primary" />}>
           Onay bekleyen etkinlik yok.
-        </p>
+        </BosDurum>
       )}
 
       <ul className="space-y-stack-sm">
@@ -142,12 +133,9 @@ export function OnayKuyruguPage() {
             </div>
 
             {yayinla.isError && yayinla.variables === etkinlik.id && (
-              <p
-                role="alert"
-                className="mt-stack-sm rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-              >
+              <Uyari role="alert" dolgu="dar" className="mt-stack-sm">
                 {hataMesaji(yayinla.error, 'Etkinlik yayına alınamadı.')}
-              </p>
+              </Uyari>
             )}
 
             {acikEtkinlik === etkinlik.id && <Belgeler etkinlikId={etkinlik.id} />}
@@ -188,10 +176,15 @@ function Belgeler({ etkinlikId }: { etkinlikId: string }) {
 
   if (data.length === 0) {
     return (
-      <p className="mt-stack-sm flex items-center gap-base rounded-md border border-tertiary/40 bg-tertiary-container/10 px-stack-sm py-base font-body text-body-sm text-tertiary">
-        <UyariIkonu className="h-4 w-4 shrink-0" />
+      <Uyari
+        ton="dikkat"
+        dolgu="dar"
+        hizala="orta"
+        className="mt-stack-sm"
+        ikon={<UyariIkonu className="h-4 w-4 shrink-0" />}
+      >
         Belge yok. Onaya gönderme sahne sözleşmesi istediği için bu beklenmeyen bir durum.
-      </p>
+      </Uyari>
     );
   }
 

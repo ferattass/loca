@@ -13,7 +13,9 @@ import { tarihSaatBicimi } from '../lib/bicim';
 import { HavaleTalimatiKarti } from './odeme/HavaleTalimatiKarti';
 import { KOLTUK_SERBEST_KODLARI, odemeHatasiniAcikla, REZERVASYON_DURUM_METNI } from './odeme/hatalar';
 import { YontemSecenegi } from './odeme/YontemSecenegi';
+import { Iskelet } from '../components/ui/Iskelet';
 import { Sayfa } from '../components/ui/Sayfa';
+import { Uyari } from '../components/ui/Uyari';
 
 /** Son bir dakikada sayac kirmiziya doner. */
 const UYARI_ESIGI_SANIYE = 60;
@@ -195,13 +197,11 @@ export function OdemePage() {
   if (isPending) {
     return (
       <Sayfa>
-        <div className="animate-pulse space-y-stack-sm" aria-hidden="true">
-          <div className="h-6 w-56 rounded bg-surface-variant/60" />
-          <div className="h-40 rounded-lg bg-surface-variant/40" />
-        </div>
-        <span className="sr-only" role="status">
-          Rezervasyon yükleniyor
-        </span>
+        <Iskelet
+          cubuk={['h-6 w-56 rounded bg-surface-variant/60', 'h-40 rounded-lg bg-surface-variant/40']}
+          duzen="space-y-stack-sm"
+          duyuru="Rezervasyon yükleniyor"
+        />
       </Sayfa>
     );
   }
@@ -209,12 +209,7 @@ export function OdemePage() {
   if (isError) {
     return (
       <Sayfa>
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Rezervasyon yüklenemedi.')}
-        </p>
+        <Uyari role="alert">{hataMesaji(error, 'Rezervasyon yüklenemedi.')}</Uyari>
       </Sayfa>
     );
   }
@@ -334,12 +329,9 @@ export function OdemePage() {
       </section>
 
       {islemHatasi && (
-        <p
-          role="alert"
-          className="mb-stack-sm rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-        >
+        <Uyari role="alert" dolgu="dar" className="mb-stack-sm">
           {islemHatasi}
-        </p>
+        </Uyari>
       )}
 
       {/* Odeme / bilet alani */}

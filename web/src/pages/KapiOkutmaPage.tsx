@@ -5,6 +5,7 @@ import { hataKodu, hataMesaji } from '../api/client';
 import { biletOkut, type BiletOkutmaSonucu } from '../api/tickets';
 import { useQrOkuyucu } from '../hooks/useQrOkuyucu';
 import { CarpiIkonu, OkutmaIkonu, OnayIkonu, UyariIkonu } from '../components/ui/Ikon';
+import { Uyari } from '../components/ui/Uyari';
 import { saatBicimi } from '../lib/bicim';
 
 
@@ -168,13 +169,16 @@ export function KapiOkutmaPage() {
             </div>
 
             {kameraHatasi && (
-              <p
+              <Uyari
                 role="status"
-                className="mt-stack-sm flex items-center gap-base rounded-md border border-tertiary/40 bg-tertiary-container/10 px-stack-sm py-base font-body text-body-sm text-tertiary"
+                ton="dikkat"
+                dolgu="dar"
+                hizala="orta"
+                className="mt-stack-sm"
+                ikon={<UyariIkonu className="h-4 w-4 shrink-0" />}
               >
-                <UyariIkonu className="h-4 w-4 shrink-0" />
                 {kameraHatasi}
-              </p>
+              </Uyari>
             )}
 
             <SonucPaneli sonuc={sonuc} hata={hataMetni} bekliyor={okut.isPending} />

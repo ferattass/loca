@@ -5,7 +5,9 @@ import { useParams } from 'react-router-dom';
 import { hataMesaji } from '../api/client';
 import { koltukDurumuDegistir, planGetir, type OturmaPlani } from '../api/seatLayouts';
 import { SeatMap } from '../components/SeatMap';
+import { Iskelet } from '../components/ui/Iskelet';
 import { Sayfa } from '../components/ui/Sayfa';
+import { Uyari } from '../components/ui/Uyari';
 
 /**
  * Oturma planinin gorsel ekrani.
@@ -65,13 +67,11 @@ export function SeatLayoutPage() {
   if (isPending) {
     return (
       <Sayfa genislik="5xl">
-        <div className="animate-pulse space-y-stack-sm" aria-hidden="true">
-          <div className="h-6 w-64 rounded bg-surface-variant/60" />
-          <div className="h-96 rounded-lg bg-surface-variant/40" />
-        </div>
-        <span className="sr-only" role="status">
-          Oturma plani yukleniyor
-        </span>
+        <Iskelet
+          cubuk={['h-6 w-64 rounded bg-surface-variant/60', 'h-96 rounded-lg bg-surface-variant/40']}
+          duzen="space-y-stack-sm"
+          duyuru="Oturma plani yukleniyor"
+        />
       </Sayfa>
     );
   }
@@ -79,12 +79,7 @@ export function SeatLayoutPage() {
   if (isError) {
     return (
       <Sayfa genislik="5xl">
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Oturma plani yuklenemedi.')}
-        </p>
+        <Uyari role="alert">{hataMesaji(error, 'Oturma plani yuklenemedi.')}</Uyari>
       </Sayfa>
     );
   }
@@ -157,12 +152,9 @@ export function SeatLayoutPage() {
       )}
 
       {islemHatasi && (
-        <p
-          role="alert"
-          className="mb-stack-sm rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-        >
+        <Uyari role="alert" dolgu="dar" className="mb-stack-sm">
           {islemHatasi}
-        </p>
+        </Uyari>
       )}
 
       <SeatMap bolumler={data.sections} seciliIdler={seciliIdler} onKoltukSec={koltukSec} />

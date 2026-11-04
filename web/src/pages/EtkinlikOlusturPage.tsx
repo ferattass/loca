@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { dogrulamaHatalari, hataMesaji } from '../api/client';
 import { OnayIkonu } from '../components/ui/Ikon';
+import { Uyari } from '../components/ui/Uyari';
 import { AfisAdimi } from './etkinlik-olustur/AfisAdimi';
 import { BelgeAdimi } from './etkinlik-olustur/BelgeAdimi';
 import { BiletTuruAdimi } from './etkinlik-olustur/BiletTuruAdimi';
@@ -87,10 +88,7 @@ export function EtkinlikOlusturPage() {
         </ol>
 
         {hata && (
-          <div
-            role="alert"
-            className="mb-stack-sm rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-          >
+          <Uyari role="alert" dolgu="dar" className="mb-stack-sm">
             <p>{hata}</p>
 
             {/*
@@ -105,7 +103,7 @@ export function EtkinlikOlusturPage() {
                 ))}
               </ul>
             )}
-          </div>
+          </Uyari>
         )}
 
         {adim === 1 && (

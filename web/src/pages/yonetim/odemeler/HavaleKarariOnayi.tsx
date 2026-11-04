@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { type AdminOdeme } from '../../../api/admin';
+import { Uyari } from '../../../components/ui/Uyari';
 import { para } from '../../../lib/bicim';
 
 /**
@@ -60,17 +61,11 @@ export function HavaleKarariOnayi({
           </p>
         )}
 
-        <p
-          className={`mt-stack-sm rounded-md border px-stack-sm py-base font-body text-body-sm ${
-            onay
-              ? 'border-primary/40 bg-primary-container/15 text-primary'
-              : 'border-tertiary/40 bg-tertiary-container/10 text-tertiary'
-          }`}
-        >
+        <Uyari ton={onay ? 'basari' : 'dikkat'} dolgu="dar" className="mt-stack-sm">
           {onay
             ? 'Biletler üretilecek ve koltuklar satılmış sayılacak. Geri almanın yolu iade akışı.'
             : 'Rezervasyon iptal edilecek ve koltuklar hemen satışa dönecek.'}
-        </p>
+        </Uyari>
 
         <label
           htmlFor="havale-metin"

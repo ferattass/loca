@@ -141,3 +141,39 @@ export function MenuIkonu(props: IkonProps) {
     </Sarmal>
   );
 }
+
+export function KonumIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0" />
+      <circle cx="12" cy="10" r="3" />
+    </Sarmal>
+  );
+}
+
+export function TakvimIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </Sarmal>
+  );
+}
+
+export function SaatIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </Sarmal>
+  );
+}
+
+export function KisiIkonu(props: IkonProps) {
+  return (
+    <Sarmal {...props}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </Sarmal>
+  );
+}

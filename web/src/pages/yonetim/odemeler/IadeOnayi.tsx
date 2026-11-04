@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { type AdminOdeme } from '../../../api/admin';
+import { Uyari } from '../../../components/ui/Uyari';
 import { para } from '../../../lib/bicim';
 
 /**
@@ -42,9 +43,9 @@ export function IadeOnayi({
         </p>
         <p className="font-body text-body-sm text-on-surface-variant">{odeme.eventTitle}</p>
 
-        <p className="mt-stack-sm rounded-md border border-tertiary/40 bg-tertiary-container/10 px-stack-sm py-base font-body text-body-sm text-tertiary">
+        <Uyari ton="dikkat" dolgu="dar" className="mt-stack-sm">
           Biletler iptal edilecek ve koltuklar satışa dönecek. Bu işlem geri alınamaz.
-        </p>
+        </Uyari>
 
         <label htmlFor="iade-sebebi" className="mt-stack-sm block font-body text-body-sm text-on-surface-variant">
           İade sebebi

@@ -6,6 +6,7 @@ import { type KoltukUretIstek, type KoltukUretSonuc, koltukUret } from '../../ap
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { Secim } from '../../components/ui/Secim';
+import { Uyari } from '../../components/ui/Uyari';
 
 /** Bolumler alt alta dizilir; yeni bolume onerilen bosluk bu kadar birim. */
 const BOLUM_ARASI_BOSLUK = 80;
@@ -189,12 +190,9 @@ export function KoltukUretFormu({
       )}
 
       {kapasiteAsiyor && (
-        <p
-          role="alert"
-          className="rounded-md border border-tertiary/40 bg-tertiary-container/20 px-stack-sm py-base font-body text-body-sm text-tertiary"
-        >
+        <Uyari role="alert" ton="dikkat" dolgu="dar">
           Bu üretim salon kapasitesini aşıyor: {projeksiyon} / {plan.hallCapacity}.
-        </p>
+        </Uyari>
       )}
 
       {sonSonuc && (

@@ -20,8 +20,11 @@ import { sehirleriGetir, type Sehir } from '../api/catalog';
 import { kategorileriGetir } from '../api/events';
 import type { EtkinlikKategorisi } from '../api/events';
 import { EtkinlikKarti } from '../components/EtkinlikKarti';
+import { BosDurum } from '../components/ui/BosDurum';
 import { Button } from '../components/ui/Button';
+import { Iskelet } from '../components/ui/Iskelet';
 import { TextField } from '../components/ui/TextField';
+import { Uyari } from '../components/ui/Uyari';
 
 const ONE_CIKANLAR_ID = 'one-cikanlar';
 
@@ -275,30 +278,18 @@ function OneCikanlarBolumu({
         <p className="font-body text-body-sm text-on-surface-variant">{altBaslik}</p>
       </div>
 
-      {hata && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hata}
-        </p>
-      )}
+      {hata && <Uyari role="alert">{hata}</Uyari>}
 
       {yukleniyor && (
-        <div
-          className="grid grid-cols-2 gap-stack-sm sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-          aria-hidden="true"
-        >
-          {[0, 1, 2].map((anahtar) => (
-            <div key={anahtar} className="h-80 animate-pulse rounded-lg bg-surface-variant/40" />
-          ))}
-        </div>
+        <Iskelet
+          adet={3}
+          cubuk="h-80 rounded-lg bg-surface-variant/40"
+          duzen="grid grid-cols-2 gap-stack-sm sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+        />
       )}
 
       {!yukleniyor && !hata && etkinlikler.length === 0 && (
-        <p className="rounded-lg border border-outline-variant/40 bg-surface-variant/20 px-stack-sm py-stack-md font-body text-body-sm text-on-surface-variant">
-          {bosMetin}
-        </p>
+        <BosDurum boyut="sm">{bosMetin}</BosDurum>
       )}
 
       {!yukleniyor && etkinlikler.length > 0 && (
@@ -336,21 +327,14 @@ function EtrafindaBolumu({ mekanlar, sehir, yukleniyor, hata }: EtrafindaBolumuP
         </p>
       </div>
 
-      {hata && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hata}
-        </p>
-      )}
+      {hata && <Uyari role="alert">{hata}</Uyari>}
 
       {yukleniyor && (
-        <ul className="flex flex-col gap-base" aria-hidden="true">
-          {[0, 1, 2].map((anahtar) => (
-            <li key={anahtar} className="h-14 animate-pulse rounded-lg bg-surface-variant/40" />
-          ))}
-        </ul>
+        <Iskelet
+          adet={3}
+          cubuk="h-14 rounded-lg bg-surface-variant/40"
+          duzen="flex flex-col gap-base"
+        />
       )}
 
       {!yukleniyor && !hata && mekanlar.length === 0 && (

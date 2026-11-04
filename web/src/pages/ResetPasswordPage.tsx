@@ -9,6 +9,7 @@ import { hataMesaji } from '../api/client';
 import { AuthLayout } from '../components/AuthLayout';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/TextField';
+import { Uyari } from '../components/ui/Uyari';
 
 /** Sunucudaki ResetPasswordCommandValidator ile ayni kurallar. */
 const yeniSifreSemasi = z
@@ -52,13 +53,10 @@ export function ResetPasswordPage() {
         altBaglantiEtiketi="Sifremi unuttum"
         altBaglantiYolu="/sifremi-unuttum"
       >
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
+        <Uyari role="alert">
           Baglantiyi e-postadan kopyalarken eksik almis olabilirsin. Yeni bir
           sifirlama baglantisi iste.
-        </p>
+        </Uyari>
       </AuthLayout>
     );
   }
@@ -105,18 +103,15 @@ export function ResetPasswordPage() {
         />
 
         {sunucuHatasi && (
-          <div
-            role="alert"
-            className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base"
-          >
-            <p className="font-body text-body-sm text-error">{sunucuHatasi}</p>
+          <Uyari role="alert" dolgu="dar">
+            <p>{sunucuHatasi}</p>
             <Link
               to="/sifremi-unuttum"
               className="font-body text-body-sm text-primary underline underline-offset-2"
             >
               Yeni baglanti iste
             </Link>
-          </div>
+          </Uyari>
         )}
 
         <Button type="submit" yukleniyor={isSubmitting} className="mt-base w-full">

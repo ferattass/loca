@@ -4,7 +4,10 @@ import { hataMesaji } from '../../api/client';
 import { type MekanDetayi, mekanDetayiGetir, mekanGuncelle, mekanSil, salonEkle, salonSil } from '../../api/venues';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
-import { HataKutusu, hataYapisiOlustur, type HataYapisi } from './hata';
+import { HataKutusu } from '../../components/ui/HataKutusu';
+import { Iskelet } from '../../components/ui/Iskelet';
+import { Uyari } from '../../components/ui/Uyari';
+import { hataYapisiOlustur, type HataYapisi } from '../../lib/hataYapisi';
 import { SilmeButonu } from './SilmeButonu';
 
 // --- Secili mekanin detayi ---------------------------------------------------
@@ -25,27 +28,19 @@ export function MekanDetayPaneli({
 
   if (detay.isPending) {
     return (
-      <div
-        className="animate-pulse space-y-stack-sm rounded-lg border border-outline-variant/40 p-stack-sm"
-        aria-hidden="true"
-      >
-        <div className="h-6 w-40 rounded bg-surface-variant/60" />
-        <div className="h-40 rounded bg-surface-variant/40" />
-        <span className="sr-only" role="status">
-          Mekân detayı yükleniyor
-        </span>
-      </div>
+      <Iskelet
+        cubuk={['h-6 w-40 rounded bg-surface-variant/60', 'h-40 rounded bg-surface-variant/40']}
+        duzen="space-y-stack-sm rounded-lg border border-outline-variant/40 p-stack-sm"
+        duyuru="Mekân detayı yükleniyor"
+      />
     );
   }
 
   if (detay.isError) {
     return (
-      <p
-        role="alert"
-        className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-      >
+      <Uyari role="alert" dolgu="dar">
         {hataMesaji(detay.error, 'Mekân detayı yüklenemedi.')}
-      </p>
+      </Uyari>
     );
   }
 

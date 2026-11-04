@@ -11,6 +11,8 @@ import {
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { OnayIkonu, UyariIkonu } from '../../components/ui/Ikon';
+import { Iskelet } from '../../components/ui/Iskelet';
+import { Uyari } from '../../components/ui/Uyari';
 
 interface Form {
   host: string;
@@ -133,42 +135,31 @@ export function AyarlarPage() {
       </header>
 
       {isPending && (
-        <div className="animate-pulse space-y-stack-sm" aria-hidden="true">
-          {[0, 1, 2, 3].map((sira) => (
-            <div key={sira} className="h-14 rounded-md bg-surface-variant/40" />
-          ))}
-        </div>
+        <Iskelet adet={4} cubuk="h-14 rounded-md bg-surface-variant/40" duzen="space-y-stack-sm" />
       )}
 
-      {isError && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Ayarlar yüklenemedi.')}
-        </p>
-      )}
+      {isError && <Uyari role="alert">{hataMesaji(error, 'Ayarlar yüklenemedi.')}</Uyari>}
 
       {data && (
         <>
-          <p
-            className={`mb-stack-md flex items-start gap-base rounded-md border px-stack-sm py-base font-body text-body-sm ${
-              data.isConfigured
-                ? 'border-outline-variant/60 bg-surface-variant/20 text-on-surface-variant'
-                : 'border-tertiary/40 bg-tertiary-container/10 text-tertiary'
-            }`}
+          <Uyari
+            ton={data.isConfigured ? 'notr' : 'dikkat'}
+            dolgu="dar"
+            className="mb-stack-md"
+            ikon={
+              data.isConfigured ? (
+                <OnayIkonu className="mt-[2px] h-4 w-4 shrink-0" />
+              ) : (
+                <UyariIkonu className="mt-[2px] h-4 w-4 shrink-0" />
+              )
+            }
           >
-            {data.isConfigured ? (
-              <OnayIkonu className="mt-[2px] h-4 w-4 shrink-0" />
-            ) : (
-              <UyariIkonu className="mt-[2px] h-4 w-4 shrink-0" />
-            )}
             <span>
               {data.isConfigured
                 ? `Yapılandırılmış — ${KAYNAK_METNI[data.source]}.`
                 : 'Posta sunucusu tanımlı değil. Şu an şifre sıfırlama e-postası gönderilemiyor.'}
             </span>
-          </p>
+          </Uyari>
 
           <form onSubmit={gonder} className="space-y-stack-md" noValidate>
             <TextField
@@ -274,22 +265,21 @@ export function AyarlarPage() {
                 oldugunu dusundururdu. Burasi 500, ag kopmasi gibi bir
                 alana baglanamayan hatalar icin. */}
             {kaydet.isError && Object.keys(alanHatalari).length === 0 && (
-              <p
-                role="alert"
-                className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-              >
+              <Uyari role="alert" dolgu="dar">
                 {hataMesaji(kaydet.error, 'Ayarlar kaydedilemedi.')}
-              </p>
+              </Uyari>
             )}
 
             {kaydedildi && (
-              <p
+              <Uyari
                 role="status"
-                className="flex items-center gap-base rounded-md border border-primary/40 bg-primary-container/15 px-stack-sm py-base font-body text-body-sm text-primary"
+                ton="basari"
+                dolgu="dar"
+                hizala="orta"
+                ikon={<OnayIkonu className="h-4 w-4 shrink-0" />}
               >
-                <OnayIkonu className="h-4 w-4 shrink-0" />
                 Ayarlar kaydedildi.
-              </p>
+              </Uyari>
             )}
 
             <div className="flex flex-wrap items-center gap-stack-sm">
@@ -321,34 +311,30 @@ export function AyarlarPage() {
           </form>
 
           {dene.data && (
-            <p
+            <Uyari
               role="status"
-              className={`mt-stack-md flex items-start gap-base rounded-md border px-stack-sm py-stack-sm font-body text-body-sm ${
-                dene.data.succeeded
-                  ? 'border-primary/40 bg-primary-container/15 text-primary'
-                  : 'border-error/40 bg-error-container/20 text-error'
-              }`}
+              ton={dene.data.succeeded ? 'basari' : 'hata'}
+              className="mt-stack-md"
+              ikon={
+                dene.data.succeeded ? (
+                  <OnayIkonu className="mt-[2px] h-4 w-4 shrink-0" />
+                ) : (
+                  <UyariIkonu className="mt-[2px] h-4 w-4 shrink-0" />
+                )
+              }
             >
-              {dene.data.succeeded ? (
-                <OnayIkonu className="mt-[2px] h-4 w-4 shrink-0" />
-              ) : (
-                <UyariIkonu className="mt-[2px] h-4 w-4 shrink-0" />
-              )}
               <span className="min-w-0 break-words">
                 {dene.data.succeeded
                   ? 'Sunucuya bağlanıldı ve kimlik doğrulandı.'
                   : `Bağlanılamadı: ${dene.data.error}`}
               </span>
-            </p>
+            </Uyari>
           )}
 
           {dene.isError && (
-            <p
-              role="alert"
-              className="mt-stack-md rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-            >
+            <Uyari role="alert" dolgu="dar" className="mt-stack-md">
               {hataMesaji(dene.error, 'Bağlantı denenemedi.')}
-            </p>
+            </Uyari>
           )}
         </>
       )}

@@ -5,7 +5,8 @@ import { mekanOlustur } from '../../api/venues';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { Secim } from '../../components/ui/Secim';
-import { HataKutusu, hataYapisiOlustur, type HataYapisi } from './hata';
+import { HataKutusu } from '../../components/ui/HataKutusu';
+import { hataYapisiOlustur, type HataYapisi } from '../../lib/hataYapisi';
 
 // --- Yeni mekan ekleme -------------------------------------------------------
 

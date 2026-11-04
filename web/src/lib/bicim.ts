@@ -62,3 +62,14 @@ export const uzunTarihSaatBicimi = new Intl.DateTimeFormat('tr-TR', {
   dateStyle: 'long',
   timeStyle: 'short',
 });
+
+/**
+ * 12 Ağustos 2026 Çarşamba 14:30 — haftanın günü dahil.
+ *
+ * Etkinlik ve seans tarihlerinde gün adı bilgi taşıyor: kullanıcı bileti
+ * "cumartesi" diye hatırlıyor, ayın kaçı olduğunu değil.
+ */
+export const tamTarihSaatBicimi = new Intl.DateTimeFormat('tr-TR', {
+  dateStyle: 'full',
+  timeStyle: 'short',
+});

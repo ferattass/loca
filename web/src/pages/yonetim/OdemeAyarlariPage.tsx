@@ -11,6 +11,8 @@ import {
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { OnayIkonu, UyariIkonu } from '../../components/ui/Ikon';
+import { Iskelet } from '../../components/ui/Iskelet';
+import { Uyari } from '../../components/ui/Uyari';
 import { para } from '../../lib/bicim';
 
 interface Form {
@@ -172,21 +174,10 @@ export function OdemeAyarlariPage() {
       </header>
 
       {isPending && (
-        <div className="animate-pulse space-y-stack-sm" aria-hidden="true">
-          {[0, 1, 2, 3].map((sira) => (
-            <div key={sira} className="h-14 rounded-md bg-surface-variant/40" />
-          ))}
-        </div>
+        <Iskelet adet={4} cubuk="h-14 rounded-md bg-surface-variant/40" duzen="space-y-stack-sm" />
       )}
 
-      {isError && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Ödeme ayarları yüklenemedi.')}
-        </p>
-      )}
+      {isError && <Uyari role="alert">{hataMesaji(error, 'Ödeme ayarları yüklenemedi.')}</Uyari>}
 
       {data && (
         <>
@@ -212,18 +203,18 @@ export function OdemeAyarlariPage() {
             </p>
           </div>
 
-          <p
-            className={`mb-stack-md flex items-start gap-base rounded-md border px-stack-sm py-base font-body text-body-sm ${
-              data.iyzicoConfigured
-                ? 'border-outline-variant/60 bg-surface-variant/20 text-on-surface-variant'
-                : 'border-tertiary/40 bg-tertiary-container/10 text-tertiary'
-            }`}
+          <Uyari
+            ton={data.iyzicoConfigured ? 'notr' : 'dikkat'}
+            dolgu="dar"
+            className="mb-stack-md"
+            ikon={
+              data.iyzicoConfigured ? (
+                <OnayIkonu className="mt-[2px] h-4 w-4 shrink-0" />
+              ) : (
+                <UyariIkonu className="mt-[2px] h-4 w-4 shrink-0" />
+              )
+            }
           >
-            {data.iyzicoConfigured ? (
-              <OnayIkonu className="mt-[2px] h-4 w-4 shrink-0" />
-            ) : (
-              <UyariIkonu className="mt-[2px] h-4 w-4 shrink-0" />
-            )}
             {/* Uc ayri durum, uc ayri cumle. Ikiye indirilseydi ("tanimli /
                 tanimli degil") anahtarlari girmis ama geri donus adresini
                 bos birakmis yonetici "anahtar tanimli degil" mesajini
@@ -236,7 +227,7 @@ export function OdemeAyarlariPage() {
                   ? 'iyzico anahtarları tanımlı ama sunucu geri dönüş adresi boş. Bu hâliyle kartla ödeme başlatılamıyor.'
                   : 'iyzico anahtarları tanımlı değil. Şu an kartla ödeme başlatılamıyor.'}
             </span>
-          </p>
+          </Uyari>
 
           <form onSubmit={gonder} className="space-y-stack-lg" noValidate>
             <section className="space-y-stack-md">
@@ -450,22 +441,21 @@ export function OdemeAyarlariPage() {
                 zaten kendi alaninin altinda yaziyor ve ayni cumleyi altta
                 tekrar etmek iki ayri sorun oldugunu dusundururdu. */}
             {kaydet.isError && Object.keys(alanHatalari).length === 0 && (
-              <p
-                role="alert"
-                className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-              >
+              <Uyari role="alert" dolgu="dar">
                 {hataMesaji(kaydet.error, 'Ödeme ayarları kaydedilemedi.')}
-              </p>
+              </Uyari>
             )}
 
             {kaydedildi && (
-              <p
+              <Uyari
                 role="status"
-                className="flex items-center gap-base rounded-md border border-primary/40 bg-primary-container/15 px-stack-sm py-base font-body text-body-sm text-primary"
+                ton="basari"
+                dolgu="dar"
+                hizala="orta"
+                ikon={<OnayIkonu className="h-4 w-4 shrink-0" />}
               >
-                <OnayIkonu className="h-4 w-4 shrink-0" />
                 Ödeme ayarları kaydedildi.
-              </p>
+              </Uyari>
             )}
 
             <Button type="submit" yukleniyor={kaydet.isPending}>

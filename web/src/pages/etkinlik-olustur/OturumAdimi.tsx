@@ -6,6 +6,7 @@ import { oturumEkle } from '../../api/events';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { Secim } from '../../components/ui/Secim';
+import { Uyari } from '../../components/ui/Uyari';
 import { Alan, type HataBildir } from './ortak';
 import { yereldenUtc } from './tarih';
 
@@ -225,12 +226,9 @@ function SalonDolulukRozeti({
 
   if (sorgu.data.isAvailable) {
     return (
-      <p
-        role="status"
-        className="rounded-md border border-primary/40 bg-primary-container/15 px-stack-sm py-base font-body text-body-sm text-primary"
-      >
+      <Uyari role="status" ton="basari" dolgu="dar">
         Salon bu saatlerde müsait.
-      </p>
+      </Uyari>
     );
   }
 

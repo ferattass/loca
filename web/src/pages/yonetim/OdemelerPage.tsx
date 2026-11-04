@@ -14,6 +14,9 @@ import { para } from '../../lib/bicim';
 import { HavaleKarariOnayi } from './odemeler/HavaleKarariOnayi';
 import { IadeOnayi } from './odemeler/IadeOnayi';
 import { FiltreDugmesi } from '../../components/ui/FiltreDugmesi';
+import { BosDurum } from '../../components/ui/BosDurum';
+import { Iskelet } from '../../components/ui/Iskelet';
+import { Uyari } from '../../components/ui/Uyari';
 import { Baslik, Hucre, SayfaDugmesi } from './odemeler/tablo';
 
 const tarihBicimi = new Intl.DateTimeFormat('tr-TR', {
@@ -180,26 +183,13 @@ export function OdemelerPage() {
       </div>
 
       {isPending && (
-        <div className="animate-pulse space-y-base" aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((sira) => (
-            <div key={sira} className="h-14 rounded-md bg-surface-variant/40" />
-          ))}
-        </div>
+        <Iskelet adet={5} cubuk="h-14 rounded-md bg-surface-variant/40" duzen="space-y-base" />
       )}
 
-      {isError && (
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Ödemeler yüklenemedi.')}
-        </p>
-      )}
+      {isError && <Uyari role="alert">{hataMesaji(error, 'Ödemeler yüklenemedi.')}</Uyari>}
 
       {data && data.items.length === 0 && (
-        <p className="rounded-lg border border-outline-variant/40 bg-surface-variant/20 px-stack-md py-stack-md font-body text-body-md text-on-surface-variant">
-          Bu filtreyle eşleşen ödeme yok.
-        </p>
+        <BosDurum>Bu filtreyle eşleşen ödeme yok.</BosDurum>
       )}
 
       {data && data.items.length > 0 && (

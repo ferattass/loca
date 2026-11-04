@@ -7,6 +7,9 @@ import { mekanListesiGetir } from '../api/venues';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/TextField';
 import { Secim } from '../components/ui/Secim';
+import { BosDurum } from '../components/ui/BosDurum';
+import { Iskelet } from '../components/ui/Iskelet';
+import { Uyari } from '../components/ui/Uyari';
 import { YeniMekanFormu } from './mekan/YeniMekanFormu';
 import { MekanDetayPaneli } from './mekan/MekanDetayi';
 
@@ -85,29 +88,22 @@ export function MekanYonetimPage() {
             </div>
 
             {mekanlar.isPending && (
-              <div className="animate-pulse space-y-base" aria-hidden="true">
-                <div className="h-16 rounded-md bg-surface-variant/40" />
-                <div className="h-16 rounded-md bg-surface-variant/40" />
-                <div className="h-16 rounded-md bg-surface-variant/40" />
-                <span className="sr-only" role="status">
-                  Mekânlar yükleniyor
-                </span>
-              </div>
+              <Iskelet
+                adet={3}
+                cubuk="h-16 rounded-md bg-surface-variant/40"
+                duzen="space-y-base"
+                duyuru="Mekânlar yükleniyor"
+              />
             )}
 
             {mekanlar.isError && (
-              <p
-                role="alert"
-                className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-              >
+              <Uyari role="alert" dolgu="dar">
                 {hataMesaji(mekanlar.error, 'Mekânlar yüklenemedi.')}
-              </p>
+              </Uyari>
             )}
 
             {mekanlar.data && mekanlar.data.items.length === 0 && (
-              <p className="rounded-md border border-outline-variant/40 bg-surface-variant/20 px-stack-sm py-stack-md font-body text-body-sm text-on-surface-variant">
-                Kayıtlı mekân bulunamadı.
-              </p>
+              <BosDurum boyut="sm">Kayıtlı mekân bulunamadı.</BosDurum>
             )}
 
             {mekanlar.data && mekanlar.data.items.length > 0 && (

@@ -6,6 +6,8 @@ import { hataMesaji } from '../api/client';
 import { biletlerimGetir, type Bilet, type BiletDurumu } from '../api/tickets';
 import { BiletKarti } from '../components/BiletKarti';
 import { SagOkIkonu } from '../components/ui/Ikon';
+import { Iskelet } from '../components/ui/Iskelet';
+import { Uyari } from '../components/ui/Uyari';
 
 const gunBicimi = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long' });
 const saatBicimi = new Intl.DateTimeFormat('tr-TR', { timeStyle: 'short' });
@@ -92,19 +94,18 @@ export function BiletlerimPage() {
         </p>
 
         {isPending && (
-          <div className="mt-stack-md animate-pulse space-y-stack-sm" aria-hidden="true">
-            <div className="h-28 rounded-lg bg-surface-variant/40" />
-            <div className="h-28 rounded-lg bg-surface-variant/40" />
-          </div>
+          <Iskelet
+            adet={2}
+            cubuk="h-28 rounded-lg bg-surface-variant/40"
+            duzen="space-y-stack-sm"
+            className="mt-stack-md"
+          />
         )}
 
         {isError && (
-          <p
-            role="alert"
-            className="mt-stack-md rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-          >
+          <Uyari role="alert" className="mt-stack-md">
             {hataMesaji(error, 'Biletler yüklenemedi.')}
-          </p>
+          </Uyari>
         )}
 
         {data && data.length === 0 && (

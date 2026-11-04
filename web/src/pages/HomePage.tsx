@@ -9,6 +9,7 @@ import { biletlerimGetir, type Bilet } from '../api/tickets';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/TextField';
 import { BiletIkonu, OnayIkonu, SagOkIkonu, UyariIkonu } from '../components/ui/Ikon';
+import { Uyari } from '../components/ui/Uyari';
 import { useAuthStore } from '../stores/authStore';
 import { uzunTarihSaatBicimi } from '../lib/bicim';
 
@@ -134,7 +135,7 @@ function HesapBasligi({
 
       <div className="min-w-0">
         <p className="font-body text-label-caps uppercase text-primary">Hesabım</p>
-        <h1 className="font-headline text-headline-lg text-on-surface">
+        <h1 className="font-headline text-headline-md text-on-surface">
           {kullanici?.fullName ?? 'Hesabım'}
         </h1>
         <p className="font-body text-body-sm text-on-surface-variant">{kullanici?.email}</p>
@@ -432,22 +433,21 @@ function SifreDegistir() {
         />
 
         {hata !== null && Object.keys(alanlar).length === 0 && (
-          <p
-            role="alert"
-            className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base font-body text-body-sm text-error"
-          >
+          <Uyari role="alert" dolgu="dar">
             {hataMesaji(hata, 'Şifre değiştirilemedi.')}
-          </p>
+          </Uyari>
         )}
 
         {tamam && (
-          <p
+          <Uyari
             role="status"
-            className="flex items-center gap-base rounded-md border border-primary/40 bg-primary-container/15 px-stack-sm py-base font-body text-body-sm text-primary"
+            ton="basari"
+            dolgu="dar"
+            hizala="orta"
+            ikon={<OnayIkonu className="h-4 w-4 shrink-0" />}
           >
-            <OnayIkonu className="h-4 w-4 shrink-0" />
             Şifren değiştirildi.
-          </p>
+          </Uyari>
         )}
 
         <Button

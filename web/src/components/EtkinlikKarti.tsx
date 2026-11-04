@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { dosyaAdresi } from '../api/client';
 import type { EtkinlikOzeti } from '../api/eventCatalog';
+import { KonumIkonu } from './ui/Ikon';
 import { paraKurussuz, saatBicimi } from '../lib/bicim';
 
 // Ay adi Intl'den Turkce geliyor ama kucuk harfle ("eylul" degil "Eylul").
@@ -55,6 +56,14 @@ export function EtkinlikKarti({ etkinlik }: EtkinlikKartiProps) {
               onError={() => setGorselBozuk(true)}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
+
+            {/* Kategori afisin uzerinde duruyor. Metin blogunda tarih
+                satiriyla ayni satiri paylasiyordu ve uzun tarihlerde
+                ("15 AGUSTOS · CMT · 21:00") satir tasip kesiliyordu —
+                kartlarda saatin son hanesi gorunmuyordu. */}
+            <span className="absolute bottom-2 left-2 rounded-full bg-surface-container-lowest/75 px-stack-sm py-[2px] font-body text-[11px] text-on-surface backdrop-blur-glass">
+              {etkinlik.categoryName}
+            </span>
           </div>
         ) : (
           // Afis yokken ince bir vurgu seridi: kartlari birbirinden ayiran
@@ -70,25 +79,24 @@ export function EtkinlikKarti({ etkinlik }: EtkinlikKartiProps) {
           {/* Tarih SAAT ile birlikte: bir biletleme sitesinde "hangi gun"
               kadar "saat kacta" da karar veriyor ve kullanici bunu
               ogrenmek icin detaya girmek zorunda kalmamali. */}
-          <div className="flex flex-wrap items-baseline justify-between gap-base">
-            <p className="font-body text-label-caps text-primary">
-              {tarihEtiketi} · {gunEtiketi} · {saatEtiketi}
-            </p>
+          <p className="truncate font-body text-label-caps text-primary">
+            {tarihEtiketi} · {gunEtiketi} · {saatEtiketi}
+          </p>
 
-            {/* Kategori, afis yokken kartin ne oldugunu soyleyen tek
-                isaret. Afisli kartta da duruyor; iki gorsel arasinda
-                gozle ayirt etmek zor. */}
-            <span className="shrink-0 rounded-full border border-outline-variant px-base py-[1px] font-body text-[11px] text-on-surface-variant">
+          {/* Afis yoksa kategori kartin ne oldugunu soyleyen tek isaret;
+              afisli kartta ayni etiket gorselin uzerinde duruyor. */}
+          {!afis && (
+            <span className="w-fit rounded-full border border-outline-variant px-base py-[1px] font-body text-[11px] text-on-surface-variant">
               {etkinlik.categoryName}
             </span>
-          </div>
+          )}
 
           <h3 className="font-headline text-title-lg text-on-surface line-clamp-2">
             {etkinlik.title}
           </h3>
 
           <p className="flex items-center gap-1 font-body text-body-sm text-on-surface-variant">
-            <KonumIkonu />
+            <KonumIkonu className="h-4 w-4 shrink-0" />
             <span className="truncate">
               {etkinlik.venueName}, {etkinlik.cityName}
             </span>
@@ -164,14 +172,6 @@ function FavoriButonu({ baslik }: { baslik: string }) {
         </span>
       )}
     </div>
-  );
-}
-
-function KonumIkonu() {
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 shrink-0 fill-current">
-      <path d="M10 2a6 6 0 0 0-6 6c0 4.5 6 10 6 10s6-5.5 6-10a6 6 0 0 0-6-6Zm0 8.25A2.25 2.25 0 1 1 10 5.75a2.25 2.25 0 0 1 0 4.5Z" />
-    </svg>
   );
 }
 

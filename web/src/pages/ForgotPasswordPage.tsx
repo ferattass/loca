@@ -8,6 +8,7 @@ import { hataMesaji } from '../api/client';
 import { AuthLayout } from '../components/AuthLayout';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/TextField';
+import { Uyari } from '../components/ui/Uyari';
 
 const sifirlamaSemasi = z.object({
   email: z.string().min(1, 'E-posta zorunludur.').email('Gecerli bir e-posta adresi girin.'),
@@ -81,12 +82,9 @@ export function ForgotPasswordPage() {
         />
 
         {sunucuHatasi && (
-          <div
-            role="alert"
-            className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-base"
-          >
-            <p className="font-body text-body-sm text-error">{sunucuHatasi}</p>
-          </div>
+          <Uyari role="alert" dolgu="dar">
+            {sunucuHatasi}
+          </Uyari>
         )}
 
         <Button type="submit" yukleniyor={isSubmitting} className="mt-base w-full">

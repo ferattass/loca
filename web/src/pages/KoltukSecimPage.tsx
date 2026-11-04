@@ -16,7 +16,9 @@ import { SolOkIkonu } from '../components/ui/Ikon';
 import type { SeatStatus } from '../components/SeatStatePreview';
 import { sureBicimle } from '../hooks/useGeriSayim';
 import { uzunTarihSaatBicimi } from '../lib/bicim';
+import { Iskelet } from '../components/ui/Iskelet';
 import { Sayfa } from '../components/ui/Sayfa';
+import { Uyari } from '../components/ui/Uyari';
 import { useAuthStore } from '../stores/authStore';
 
 /** Sunucu durumunun gorsel karsiligi. */
@@ -248,13 +250,11 @@ export function KoltukSecimPage() {
   if (isPending) {
     return (
       <Sayfa genislik="6xl">
-        <div className="animate-pulse space-y-stack-sm" aria-hidden="true">
-          <div className="h-6 w-64 rounded bg-surface-variant/60" />
-          <div className="h-96 rounded-lg bg-surface-variant/40" />
-        </div>
-        <span className="sr-only" role="status">
-          Koltuk planı yükleniyor
-        </span>
+        <Iskelet
+          cubuk={['h-6 w-64 rounded bg-surface-variant/60', 'h-96 rounded-lg bg-surface-variant/40']}
+          duzen="space-y-stack-sm"
+          duyuru="Koltuk planı yükleniyor"
+        />
       </Sayfa>
     );
   }
@@ -262,12 +262,7 @@ export function KoltukSecimPage() {
   if (isError) {
     return (
       <Sayfa genislik="6xl">
-        <p
-          role="alert"
-          className="rounded-md border border-error/40 bg-error-container/20 px-stack-sm py-stack-sm font-body text-body-sm text-error"
-        >
-          {hataMesaji(error, 'Koltuk planı yüklenemedi.')}
-        </p>
+        <Uyari role="alert">{hataMesaji(error, 'Koltuk planı yüklenemedi.')}</Uyari>
       </Sayfa>
     );
   }
@@ -277,12 +272,9 @@ export function KoltukSecimPage() {
       <BaslikBlogu musaitlik={data} dataUpdatedAt={dataUpdatedAt} />
 
       {uyari && (
-        <p
-          role="alert"
-          className="mb-stack-sm rounded-md border border-tertiary/40 bg-tertiary-container/20 px-stack-sm py-base font-body text-body-sm text-tertiary"
-        >
+        <Uyari role="alert" ton="dikkat" dolgu="dar" className="mb-stack-sm">
           {uyari}
-        </p>
+        </Uyari>
       )}
 
       <div className="grid grid-cols-1 gap-stack-lg lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
